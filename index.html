@@ -288,6 +288,30 @@ legend{font:600 15px var(--display);margin-bottom:12px;padding:0;color:var(--acc
 .reco h3{margin-bottom:6px;color:var(--accent-text)}
 .reco p{margin:0;color:var(--muted);font-size:14px}
 
+
+.subnav{margin-bottom:20px}
+.t th small{display:block;color:var(--muted)}
+.sbadge{display:inline-block;margin-left:6px;background:var(--gold);color:var(--gold-ink);border-radius:20px;font-size:11.5px;padding:0 7px;font-weight:700;line-height:18px}
+.sbadge.mute{background:var(--surface-3);color:var(--muted)}
+.tag{display:inline-block;font:600 12.5px var(--display);letter-spacing:.04em;padding:2px 8px;border-radius:6px;background:var(--warn-bg);color:var(--accent-text);border:1px solid rgba(246,185,10,.35);white-space:nowrap}
+.scan{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:8px 14px;margin-bottom:16px}
+.scan svg{width:24px;height:24px;flex:none;stroke:var(--accent-text);fill:none;stroke-width:1.7;stroke-linecap:round}
+.scan .search{flex:1;border:0;background:transparent;min-width:0;font-size:15px;padding:8px 4px}
+.scan .search:focus{outline:none}
+.scan:focus-within{border-color:var(--gold);box-shadow:0 0 0 3px var(--glow)}
+.scan .muted{font-size:12.5px;white-space:nowrap}
+.pcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px}
+.pcard{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column}
+.pc-h{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:8px}
+.pc-h b{font:700 22px var(--display);color:var(--accent-text)}
+.pcard ul{list-style:none;margin:0 0 10px;padding:0;display:flex;flex-direction:column;gap:2px}
+.lrow{all:unset;cursor:pointer;display:flex;gap:10px;align-items:center;padding:5px 6px;border-radius:6px;font-size:14px;width:calc(100% - 12px)}
+.lrow:hover{background:var(--surface-2)}
+.lrow:focus-visible{outline:2px solid var(--gold)}
+.pcard .acts{margin-top:auto}
+.cash input[list],.cash .minisel{text-align:left;width:100%;border:1px solid var(--line);background:var(--bg-2);border-radius:6px;padding:6px 8px;color:var(--ink)}
+.cash table td{padding-right:6px}
+@media (max-width:860px){.scan .muted{display:none}.list-edit .le{grid-template-columns:1fr 1fr!important}}
 @media (max-width:1180px){.grid2,.grid3{grid-template-columns:1fr}.hero-grid{grid-template-columns:1fr 1fr}.hero-grid .ticket{grid-column:1/-1}}
 @media (max-width:860px){
   .app{grid-template-columns:minmax(0,1fr);grid-template-rows:auto 1fr}
@@ -374,7 +398,7 @@ const PLATAFORMAS = ['Ecuabet','Mas 1x2','Otra'];
 const PROVINCIAS = ['Azuay','Bolívar','Cañar','Carchi','Chimborazo','Cotopaxi','El Oro','Esmeraldas','Galápagos','Guayas','Imbabura','Loja','Los Ríos','Manabí','Morona Santiago','Napo','Orellana','Pastaza','Pichincha','Santa Elena','Santo Domingo de los Tsáchilas','Sucumbíos','Tungurahua','Zamora Chinchipe'];
 
 const DEF_CFG = {razon:'BENDERAM S.A.S.', comercial:'BENDERAM', ruc:'', direccion:'', ciudad:'Salcedo', telefono:'0967400220 | 0961188202', correo:'', web:'www.benderam.com', iess:9.45, respNombre:'', respCargo:'Gerencia', moverFinde:true,
-  cajas:[{id:'principal', name:'Caja principal'}],
+  cajas:[{id:'principal', name:'Caja principal'}], multi:[],
   tarifario:[
     {id:'t1', motivo:'Atraso de hasta 15 minutos', tipo:'multa', monto:5},
     {id:'t2', motivo:'Atraso de más de 15 minutos', tipo:'multa', monto:10},
@@ -384,10 +408,10 @@ const DEF_CFG = {razon:'BENDERAM S.A.S.', comercial:'BENDERAM', ruc:'', direccio
     {id:'t6', motivo:'Incumplimiento de uniforme o imagen', tipo:'multa', monto:5}
   ]};
 
-const KEYS = ['emp','mul','rol','cua','fin','age','com'];
-const COL = {emp:'empleados', mul:'multas', rol:'roles', cua:'cuadres', fin:'movimientos', age:'agencias', com:'comisiones'};
-const S = {emp:{}, mul:{}, rol:{}, cua:{}, fin:{}, age:{}, com:{}, cfg:clone(DEF_CFG)};
-const UI = {view:'resumen', dept:'all', q:'', month:null, mulF:'pendiente', ready:false, cajaMonth:null, finMonth:null, finTab:'mov', agF:'all', agQ:'', empTab:'datos'};
+const KEYS = ['emp','mul','rol','cua','fin','age','com','inv','mag'];
+const COL = {emp:'empleados', mul:'multas', rol:'roles', cua:'cuadres', fin:'movimientos', age:'agencias', com:'comisiones', inv:'inventario', mag:'multiagencia'};
+const S = {emp:{}, mul:{}, rol:{}, cua:{}, fin:{}, age:{}, com:{}, inv:{}, mag:{}, cfg:clone(DEF_CFG)};
+const UI = {invTab:'bienes', invQ:'', invCat:'all', mMonth:null, view:'resumen', dept:'all', q:'', month:null, mulF:'pendiente', ready:false, cajaMonth:null, finMonth:null, finTab:'mov', agF:'all', agQ:'', empTab:'datos'};
 const LKEY = 'benderam-nomina-v1';
 let db = null, mode = 'local', downloads = null, ED = null, pendingRender = false;
 
@@ -636,6 +660,7 @@ function chartSVG(months){
 /* ================= navegación y render ================= */
 const ICON = {
   resumen:'<path d="M4 13h6V4H4zM14 20h6v-9h-6zM4 20h6v-4H4zM14 4v4h6V4z"/>',
+  inventario:'<path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4M12 11v10"/>',
   personal:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.3-5.5 6.5-5.5s5.9 1.9 6.5 5.5"/><path d="M16 4.7a3.4 3.4 0 0 1 0 6.6M18 14.8c2 .7 3.2 2.4 3.5 5.2"/>',
   roles:'<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6M9 16h3"/>',
   multas:'<path d="M12 3 2.5 20h19z"/><path d="M12 10v4.5M12 17.2v.1"/>',
@@ -646,19 +671,18 @@ const ICON = {
   empresa:'<path d="M4 21V5l8-2v18M12 8h8v13M8 8v.1M8 12v.1M8 16v.1M16 12v.1M16 16v.1M2 21h20"/>'
 };
 const NAV = [
-  ['Personas', [['resumen','Resumen'],['personal','Personal'],['roles','Roles de pago'],['multas','Multas y sanciones'],['cumple','Cumpleaños']]],
-  ['Operación', [['caja','Cuadres de caja'],['finanzas','Finanzas'],['agencias','Agencias']]],
+  ['General', [['resumen','Resumen'],['personal','Personal']]],
+  ['Operación', [['caja','Cuadres de caja'],['finanzas','Finanzas'],['agencias','Agencias'],['inventario','Inventario']]],
   ['Administración', [['empresa','Empresa']]]
 ];
 function badgeFor(k){
-  if(k==='multas'){ const n=Object.values(S.mul).filter(m=>m.estado==='pendiente').length; return n?`<span class="badge">${n}</span>`:''; }
-  if(k==='cumple'){ const n=bdays().filter(x=>x.b.days<=7).length; return n?`<span class="badge">${n}</span>`:''; }
+  if(k==='personal'){ const n=Object.values(S.mul).filter(m=>m.estado==='pendiente').length + bdays().filter(x=>x.b.days<=7).length; return n?`<span class="badge">${n}</span>`:''; }
   if(k==='caja'){ const t=todayS(); const n=S.cfg.cajas.filter(c=>!S.cua[`${t}_${c.id}`] || S.cua[`${t}_${c.id}`].estado==='abierto').length; return n&&UI.ready&&Object.keys(S.emp).length?`<span class="badge red">${n}</span>`:''; }
   if(k==='agencias'){ const n=Object.values(S.age).filter(a=>['prospecto','documentacion','revision'].includes(a.estado)).length; return n?`<span class="badge">${n}</span>`:''; }
   return '';
 }
 function renderSide(){
-  $('#nav').innerHTML = NAV.map(([g,items])=>`<div class="navg">${g}</div><div class="nav">${items.map(([k,l])=>`<button data-act="nav" data-v="${k}" class="${UI.view===k?'on':''}" ${UI.view===k?'aria-current="page"':''}><svg viewBox="0 0 24 24">${ICON[k]}</svg>${l}${badgeFor(k)}</button>`).join('')}</div>`).join('');
+  $('#nav').innerHTML = NAV.map(([g,items])=>`<div class="navg">${g}</div><div class="nav">${items.map(([k,l])=>`<button data-act="nav" data-v="${k}" class="${navKey(UI.view)===k?'on':''}" ${navKey(UI.view)===k?'aria-current="page"':''}><svg viewBox="0 0 24 24">${ICON[k]}</svg>${l}${badgeFor(k)}</button>`).join('')}</div>`).join('');
   const light = document.documentElement.getAttribute('data-theme')==='light';
   $('#themeBtn').innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg> ${light?'Usar tema oscuro':'Usar tema claro'}`;
   $('#storeNote').textContent = mode==='db' ? 'Datos guardados en la nube del panel.' : 'Datos guardados solo en este navegador. Descarga un respaldo en Empresa.';
@@ -670,9 +694,11 @@ function render(){
   pendingRender=false;
   renderSide();
   if(!UI.ready){ $('#main').innerHTML = `<div class="empty"><h2>Cargando el panel</h2><p>Conectando con los datos de la empresa.</p></div>`; return; }
-  $('#main').innerHTML = VIEWS[UI.view]();
+  const pre = navKey(UI.view)==='personal' ? subTabs(PERSON_TABS) : navKey(UI.view)==='caja' ? subTabs(CAJA_TABS) : '';
+  $('#main').innerHTML = pre + VIEWS[UI.view]();
   if(UI.view==='personal') fillPersonal();
   if(UI.view==='agencias') fillAgencias();
+  if(UI.view==='inventario') fillInv();
 }
 document.addEventListener('focusout', ()=>setTimeout(()=>{ if(pendingRender && !$('#main').contains(document.activeElement)) render(); },0));
 
@@ -1007,7 +1033,7 @@ function obligaciones(){
 VIEWS.empresa = function(){
   const c = S.cfg; const tab = UI.empTab;
   const f = (k,l,t='text',extra='') => `<div class="f"><label for="c_${k}">${l}</label><input id="c_${k}" name="${k}" type="${t}" value="${esc(c[k])}" ${extra}></div>`;
-  const T = [['datos','Datos y firma'],['reglamento','Reglamento de multas'],['cajas','Cajas'],['obligaciones','Obligaciones'],['respaldo','Respaldo de datos'],['recos','Recomendaciones']];
+  const T = [['datos','Datos y firma'],['reglamento','Reglamento de multas'],['cajas','Cajas y cuentas'],['obligaciones','Obligaciones'],['respaldo','Respaldo de datos'],['recos','Recomendaciones']];
   let body='';
   if(tab==='datos') body = `<form id="cfgForm" class="panel" style="max-width:860px">
     <fieldset><legend>Identificación</legend><div class="fg">
@@ -1027,14 +1053,19 @@ VIEWS.empresa = function(){
   if(tab==='cajas') body = `<form id="cajaForm" class="panel" style="max-width:640px"><div class="ph"><h2>Cajas y puntos de cobro</h2></div>
     <p class="muted" style="margin-top:0;font-size:14px">Cada caja tiene su propia columna en la matriz de cuadres.</p>
     <div class="list-edit" id="cajaList">${c.cajas.map(x=>`<div class="le" style="grid-template-columns:1fr auto" data-id="${esc(x.id)}"><input name="caja" value="${esc(x.name)}" aria-label="Nombre de la caja" required><button type="button" class="btn sm quiet bad" data-act="caja-rm" ${c.cajas.length<2?'disabled':''}>Quitar</button></div>`).join('')}</div>
-    <div class="acts" style="margin-top:14px"><button type="button" class="btn" data-act="caja-add">Agregar caja</button><button class="btn gold" type="submit">Guardar cajas</button></div></form>`;
+    <div class="acts" style="margin-top:14px"><button type="button" class="btn" data-act="caja-add">Agregar caja</button><button class="btn gold" type="submit">Guardar cajas</button></div></form>
+    <form id="multiForm" class="panel" style="max-width:860px;margin-top:20px"><div class="ph"><h2>Cuentas multiagencia</h2></div>
+    <p class="muted" style="margin-top:0;font-size:14px">Cuentas en otras casas desde donde se recarga saldo a los agentes. Cada cuenta tiene su columna en la matriz de Multiagencia y un responsable, por ejemplo Jimmy.</p>
+    <datalist id="casaList">${CASAS.map(x=>`<option value="${esc(x)}">`).join('')}</datalist>
+    <div class="list-edit" id="multiList">${(c.multi||[]).map(multiRow).join('')}</div>
+    <div class="acts" style="margin-top:14px"><button type="button" class="btn" data-act="multi-add">Agregar cuenta</button><button class="btn gold" type="submit">Guardar cuentas</button></div></form>`;
   if(tab==='obligaciones') body = `<section class="panel" style="max-width:860px"><div class="ph"><h2>Próximas obligaciones laborales y tributarias</h2></div>
     <div class="oblig">${obligaciones().map(([d,t,p])=>`<div><div class="cal"><b>${+d.slice(8)}</b><span>${esc(shortMonth(d))}</span></div><div><h3>${esc(t)}</h3><p class="muted" style="margin:4px 0 0;font-size:14px">${esc(p)} Faltan ${daysBetween(todayS(),d)} días.</p></div></div>`).join('')}</div>
     <p class="muted" style="font-size:12.5px;margin-bottom:0">Fechas de referencia según la normativa ecuatoriana. Confírmalas cada año con tu contador.</p></section>`;
   if(tab==='respaldo') body = `<div class="grid2" style="max-width:1000px">
     <section class="panel"><h2>Descargar respaldo</h2><p class="muted">Guarda una copia completa de personal, roles, multas, cuadres, finanzas y agencias. ${mode==='local'?'Como los datos viven en este navegador, descarga un respaldo cada semana.':''}</p><button class="btn gold" data-act="backup">Descargar respaldo</button></section>
     <section class="panel"><h2>Importar datos</h2><p class="muted">Carga un respaldo o el archivo de datos de la empresa. Los registros con el mismo identificador se actualizan; el resto se agrega.</p><button class="btn" data-act="import">Elegir archivo</button></section>
-    <section class="panel"><h2>Resumen de datos</h2><div class="bars" style="gap:6px">${[['Colaboradores','emp'],['Roles de pago','rol'],['Multas y permisos','mul'],['Cuadres de caja','cua'],['Movimientos financieros','fin'],['Agencias','age'],['Comisiones','com']].map(([l,k])=>`<div class="bar-h"><span>${l}</span><b class="num">${Object.keys(S[k]).length}</b></div>`).join('')}</div></section>
+    <section class="panel"><h2>Resumen de datos</h2><div class="bars" style="gap:6px">${[['Colaboradores','emp'],['Roles de pago','rol'],['Multas y permisos','mul'],['Cuadres de caja','cua'],['Cuadres multiagencia','mag'],['Movimientos financieros','fin'],['Agencias','age'],['Comisiones','com'],['Bienes de inventario','inv']].map(([l,k])=>`<div class="bar-h"><span>${l}</span><b class="num">${Object.keys(S[k]).length}</b></div>`).join('')}</div></section>
     <section class="panel"><h2>Borrar todo</h2><p class="muted">Elimina todos los datos de este panel. Descarga un respaldo antes.</p><button class="btn bad" data-act="wipe">Borrar todos los datos</button></section></div>`;
   if(tab==='recos') body = `<div class="recos">${[
     ['Organigrama y funciones','Define un jefe por departamento y un manual de funciones por cargo. Así cada multa, cuadre o agencia tiene un responsable claro.'],
@@ -1128,6 +1159,7 @@ function empForm(id){
         ${sel('tipoCuenta','Tipo de cuenta',opts(['Ahorros','Corriente'],e.tipoCuenta||'Ahorros'))}
         ${inp('cuenta','Número de cuenta','text','inputmode="numeric"')}
       </div></fieldset>
+      ${id?(()=>{ const its=invOf(id); return `<fieldset><legend>Bienes a su cargo (${its.length})</legend>${its.length?`<div class="oblig">${its.map(i=>`<div style="grid-template-columns:auto 1fr"><span class="tag num">${esc(i.codigo)}</span><span style="font-size:14px">${esc(i.nombre)}</span></div>`).join('')}</div>`:'<p class="muted" style="margin:0;font-size:14px">No tiene bienes asignados.</p>'}<div class="acts" style="margin-top:10px"><button type="button" class="btn sm" data-act="new-inv" data-emp="${id}">Asignar bien</button>${its.length?`<button type="button" class="btn sm quiet" data-act="acta" data-id="${id}">Acta de entrega</button>`:''}</div></fieldset>`; })():''}
       ${id?`<fieldset><legend>Estado</legend><label class="check"><input type="checkbox" name="activo" ${e.activo!==false?'checked':''}> Colaborador activo. Si lo desactivas, deja de aparecer en los roles nuevos.</label></fieldset>`:''}
     </div>
     <div class="df">${id&&!hasRoles?`<button type="button" class="btn bad quiet" data-act="del-emp" data-id="${id}" style="margin-right:auto">Eliminar</button>`:''}<button type="button" class="btn" data-act="close">Cancelar</button><button type="submit" class="btn gold">${id?'Guardar cambios':'Guardar colaborador'}</button></div>
@@ -1556,7 +1588,7 @@ const csv = (rows) => '﻿'+rows.map(r=>r.map(csvQ).join(';')).join('\r\n');
 async function importData(obj){
   if(!obj || typeof obj!=='object' || !KEYS.some(k=>obj[k] && typeof obj[k]==='object')){ toast('El archivo no tiene datos del panel.', true); return; }
   const counts = KEYS.map(k=>[k, obj[k]?Object.keys(obj[k]).length:0]).filter(x=>x[1]);
-  const L = {emp:'colaboradores', mul:'multas', rol:'roles', cua:'cuadres', fin:'movimientos', age:'agencias', com:'comisiones'};
+  const L = {emp:'colaboradores', mul:'multas', rol:'roles', cua:'cuadres', fin:'movimientos', age:'agencias', com:'comisiones', inv:'bienes', mag:'cuadres multiagencia'};
   if(!(await ask('Importar datos', `Se cargarán ${counts.map(([k,n])=>`${n} ${L[k]}`).join(', ')}. Los registros que ya existen se actualizan.`, 'Importar'))) return;
   toast('Importando datos…');
   for(const [k] of counts){
@@ -1651,7 +1683,7 @@ const ACT = {
   'new-age':()=>ageForm(),
   'edit-age':d=>ageForm(d.id),
   'del-age':async d=>{ if(!(await ask('Eliminar agencia', 'Se eliminará la agencia y su historial de comisiones.', 'Eliminar', true))) return; for(const c of Object.values(S.com).filter(c=>c.agenciaId===d.id)) await del('com', c.id); await del('age', d.id); closeLayer(); render(); toast('Agencia eliminada'); },
-  'age-com':async d=>{ const mes=$('#a_cmes').value, m=+$('#a_cmon').value; if(!mes || !(m!==0)){ toast('Escribe el mes y la comisión.', true); return; } const a=S.age[d.id]; const id=`c_${mes}_${d.id.slice(2)}`; await put('com', id, {id, mes, agenciaId:d.id, plataforma:a.plataforma||'Ecuabet', monto:r2(m)}); ageForm(d.id); render(); toast('Comisión agregada'); },
+  'age-com':async d=>{ const mes=$('#a_cmes').value, m=+$('#a_cmon').value; if(!mes || !(m!==0)){ toast('Escribe el mes y la comisión.', true); return; } const a=S.age[d.id]; const id=`c_${mes}_${d.id.slice(2)}`; await put('com', id, {id, mes, agenciaId:d.id, plataforma:a.plataforma||'Ecuabet', monto:r2(m), manual:true}); ageForm(d.id); render(); toast('Comisión agregada'); },
   /* empresa */
   'emp-tab':d=>{ UI.empTab=d.id; render(); },
   'tar-add':()=>{ $('#tarList').insertAdjacentHTML('beforeend', tarRow({id:uid('t'), motivo:'', tipo:'multa', monto:''})); $('#tarList').lastElementChild.querySelector('input').focus(); },
@@ -1660,7 +1692,7 @@ const ACT = {
   'caja-rm':async (d,b)=>{ const id=b.closest('.le').dataset.id; if(Object.values(S.cua).some(c=>c.caja===id) && !(await ask('Quitar caja', 'Esta caja tiene cuadres registrados. Dejarán de verse en la matriz, pero no se borran.', 'Quitar'))) return; b.closest('.le').remove(); },
   import:()=>$('#importFile').click(),
   backup:()=>{ const o={app:'benderam-panel', version:2, exportado:new Date().toISOString(), cfg:S.cfg}; KEYS.forEach(k=>o[k]=S[k]); saveFile(`respaldo-benderam-${todayS()}.json`, JSON.stringify(o,null,1), 'application/json'); },
-  wipe:async ()=>{ if(!(await ask('Borrar todos los datos', 'Se eliminarán colaboradores, roles, multas, cuadres, finanzas y agencias de este panel. No se puede deshacer.', 'Borrar todo', true))) return;
+  wipe:async ()=>{ if(!(await ask('Borrar todos los datos', 'Se eliminarán colaboradores, roles, multas, cuadres, finanzas, agencias e inventario de este panel. No se puede deshacer.', 'Borrar todo', true))) return;
     for(const k of KEYS) for(const id of Object.keys(S[k])) await del(k, id); render(); toast('Datos borrados'); }
 };
 document.addEventListener('click', e=>{
@@ -1688,9 +1720,340 @@ document.addEventListener('input', e=>{
   if(e.target.id==='agq'){ UI.agQ=e.target.value; fillAgencias(); }
 });
 
+/* ================= v3: inventario, multiagencia, pestañas de personal ================= */
+const PERSON_TABS = [['personal','Equipo'],['roles','Roles de pago'],['multas','Multas y sanciones'],['cumple','Cumpleaños'],['bienes','Bienes a cargo']];
+const CAJA_TABS = [['caja','Cajas'],['multi','Multiagencia']];
+function subTabs(tabs){
+  const badge = k => {
+    if(k==='multas'){ const n=Object.values(S.mul).filter(m=>m.estado==='pendiente').length; return n?` <span class="sbadge">${n}</span>`:''; }
+    if(k==='cumple'){ const n=bdays().filter(x=>x.b.days<=7).length; return n?` <span class="sbadge">${n}</span>`:''; }
+    if(k==='bienes'){ const n=Object.values(S.inv).filter(i=>i.responsable && i.estado!=='baja').length; return n?` <span class="sbadge mute">${n}</span>`:''; }
+    if(k==='multi'){ const n=S.cfg.multi.length; return n?` <span class="sbadge mute">${n}</span>`:''; }
+    return '';
+  };
+  return `<div class="seg subnav" role="tablist">${tabs.map(([k,l])=>`<button class="${UI.view===k?'on':''}" data-act="nav" data-v="${k}" role="tab" aria-selected="${UI.view===k}">${l}${badge(k)}</button>`).join('')}</div>`;
+}
+const navKey = v => PERSON_TABS.some(t=>t[0]===v) ? 'personal' : CAJA_TABS.some(t=>t[0]===v) ? 'caja' : v;
+
+/* ---------- Inventario ---------- */
+const INV_CATS = ['Mobiliario','Equipo de cómputo','Celulares y tablets','Impresoras y escáneres','Redes y telecomunicaciones','Electrodomésticos','Señalética y publicidad','Herramientas','Vehículos','Otros'];
+const INV_EST = [['nuevo','Nuevo','ok'],['bueno','Bueno','ok'],['regular','Regular','tramite'],['danado','Dañado','bad'],['baja','De baja','cerrada']];
+const EST_INV = Object.fromEntries(INV_EST.map(e=>[e[0],{label:e[1],cls:e[2]}]));
+const LABELS = 1000;
+const invCode = s => { const m = String(s||'').trim().toUpperCase().replace(/\s/g,'').match(/^BDR-?(\d{1,4})$/); return m ? 'BDR-'+pad(+m[1],4) : null; };
+function nextInvCode(){ const used=new Set(Object.values(S.inv).map(i=>i.codigo)); for(let n=1;n<=9999;n++){ const c='BDR-'+pad(n,4); if(!used.has(c)) return c; } return ''; }
+const invOf = empId => Object.values(S.inv).filter(i=>i.responsable===empId && i.estado!=='baja').sort((a,b)=>a.codigo.localeCompare(b.codigo));
+const invPill = i => { const e=EST_INV[i.estado]||{label:i.estado,cls:''}; return `<span class="pill ${e.cls}">${esc(e.label)}</span>`; };
+
+VIEWS.inventario = function(){
+  const all = Object.values(S.inv);
+  const act = all.filter(i=>i.estado!=='baja');
+  const asign = act.filter(i=>i.responsable && S.emp[i.responsable]);
+  const usados = all.filter(i=>codeNumber(i.codigo)>=1 && codeNumber(i.codigo)<=LABELS).length;
+  const head = `<header class="vh"><div><h1>Inventario</h1><p class="sub">Bienes de la empresa con su etiqueta BDR y la persona responsable de cada uno. Escanea la etiqueta con un lector de código de barras o escribe el código.</p></div>
+    <div class="acts"><button class="btn" data-act="export-inv">Exportar CSV</button><button class="btn gold" data-act="new-inv">Registrar bien</button></div></header>`;
+  const scan = `<div class="scan"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7V4h3M21 7V4h-3M3 17v3h3M21 17v3h-3M7 8v8M10 8v8M13 8v8M16 8v8"/></svg><input id="invq" class="search" type="search" autocomplete="off" placeholder="Escanea o escribe un código (BDR-0001), o busca por nombre o responsable" value="${esc(UI.invQ)}" aria-label="Buscar o escanear bien"><span class="muted">Enter para abrir</span></div>`;
+  const tabs = `<div class="seg" role="tablist"><button class="${UI.invTab==='bienes'?'on':''}" data-act="inv-tab" data-id="bienes">Todos los bienes</button><button class="${UI.invTab==='resp'?'on':''}" data-act="inv-tab" data-id="resp">Por responsable</button></div>`;
+  if(!all.length) return head + scan + emptyBlock('Registra el primer bien', 'Pega una etiqueta BDR en el bien, escanéala o escribe su código, y asígnale un responsable. El panel lleva el historial de quién lo ha tenido.', `<button class="btn gold" data-act="new-inv">Registrar bien</button>`);
+  return head + `
+  <section class="strip">
+    <div><small>Bienes registrados</small><b class="num">${act.length}</b><em>${all.length-act.length} dados de baja</em></div>
+    <div class="hl"><small>Con responsable</small><b class="num">${asign.length}</b><em>${act.length-asign.length} sin asignar</em></div>
+    <div><small>Valor de los bienes</small><b class="num">${money(sum(act.map(i=>i.valor)))}</b></div>
+    <div><small>Etiquetas disponibles</small><b class="num">${LABELS-usados}</b><em>de ${LABELS} impresas (BDR-0001 a BDR-${pad(LABELS,4)})</em></div>
+  </section>
+  ${scan}${tabs}
+  ${UI.invTab==='resp' ? bienesPorPersona() : `<div class="toolbar"><div class="tabs">${[['all','Todos'],...INV_CATS.filter(c=>act.some(i=>i.categoria===c)).map(c=>[c,c])].map(([k,l])=>`<button class="tab ${UI.invCat===k?'on':''}" data-act="inv-cat" data-id="${esc(k)}">${esc(l)} <span>${k==='all'?all.length:all.filter(i=>i.categoria===k).length}</span></button>`).join('')}</div></div>
+  <div class="tw"><table class="t"><thead><tr><th>Código</th><th>Bien</th><th>Categoría</th><th>Responsable</th><th>Ubicación</th><th>Estado</th><th class="r">Valor</th></tr></thead><tbody id="itb"></tbody></table></div>`}`;
+};
+const codeNumber = c => +(String(c||'').match(/^BDR-(\d{4})$/)||[0,0])[1];
+function fillInv(){
+  const tb=$('#itb'); if(!tb) return;
+  const q = UI.invQ.trim().toLowerCase();
+  let list = Object.values(S.inv).filter(i=>UI.invCat==='all'||i.categoria===UI.invCat);
+  if(q) list = list.filter(i=>[i.codigo,i.nombre,i.marca,i.modelo,i.serie,i.ubicacion,S.emp[i.responsable]?.nombre].join(' ').toLowerCase().includes(q.replace(/^bdr(\d)/,'bdr-$1')));
+  list.sort((a,b)=>a.codigo.localeCompare(b.codigo));
+  tb.innerHTML = list.length ? list.map(i=>{ const e=S.emp[i.responsable]; return `<tr class="click" data-act="edit-inv" data-id="${i.id}">
+    <td><span class="tag num">${esc(i.codigo)}</span></td>
+    <td><b>${esc(i.nombre)}</b><small>${esc([i.marca,i.modelo].filter(Boolean).join(' '))}${i.serie?` | Serie ${esc(i.serie)}`:''}</small></td>
+    <td>${esc(i.categoria)}</td>
+    <td>${e?`${esc(shortName(e.nombre))}${e.dept?`<small>${esc(deptName(e.dept))}</small>`:''}`:'<span class="muted">Sin asignar</span>'}</td>
+    <td>${esc(i.ubicacion||'—')}</td>
+    <td>${invPill(i)}</td>
+    <td class="r num">${+i.valor?money(i.valor):'—'}</td></tr>`; }).join('')
+    : `<tr><td colspan="7" class="muted" style="text-align:center;padding:28px">Ningún bien coincide. Si es un código nuevo, presiona Enter para registrarlo.</td></tr>`;
+}
+function bienesPorPersona(){
+  const emps = Object.values(S.emp).map(e=>({e, items:invOf(e.id)})).filter(x=>x.items.length || x.e.activo!==false).sort((a,b)=>b.items.length-a.items.length || a.e.nombre.localeCompare(b.e.nombre));
+  const libres = Object.values(S.inv).filter(i=>i.estado!=='baja' && !(i.responsable && S.emp[i.responsable]));
+  const card = (title, sub, items, empId, warn) => `<div class="pcard">
+    <div class="pc-h"><div><h3>${esc(title)}</h3><small class="muted">${sub}</small></div><b class="num">${items.length}</b></div>
+    ${warn?`<div class="calcbox" style="margin-bottom:8px">${warn}</div>`:''}
+    ${items.length?`<ul>${items.map(i=>`<li><button class="lrow" data-act="edit-inv" data-id="${i.id}"><span class="tag num">${esc(i.codigo)}</span><span>${esc(i.nombre)}</span>${i.estado==='danado'?invPill(i):''}</button></li>`).join('')}</ul>`:'<p class="muted" style="margin:6px 0 10px;font-size:14px">Sin bienes a su cargo.</p>'}
+    <div class="acts">${empId?`<button class="btn sm" data-act="new-inv" data-emp="${empId}">Asignar bien</button>${items.length?`<button class="btn sm quiet" data-act="acta" data-id="${empId}">Acta de entrega</button>`:''}`:''}</div></div>`;
+  return `<div class="pcards">${emps.map(({e,items})=>card(e.nombre, `${esc(e.cargo||'Sin cargo')}, ${esc(deptName(e.dept))}${items.length?` · ${money(sum(items.map(i=>i.valor)))}`:''}`, items, e.id, e.activo===false&&items.length?'Colaborador inactivo con bienes a su cargo. Reasígnalos o regístralos como devueltos.':'')).join('')}
+    ${libres.length?card('Sin responsable', 'Bienes sin asignar', libres, null):''}</div>`;
+}
+VIEWS.bienes = function(){
+  return `<header class="vh"><div><h1>Bienes a cargo</h1><p class="sub">Lo que cada colaborador tiene bajo su responsabilidad. Asigna bienes con su etiqueta BDR y genera el acta de entrega para firmar.</p></div><div class="acts"><button class="btn" data-act="nav" data-v="inventario">Ir a inventario</button><button class="btn gold" data-act="new-inv">Registrar bien</button></div></header>`
+    + (Object.keys(S.emp).length ? bienesPorPersona() : emptyBlock('Primero registra a tu equipo', 'Cuando haya colaboradores podrás asignarles bienes.', ''));
+};
+function invForm(id, preset){
+  const i = id ? S.inv[id] : {codigo:nextInvCode(), categoria:'Mobiliario', estado:'bueno', ubicacion:'Oficina principal', fechaAsignacion:todayS(), ...(preset||{})};
+  const inp = inpF(i,'i'), sel = selF(i,'i');
+  const emps = activeEmps();
+  openLayer(`<form class="drawer" id="invForm" data-id="${id||''}" role="dialog" aria-modal="true" aria-labelledby="iT" novalidate>
+    <div class="dh"><h2 id="iT">${id?`<span class="tag num">${esc(i.codigo)}</span> ${esc(i.nombre)}`:'Registrar bien'}</h2><button type="button" class="x" data-act="close" aria-label="Cerrar">×</button></div>
+    <div class="db">
+      <fieldset><legend>Identificación</legend><div class="fg">
+        ${inp('codigo','Código de etiqueta','text','required autocomplete="off" style="text-transform:uppercase"','','Usa la etiqueta impresa, de BDR-0001 a BDR-1000.')}
+        ${sel('categoria','Categoría',opts(INV_CATS,i.categoria))}
+        ${inp('nombre','Nombre del bien','text','required placeholder="Ejemplo: Escritorio en L de madera"','full')}
+        ${inp('marca','Marca')}${inp('modelo','Modelo')}
+        ${inp('serie','Número de serie','text','','full')}
+      </div></fieldset>
+      <fieldset><legend>Asignación</legend><div class="fg">
+        ${sel('responsable','Responsable',opts(emps.map(e=>[e.id,e.nombre]),i.responsable,'Sin asignar'),'full')}
+        ${inp('ubicacion','Ubicación','text','placeholder="Oficina, agencia o ciudad"')}
+        ${inp('fechaAsignacion','Fecha de asignación','date')}
+        ${sel('estado','Estado',opts(INV_EST.map(e=>[e[0],e[1]]),i.estado))}
+      </div></fieldset>
+      <fieldset><legend>Compra</legend><div class="fg">
+        ${inp('fechaCompra','Fecha de compra','date')}
+        ${inp('valor','Valor (USD)','number','step="0.01" min="0" inputmode="decimal"')}
+        ${inp('proveedor','Proveedor o factura','text','','full')}
+      </div></fieldset>
+      <fieldset><legend>Observaciones</legend><div class="f"><textarea name="obs" aria-label="Observaciones" placeholder="Accesorios, daños, condiciones de uso">${esc(i.obs||'')}</textarea></div></fieldset>
+      ${id && (i.hist||[]).length ? `<fieldset><legend>Historial de responsables</legend><div class="oblig">${i.hist.slice().reverse().map(h=>`<div><div class="muted num" style="font-size:13px">${esc(fd(h.fecha))}</div><div style="font-size:14px">${h.de?esc(S.emp[h.de]?.nombre||'Colaborador eliminado'):'Sin asignar'} → <b>${h.a?esc(S.emp[h.a]?.nombre||'Colaborador eliminado'):'Sin asignar'}</b></div></div>`).join('')}</div></fieldset>`:''}
+    </div>
+    <div class="df">${id?`<button type="button" class="btn bad quiet" data-act="del-inv" data-id="${id}" style="margin-right:auto">Eliminar</button>`:''}<button type="button" class="btn" data-act="close">Cancelar</button><button type="submit" class="btn gold">${id?'Guardar cambios':'Registrar bien'}</button></div></form>`);
+}
+async function submitInv(form){
+  const v = Object.fromEntries(new FormData(form).entries());
+  Object.keys(v).forEach(k=>{ if(typeof v[k]==='string') v[k]=v[k].trim(); });
+  const id = form.dataset.id || uid('i');
+  const prev = S.inv[id] || {};
+  const code = invCode(v.codigo); const errs={};
+  if(!code) errs.codigo='Escribe un código con el formato BDR-0001.';
+  else if(Object.values(S.inv).some(x=>x.codigo===code && x.id!==id)) errs.codigo=`El código ${code} ya está asignado a otro bien.`;
+  if(!v.nombre) errs.nombre='Escribe el nombre del bien.';
+  if(markErrors(form, errs)) return;
+  const hist = (prev.hist||[]).slice();
+  if((prev.responsable||'') !== (v.responsable||'') && (form.dataset.id || v.responsable)) hist.push({fecha:todayS(), de:prev.responsable||'', a:v.responsable||''});
+  const data = {...prev, id, codigo:code, categoria:v.categoria, nombre:v.nombre, marca:v.marca, modelo:v.modelo, serie:v.serie, responsable:v.responsable, ubicacion:v.ubicacion, fechaAsignacion:v.fechaAsignacion, estado:v.estado, fechaCompra:v.fechaCompra, valor:r2(v.valor), proveedor:v.proveedor, obs:v.obs, hist, creado:prev.creado||new Date().toISOString(), actualizado:new Date().toISOString()};
+  closeLayer(); await put('inv', id, data); render(); toast(form.dataset.id?'Bien actualizado':`Bien ${code} registrado`);
+}
+function actaHTML(empId){
+  const e=S.emp[empId], c=S.cfg, items=invOf(empId);
+  return `<article class="doc">
+  <header class="doc-head"><img src="${LOGO}" alt="BENDERAM"><div class="doc-co"><b>${esc(c.razon||'BENDERAM S.A.S.')}</b><span>Red de agentes</span><span>${esc(c.web)}</span></div>
+    <div class="doc-title"><b>ACTA DE ENTREGA</b><span>Bienes bajo responsabilidad</span><div class="doc-no">${esc(fd(todayS()))}</div></div></header>
+  <div class="doc-body">
+    <section class="doc-sec"><h4>DATOS DEL RESPONSABLE</h4><table class="kv kv4">
+      <tr><td class="k">Nombre completo:</td><td><b>${esc(e.nombre)}</b></td><td class="k">Cédula:</td><td>${esc(e.cedula)}</td></tr>
+      <tr><td class="k">Cargo:</td><td>${esc(e.cargo)}</td><td class="k">Departamento:</td><td>${esc(deptName(e.dept))}</td></tr></table></section>
+    <section class="doc-sec"><h4>BIENES ENTREGADOS (${items.length})</h4><table class="ln"><thead><tr><th>Código</th><th>Bien</th><th>Marca / modelo / serie</th><th>Estado</th><th class="n">Valor</th></tr></thead><tbody>
+      ${items.map(i=>`<tr><td><b>${esc(i.codigo)}</b></td><td>${esc(i.nombre)}</td><td>${esc([i.marca,i.modelo,i.serie&&'S/N '+i.serie].filter(Boolean).join(' · '))}</td><td>${esc(EST_INV[i.estado]?.label||'')}</td><td class="n">${+i.valor?money(i.valor):''}</td></tr>`).join('')}
+      <tr class="tot"><td colspan="4">VALOR TOTAL</td><td class="n">${money(sum(items.map(i=>i.valor)))}</td></tr></tbody></table></section>
+    <section class="doc-sec"><h4>DECLARACIÓN</h4><div class="doc-obs">Declaro haber recibido los bienes detallados, identificados con su etiqueta de inventario, en el estado indicado. Me comprometo a usarlos solo para actividades de la empresa, cuidarlos y devolverlos cuando se me solicite o al terminar la relación laboral. Cualquier pérdida o daño por mal uso se procesará según el reglamento interno.</div></section>
+    <div class="doc-sign">
+      <div><b>RECIBE</b><span>Responsable de los bienes</span><div style="height:46px"></div><div class="ln2">Nombre: ${esc(e.nombre)}<br>C.I.: ${esc(e.cedula)}</div></div>
+      <div><b>ENTREGA</b><span>${esc(c.razon||'BENDERAM S.A.S.')}</span><div style="height:46px"></div><div class="ln2">Nombre: ${esc(c.respNombre)}<br>Cargo: ${esc(c.respCargo)}</div></div>
+    </div></div></article>`;
+}
+function openActa(empId){
+  ED = {acta:empId};
+  openLayer(`<div class="modal" role="dialog" aria-modal="true" aria-labelledby="acT"><div class="mbar"><h2 id="acT">Acta de entrega de ${esc(shortName(S.emp[empId].nombre))}</h2><div class="acts"><button class="btn" data-act="acta-dl">Descargar</button><button class="btn gold" data-act="rol-print">Imprimir</button><button class="x" data-act="close" aria-label="Cerrar">×</button></div></div><div class="mscroll" id="printArea">${actaHTML(empId)}</div></div>`, true);
+}
+
+/* ---------- Multiagencia ---------- */
+const CASAS = ['Mas Parley','Mas 1x2','Ecuabet','Otra casa'];
+const COBROS = [['efectivo','Efectivo'],['transferencia','Transferencia'],['pendiente','Pendiente de cobro']];
+const mCuenta = id => S.cfg.multi.find(c=>c.id===id);
+const mName = c => c ? `${c.casa}${c.usuario?' · '+c.usuario:''}` : 'Cuenta eliminada';
+function magCalc(r){
+  const n=v=>Number(v)||0;
+  const rec = sum((r.recargas||[]).map(x=>x.monto));
+  const pend = sum((r.recargas||[]).filter(x=>x.cobro==='pendiente').map(x=>x.monto));
+  const cobDia = r2(rec - pend);
+  const cobAnt = sum((r.cobros||[]).map(x=>x.monto));
+  const teorico = r2(n(r.inicial) + n(r.cargado) - rec);
+  const has = r.saldoFinal!=='' && r.saldoFinal!=null;
+  const dif = has ? r2(n(r.saldoFinal) - teorico) : null;
+  return {rec, pend, cobDia, cobAnt, cobrado:r2(cobDia+cobAnt), teorico, dif, res: dif==null ? 'none' : Math.abs(dif)<0.005 ? 'ok' : dif<0 ? 'bad' : 'over'};
+}
+function prevMagFinal(fecha, cuenta){
+  const p = Object.values(S.mag).filter(m=>m.cuenta===cuenta && m.fecha<fecha && m.saldoFinal!=='' && m.saldoFinal!=null).sort((a,b)=>b.fecha.localeCompare(a.fecha))[0];
+  return p ? +p.saldoFinal : 0;
+}
+const agKey = s => String(s||'').trim().toLowerCase();
+function porCobrar(){
+  const m = {};
+  Object.values(S.mag).forEach(r=>{
+    (r.recargas||[]).filter(x=>x.cobro==='pendiente' && agKey(x.agente)).forEach(x=>{ const k=agKey(x.agente); m[k]=m[k]||{nombre:x.agente.trim(), deuda:0, cobrado:0, ultima:''}; m[k].deuda=r2(m[k].deuda+(+x.monto||0)); if(r.fecha>m[k].ultima) m[k].ultima=r.fecha; });
+    (r.cobros||[]).filter(x=>agKey(x.agente)).forEach(x=>{ const k=agKey(x.agente); m[k]=m[k]||{nombre:x.agente.trim(), deuda:0, cobrado:0, ultima:''}; m[k].cobrado=r2(m[k].cobrado+(+x.monto||0)); });
+  });
+  return Object.values(m).map(a=>({...a, saldo:r2(a.deuda-a.cobrado)})).filter(a=>Math.abs(a.saldo)>=0.005).sort((a,b)=>b.saldo-a.saldo);
+}
+VIEWS.multi = function(){
+  const ym = UI.mMonth || todayYM(); const t=todayS();
+  const cuentas = S.cfg.multi;
+  const head = `<header class="vh"><div><h1>Recargas multiagencia</h1><p class="sub">Cuadre diario de las cuentas en otras casas (Mas Parley y demás) desde donde se recarga saldo a las cajas de los agentes: saldo cargado, recargas enviadas, cobros y saldo final en plataforma.</p></div>
+    <div class="acts"><div class="monthnav"><button class="btn sm" data-act="mmonth" data-k="-1" aria-label="Mes anterior">‹</button><b>${esc(monthLabel(ym))}</b><button class="btn sm" data-act="mmonth" data-k="1" aria-label="Mes siguiente">›</button></div>
+    <button class="btn" data-act="go-empresa" data-tab="cajas">Configurar cuentas</button>${cuentas.length?`<button class="btn gold" data-act="open-multi" data-fecha="${t}" data-cuenta="${cuentas[0].id}">Cuadre de hoy</button>`:''}</div></header>`;
+  if(!cuentas.length) return head + emptyBlock('Agrega la primera cuenta multiagencia', 'Registra cada cuenta de otra casa (por ejemplo Mas Parley) y su responsable, como Jimmy. Luego cuadra cada día lo que recarga a los agentes.', `<button class="btn gold" data-act="go-empresa" data-tab="cajas">Agregar cuenta</button>`);
+  const [y,m] = ym.split('-').map(Number); const ld=lastDay(y,m);
+  const recs = Object.values(S.mag).filter(r=>r.fecha.slice(0,7)===ym);
+  const ks = recs.map(r=>({r,k:magCalc(r)}));
+  const pc = porCobrar();
+  const days=[]; for(let d=ld; d>=1; d--){ const f=`${ym}-${pad(d)}`; if(f<=t || cuentas.some(c=>S.mag[`${f}_${c.id}`])) days.push(f); }
+  return head + `
+  <section class="strip">
+    <div class="hl"><small>Recargado a agentes</small><b class="num">${money(sum(ks.map(x=>x.k.rec)))}</b><em>${sum(recs.map(r=>(r.recargas||[]).length))} recargas en el mes</em></div>
+    <div><small>Saldo cargado a las cuentas</small><b class="num">${money(sum(recs.map(r=>r.cargado)))}</b></div>
+    <div><small>Por cobrar a agentes</small><b class="num ${sum(pc.map(a=>a.saldo))>0?'neg':''}">${money(sum(pc.map(a=>a.saldo)))}</b><em>${pc.length} agentes con saldo pendiente</em></div>
+    <div><small>Diferencias del mes</small><b class="num">${money(sum(ks.filter(x=>x.k.dif!=null).map(x=>x.k.dif)))}</b><em>Saldo reportado vs. calculado</em></div>
+  </section>
+  <div class="grid2">
+    <div class="tw"><table class="t matrix"><thead><tr><th>Día</th>${cuentas.map(c=>`<th class="r">${esc(mName(c))}<small style="font-weight:400">${esc(S.emp[c.responsable]?shortName(S.emp[c.responsable].nombre):'Sin responsable')}</small></th>`).join('')}</tr></thead><tbody>
+    ${days.map(f=>{ const w=pd(f).getDay(); return `<tr class="${w===0||w===6?'wk':''} ${f===t?'today':''}"><td class="day"><b>${+f.slice(8)}</b> <span class="muted">${esc(wd(f))}</span></td>${cuentas.map(c=>{ const r=S.mag[`${f}_${c.id}`]; const k=r&&magCalc(r); return `<td class="cell"><button class="cbtn" data-act="open-multi" data-fecha="${f}" data-cuenta="${c.id}">${r?`<span>${money(k.rec)}</span><small class="${k.res==='bad'?'cf':k.res==='ok'?'cz':k.res==='over'?'cs':''}">${k.res==='none'?'Sin saldo final':k.res==='ok'?'✓ Cuadrado':`${resLabel(k.res)} ${money(Math.abs(k.dif))}`}${k.pend?`, pend. ${money(k.pend)}`:''}</small>`:`<span class="cp">${f<t?'Sin registro':'Registrar'}</span>`}</button></td>`; }).join('')}</tr>`; }).join('')}
+    </tbody></table></div>
+    <section class="panel"><div class="ph"><h2>Cuentas por cobrar</h2><span class="muted">${pc.length} agentes</span></div>
+      ${pc.length?`<table class="t" style="font-size:14px"><thead><tr><th>Agente</th><th class="r">Recargado a crédito</th><th class="r">Saldo</th></tr></thead><tbody>${pc.map(a=>`<tr><td><b>${esc(a.nombre)}</b><small>Última recarga ${esc(fd(a.ultima))}</small></td><td class="r num">${money(a.deuda)}<small>Cobrado ${money(a.cobrado)}</small></td><td class="r num"><b class="${a.saldo>0?'neg':''}">${money(a.saldo)}</b></td></tr>`).join('')}</tbody></table>`:'<p class="muted">Ningún agente tiene saldo pendiente.</p>'}
+    </section>
+  </div>`;
+};
+function openMulti(fecha, cuenta){
+  const id = `${fecha}_${cuenta}`; const c=mCuenta(cuenta);
+  const r = S.mag[id] ? clone(S.mag[id]) : {id, fecha, cuenta, responsable:c?.responsable||'', inicial:prevMagFinal(fecha,cuenta), cargado:0, recargas:[{agente:'',monto:'',cobro:'efectivo'}], cobros:[], saldoFinal:'', obs:'', estado:'abierto', nuevo:true};
+  ED = {m:r};
+  openLayer(multiHTML(), true);
+}
+function multiHTML(){
+  const r = ED.m, k = magCalc(r), ro = r.estado!=='abierto', c = mCuenta(r.cuenta);
+  const agentes = [...new Set([...Object.values(S.age).map(a=>a.usuario), ...Object.values(S.mag).flatMap(x=>[...(x.recargas||[]),...(x.cobros||[])].map(y=>y.agente)).filter(Boolean)])].sort();
+  const num = (path,val) => `<input type="number" step="0.01" min="0" inputmode="decimal" data-m="${path}" value="${val===''||val==null?'':val}" placeholder="0" ${ro?'readonly':''} aria-label="${path}">`;
+  return `<datalist id="agList">${agentes.map(a=>`<option value="${esc(a)}">`).join('')}</datalist>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mT">
+    <div class="mbar"><h2 id="mT">${esc(mName(c))}, ${esc(longDay(r.fecha))} <span class="pill ${r.estado}">${r.estado==='abierto'?'Abierto':'Cerrado'}</span></h2>
+      <div class="acts">${!r.nuevo&&r.estado==='abierto'?'<button class="btn quiet bad" data-act="m-del">Eliminar</button>':''}${r.estado==='abierto'?'<button class="btn" data-act="m-save">Guardar</button><button class="btn gold" data-act="m-close">Cerrar cuadre</button>':'<button class="btn quiet" data-act="m-reopen">Reabrir</button>'}<button class="x" data-act="close" aria-label="Cerrar">×</button></div></div>
+    <div class="cash">
+      <div class="verdict">
+        <div><small>Saldo inicial</small><b class="num" data-mo="inicial">${money(r.inicial)}</b></div>
+        <div><small>Debería quedar</small><b class="num" data-mo="teorico">${money(k.teorico)}</b></div>
+        <div><small>Saldo final reportado</small><b class="num" data-mo="final">${r.saldoFinal===''||r.saldoFinal==null?'—':money(r.saldoFinal)}</b></div>
+        <div class="res ${k.res==='none'?'':k.res}" data-mo="res"><small>${k.res==='none'?'Diferencia':resLabel(k.res)}</small><b class="num">${k.dif==null?'—':money(k.dif)}</b></div>
+      </div>
+      <div class="stack">
+        <section class="panel"><h3 style="margin-bottom:10px">Saldos de la cuenta</h3><div class="fg">
+          <div class="f full"><label for="m_resp">Responsable</label><select id="m_resp" data-m="responsable" ${ro?'disabled':''}><option value="">Elige</option>${activeEmps().map(e=>`<option value="${e.id}" ${r.responsable===e.id?'selected':''}>${esc(e.nombre)}</option>`).join('')}</select></div>
+          <div class="f"><label>Saldo inicial</label>${num('inicial',r.inicial)}</div>
+          <div class="f"><label>Saldo cargado hoy</label>${num('cargado',r.cargado)}<div class="hint">Saldo que se compró o depositó en la cuenta.</div></div>
+          <div class="f full"><label>Saldo final en la plataforma</label>${num('saldoFinal',r.saldoFinal)}<div class="hint">Lo que muestra la cuenta al cierre del día.</div></div>
+          <div class="f full"><label for="m_obs">Observaciones</label><textarea id="m_obs" data-m="obs" ${ro?'readonly':''}>${esc(r.obs)}</textarea></div>
+        </div></section>
+        <section class="panel"><h3 style="margin-bottom:6px">Cobros de días anteriores</h3>
+          <table><tbody>${(r.cobros||[]).map((x,i)=>`<tr><td><input data-m="cobros.${i}.agente" list="agList" value="${esc(x.agente)}" placeholder="Agente" style="text-align:left" ${ro?'readonly':''} aria-label="Agente"></td><td class="r">${num(`cobros.${i}.monto`,x.monto)}</td><td style="width:40px">${ro?'':`<button class="btn sm quiet bad" data-act="m-rm" data-list="cobros" data-i="${i}" aria-label="Quitar">×</button>`}</td></tr>`).join('') || '<tr><td class="muted" style="font-size:14px">Sin cobros de deudas anteriores.</td></tr>'}
+          <tr class="tot"><td>Total cobrado de deudas</td><td class="r num" data-mo="cobAnt">${money(k.cobAnt)}</td><td></td></tr></tbody></table>
+          ${ro?'':'<button class="btn sm" style="margin-top:10px" data-act="m-add" data-list="cobros">Agregar cobro</button>'}
+        </section>
+      </div>
+      <section class="panel"><h3 style="margin-bottom:6px">Recargas a agentes</h3>
+        <table><tbody>${(r.recargas||[]).map((x,i)=>`<tr><td><input data-m="recargas.${i}.agente" list="agList" value="${esc(x.agente)}" placeholder="Usuario del agente" style="text-align:left" ${ro?'readonly':''} aria-label="Agente"></td><td class="q" style="width:110px">${num(`recargas.${i}.monto`,x.monto)}</td><td style="width:150px"><select data-m="recargas.${i}.cobro" ${ro?'disabled':''} aria-label="Forma de cobro" class="minisel">${COBROS.map(([v,l])=>`<option value="${v}" ${x.cobro===v?'selected':''}>${l}</option>`).join('')}</select></td><td style="width:40px">${ro?'':`<button class="btn sm quiet bad" data-act="m-rm" data-list="recargas" data-i="${i}" aria-label="Quitar">×</button>`}</td></tr>`).join('') || '<tr><td class="muted" style="font-size:14px">Sin recargas.</td></tr>'}
+</tbody></table>
+        <table style="margin-top:8px"><tbody>
+        <tr class="tot"><td>Total recargado</td><td class="r num" data-mo="rec">${money(k.rec)}</td></tr>
+        <tr><td class="muted">Cobrado en el día</td><td class="r num" data-mo="cobDia">${money(k.cobDia)}</td></tr>
+        <tr><td class="muted">Quedó pendiente de cobro</td><td class="r num neg" data-mo="pend">${money(k.pend)}</td></tr></tbody></table>
+        ${ro?'':'<button class="btn sm" style="margin-top:10px" data-act="m-add" data-list="recargas">Agregar recarga</button>'}
+      </section>
+    </div></div>`;
+}
+function refreshMulti(){ const sc=$('.ov.center')?.scrollTop||0; $('#layer .ov').innerHTML = multiHTML(); $('.ov.center').scrollTop=sc; }
+function multiLive(){
+  const r=ED.m, k=magCalc(r); const set=(o,v)=>{ const el=$(`[data-mo="${o}"]`); if(el) el.textContent=v; };
+  set('inicial',money(r.inicial)); set('teorico',money(k.teorico)); set('final', r.saldoFinal===''||r.saldoFinal==null?'—':money(r.saldoFinal));
+  set('rec',money(k.rec)); set('cobDia',money(k.cobDia)); set('pend',money(k.pend)); set('cobAnt',money(k.cobAnt));
+  const el=$('[data-mo="res"]'); if(el){ el.className='res '+(k.res==='none'?'':k.res); el.innerHTML=`<small>${k.res==='none'?'Diferencia':resLabel(k.res)}</small><b class="num">${k.dif==null?'—':money(k.dif)}</b>`; }
+}
+function setMulti(t){
+  const p=t.dataset.m.split('.'); const r=ED.m;
+  const isNum = t.type==='number';
+  const val = isNum ? (t.value===''?'':Number(t.value)) : t.value;
+  if(p.length===3) r[p[0]][+p[1]][p[2]] = val;
+  else r[p[0]] = (isNum && p[0]!=='saldoFinal' && val==='') ? 0 : val;
+  multiLive();
+}
+$('#layer').addEventListener('input', e=>{ if(ED && ED.m && e.target.dataset.m) setMulti(e.target); });
+$('#layer').addEventListener('change', e=>{ if(ED && ED.m && e.target.dataset.m && e.target.tagName==='SELECT') setMulti(e.target); });
+async function saveMulti(estado){
+  const r=ED.m;
+  r.recargas = (r.recargas||[]).filter(x=>agKey(x.agente) || +x.monto);
+  r.cobros = (r.cobros||[]).filter(x=>agKey(x.agente) || +x.monto);
+  if(estado==='cerrado'){
+    if(!r.responsable){ toast('Elige al responsable antes de cerrar.', true); return; }
+    if(r.saldoFinal==='' || r.saldoFinal==null){ toast('Escribe el saldo final en la plataforma para cerrar el cuadre.', true); return; }
+    if(r.recargas.some(x=>x.cobro==='pendiente' && !agKey(x.agente))){ toast('Escribe el agente de cada recarga pendiente de cobro.', true); return; }
+  }
+  if(estado) r.estado=estado;
+  delete r.nuevo; r.actualizado=new Date().toISOString();
+  await put('mag', r.id, clone(r));
+  render(); refreshMulti();
+}
+
+/* ---------- acciones v3 ---------- */
+Object.assign(ACT, {
+  'inv-tab':d=>{ UI.invTab=d.id; render(); },
+  'inv-cat':d=>{ UI.invCat=d.id; render(); },
+  'new-inv':d=>invForm(null, d.emp?{responsable:d.emp}:null),
+  'edit-inv':d=>invForm(d.id),
+  'del-inv':async d=>{ if(!(await ask('Eliminar bien', 'Se borrará el bien y su historial. Si ya no se usa, mejor cambia su estado a "De baja".', 'Eliminar', true))) return; await del('inv', d.id); closeLayer(); render(); toast('Bien eliminado'); },
+  acta:d=>openActa(d.id),
+  'acta-dl':()=>{ const e=S.emp[ED.acta]; const html = `<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Acta de entrega ${esc(e.nombre)}</title><link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=Figtree:wght@400;600&display=swap" rel="stylesheet"><style>body{margin:0;padding:24px;background:#EFE8D8}${DOC_CSS}@media print{body{padding:0;background:#fff}.doc{border:0}}</style></head><body>${actaHTML(ED.acta)}</body></html>`; saveFile(`acta-entrega-${slug(e.nombre)}-${todayS()}.html`, html, 'text/html'); },
+  'export-inv':()=>{ const out=[['Código','Bien','Categoría','Marca','Modelo','Serie','Responsable','Cédula','Departamento','Ubicación','Fecha de asignación','Estado','Fecha de compra','Valor','Proveedor','Observaciones']];
+    Object.values(S.inv).sort((a,b)=>a.codigo.localeCompare(b.codigo)).forEach(i=>{ const e=S.emp[i.responsable]; out.push([i.codigo,i.nombre,i.categoria,i.marca,i.modelo,i.serie,e?.nombre||'',e?.cedula||'',e?deptName(e.dept):'',i.ubicacion,fd(i.fechaAsignacion),EST_INV[i.estado]?.label||'',fd(i.fechaCompra),NF.format(+i.valor||0),i.proveedor,i.obs]); });
+    saveFile(`inventario-benderam-${todayS()}.csv`, csv(out), 'text/csv'); },
+  mmonth:d=>{ UI.mMonth = addMonth(UI.mMonth||todayYM(), +d.k); render(); },
+  'open-multi':d=>openMulti(d.fecha, d.cuenta),
+  'm-add':d=>{ ED.m[d.list] = ED.m[d.list]||[]; ED.m[d.list].push(d.list==='recargas'?{agente:'',monto:'',cobro:'efectivo'}:{agente:'',monto:''}); refreshMulti(); const ins=document.querySelectorAll(`[data-m^="${d.list}."][list]`); ins[ins.length-1]?.focus(); },
+  'm-rm':d=>{ ED.m[d.list].splice(+d.i,1); refreshMulti(); },
+  'm-save':async ()=>{ await saveMulti(); toast('Cuadre guardado'); },
+  'm-close':async ()=>{ const k=magCalc(ED.m); if(k.res==='bad'||k.res==='over'){ if(!(await ask('Cerrar con diferencia', `La cuenta tiene un ${resLabel(k.res).toLowerCase()} de ${money(Math.abs(k.dif))}. ¿Cerrar así?`, 'Cerrar cuadre'))) return; } await saveMulti('cerrado'); toast('Cuadre cerrado'); },
+  'm-reopen':async ()=>{ await saveMulti('abierto'); toast('Cuadre reabierto'); },
+  'm-del':async ()=>{ if(!(await ask('Eliminar cuadre', 'Se borrará el registro de este día.', 'Eliminar', true))) return; await del('mag', ED.m.id); closeLayer(); render(); toast('Cuadre eliminado'); },
+  'multi-add':()=>{ $('#multiList').insertAdjacentHTML('beforeend', multiRow({id:uid('mc'), casa:'Mas Parley', usuario:'', responsable:''})); $('#multiList').lastElementChild.querySelector('input').focus(); },
+  'multi-rm':async (d,b)=>{ const id=b.closest('.le').dataset.id; if(Object.values(S.mag).some(m=>m.cuenta===id) && !(await ask('Quitar cuenta', 'Esta cuenta tiene cuadres registrados. Dejarán de verse, pero no se borran.', 'Quitar'))) return; b.closest('.le').remove(); }
+});
+function multiRow(c){ return `<div class="le" data-id="${esc(c.id)}" style="grid-template-columns:1fr 1fr 1.2fr auto"><input name="casa" list="casaList" value="${esc(c.casa)}" placeholder="Casa" aria-label="Casa" required><input name="usuario" value="${esc(c.usuario)}" placeholder="Usuario de la cuenta" aria-label="Usuario de la cuenta"><select name="responsable" aria-label="Responsable"><option value="">Responsable</option>${activeEmps().map(e=>`<option value="${e.id}" ${c.responsable===e.id?'selected':''}>${esc(e.nombre)}</option>`).join('')}</select><button type="button" class="btn sm quiet bad" data-act="multi-rm">Quitar</button></div>`; }
+document.addEventListener('submit', e=>{
+  const f=e.target;
+  if(f.id==='invForm') submitInv(f);
+  if(f.id==='multiForm'){ const rows=[...f.querySelectorAll('.le')].map(r=>({id:r.dataset.id, casa:r.querySelector('[name=casa]').value.trim(), usuario:r.querySelector('[name=usuario]').value.trim(), responsable:r.querySelector('[name=responsable]').value})).filter(c=>c.casa);
+    document.activeElement && document.activeElement.blur(); putCfg({...S.cfg, multi:rows}).then(()=>{ render(); toast('Cuentas multiagencia guardadas'); }); }
+});
+document.addEventListener('input', e=>{ if(e.target.id==='invq'){ UI.invQ=e.target.value; fillInv(); } });
+document.addEventListener('keydown', e=>{
+  if(e.target.id!=='invq' || e.key!=='Enter') return;
+  e.preventDefault();
+  const code = invCode(e.target.value);
+  if(!code){ const one = Object.values(S.inv).filter(i=>[i.codigo,i.nombre].join(' ').toLowerCase().includes(UI.invQ.trim().toLowerCase())); if(one.length===1) invForm(one[0].id); return; }
+  const it = Object.values(S.inv).find(i=>i.codigo===code);
+  UI.invQ=''; e.target.value=''; fillInv();
+  if(it) invForm(it.id); else invForm(null, {codigo:code});
+});
+
+/* ---------- migración: producción de la red en cero ---------- */
+let migrated = false;
+async function migrateV3(){
+  if(migrated || S.cfg.migV3) return; migrated = true;
+  for(const c of Object.values(S.com)) if(!c.manual) await del('com', c.id);
+  await putCfg({...S.cfg, migV3:true});
+  render();
+}
+
 /* ================= inicio ================= */
 async function boot(){
-  UI.month = UI.cajaMonth = UI.finMonth = todayYM();
+  UI.month = UI.cajaMonth = UI.finMonth = UI.mMonth = todayYM();
   render();
   let d=null;
   if(window.claude && typeof window.claude.use==='function'){
@@ -1699,13 +2062,13 @@ async function boot(){
   if(d){
     db=d; mode='db';
     const seen = new Set(); const need = KEYS.length+1;
-    const done = k=>{ seen.add(k); if(seen.size>=need) UI.ready=true; if(UI.ready) render(); };
+    const done = k=>{ seen.add(k); if(seen.size>=need){ UI.ready=true; migrateV3(); } if(UI.ready) render(); };
     for(const k of KEYS){
       db.collection(COL[k]).onSnapshot(s=>{ S[k]=Object.fromEntries(s.docs.map(x=>[x.id,x.data()])); done(k); }, err=>{ toast('No se pudieron leer los datos: '+(err.message||err.code), true); done(k); });
     }
     db.doc('config/empresa').onSnapshot(s=>{ S.cfg={...clone(DEF_CFG),...(s.exists?s.data():{})}; done('cfg'); }, ()=>done('cfg'));
   } else {
-    loadLocal(); UI.ready=true; render();
+    loadLocal(); UI.ready=true; render(); migrateV3();
   }
 }
 boot();
