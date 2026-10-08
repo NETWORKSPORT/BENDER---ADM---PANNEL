@@ -6,7 +6,7 @@
 /* ====== CONEXIÓN CON GOOGLE SHEETS ======
    Pega entre las comillas la URL de tu Apps Script (termina en /exec).
    Si la dejas vacía, el panel guarda los datos solo en este navegador. */
-   window.BENDERAM_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbyVz1RLEPdxpTtW-Gfeck9Lk9L9iClgcsn54FTeoPDsBs9IWr39fuoQxbm63eAtXeS4EQ/exec';
+window.BENDERAM_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbyVz1RLEPdxpTtW-Gfeck9Lk9L9iClgcsn54FTeoPDsBs9IWr39fuoQxbm63eAtXeS4EQ/exec';
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>BENDERAM | Panel empresarial</title>
@@ -2123,6 +2123,10 @@ function sheetDel(col, id){
 }
 window.addEventListener('beforeunload', e=>{ if(mode==='sheet' && busy()){ flushBatch(); e.preventDefault(); e.returnValue=''; } });
 
+const ckey = () => 'benderam-cache-' + (SES ? SES.usuario : '');
+function saveCache(d){ try{ localStorage.setItem(ckey(), JSON.stringify({at:Date.now(), data:d})); }catch(e){} }
+function readCache(){ try{ return JSON.parse(localStorage.getItem(ckey())||'null'); }catch(e){ return null; } }
+function startRefresh(){ clearInterval(refreshTimer); refreshTimer = setInterval(()=>{ if(SES && !$('#layer').innerHTML && document.visibilityState==='visible') reload(true); }, 60000); }
 function applyData(d){
   KEYS.forEach(k=>{ S[k] = (d && d[k]) || {}; });
   S.cfg = {...clone(DEF_CFG), ...((d && d.cfg && d.cfg.empresa) || {})};
@@ -2132,7 +2136,7 @@ async function reload(silent){
   const j = await api('load');
   if(!j.ok){ if(!silent) toast(j.error||'No se pudieron cargar los datos.', true); return; }
   if(busy()) return;
-  applyData(j.data); UI.ready = true;
+  applyData(j.data); UI.ready = true; saveCache(j.data);
   if(!canView(UI.view)) UI.view = firstView();
   render();
 }
@@ -2155,7 +2159,8 @@ function renderLogin(setup, msg){
 }
 function doLogout(expired){
   if(SES && !expired) api('logout');
-  SES = null; try{ localStorage.removeItem(SKEY); }catch(e){}
+  try{ localStorage.removeItem(ckey()); localStorage.removeItem(SKEY); }catch(e){}
+  SES = null;
   clearInterval(refreshTimer); UI.ready=false; closeLayer();
   KEYS.forEach(k=>S[k]={}); S.cfg=clone(DEF_CFG);
   renderLogin(false);
@@ -2163,11 +2168,11 @@ function doLogout(expired){
 async function afterLogin(j){
   SES = {...j.user, token:j.token}; try{ localStorage.setItem(SKEY, JSON.stringify(SES)); }catch(e){}
   document.body.classList.remove('locked');
-  $('#main').innerHTML = `<div class="empty"><h2>Cargando datos</h2><p>Leyendo la información desde Google Sheets.</p></div>`;
   UI.view = firstView();
-  await reload();
-  clearInterval(refreshTimer);
-  refreshTimer = setInterval(()=>{ if(SES && !$('#layer').innerHTML && document.visibilityState==='visible') reload(true); }, 60000);
+  const c = readCache();
+  if(c && c.data){ applyData(c.data); UI.ready = true; render(); reload(true); }
+  else { $('#main').innerHTML = `<div class="empty"><h2>Cargando datos</h2><p>Leyendo la información desde Google Sheets. La primera vez del día puede tardar unos segundos.</p></div>`; await reload(); }
+  startRefresh();
 }
 async function submitLogin(form, setup){
   const v = Object.fromEntries(new FormData(form).entries());
@@ -2179,7 +2184,7 @@ async function submitLogin(form, setup){
     if(v.clave.length<8) return err('La contraseña debe tener al menos 8 caracteres.');
     if(v.clave!==v.clave2) return err('Las contraseñas no coinciden.');
   }
-  const b = form.querySelector('button[type=submit]'); b.disabled=true; b.textContent='Verificando…';
+  const b = form.querySelector('button[type=submit]'); b.disabled=true; b.textContent= setup ? 'Creando cuenta… (puede tardar unos segundos)' : 'Verificando…';
   const j = await api(setup?'bootstrap':'login', {usuario:v.usuario, clave:v.clave, nombre:(v.nombre||'').trim()});
   b.disabled=false; b.textContent = setup?'Crear cuenta e ingresar':'Ingresar';
   if(!j.ok) return err(j.error||'No se pudo ingresar.');
@@ -2306,8 +2311,8 @@ async function boot(){
   if(SHEETS_URL){
     mode='sheet';
     let saved=null; try{ saved=JSON.parse(localStorage.getItem(SKEY)||'null'); }catch(e){}
-    if(saved && saved.token){ SES=saved; const j=await api('me'); if(j.ok){ await afterLogin({user:j.user, token:saved.token}); return; } SES=null; }
-    $('#main').innerHTML='';
+    if(saved && saved.token){ SES=saved; await afterLogin({user:saved, token:saved.token}); return; }
+    $('#main').innerHTML='<div class="login"><div class="lbox"><p class="muted" style="margin:0">Conectando con Google Sheets…</p></div></div>';
     const st = await api('status');
     if(!st.ok){ renderLogin(false, st.error); return; }
     renderLogin(st.setup); return;
