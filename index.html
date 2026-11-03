@@ -435,6 +435,7 @@ const TIPOS = {
   multa:{label:'Multa', descuenta:true},
   sancion:{label:'Sanción', descuenta:true},
   faltante:{label:'Faltante de caja', descuenta:true},
+  danio:{label:'Daño o pérdida de un bien', descuenta:true},
   permiso_sin:{label:'Permiso sin goce de sueldo', descuenta:true},
   permiso_con:{label:'Permiso con goce de sueldo', descuenta:false}
 };
@@ -584,8 +585,9 @@ function projection(emp,p){
   const {sueldo} = prorate(emp,p);
   const iess = 0;
   const mul = sum(pendingMultas(emp.id,p.hasta).map(m=>m.monto));
-  const desc = r2(iess+mul);
-  return {ing:sueldo, desc, mul, neto:r2(sueldo-desc)};
+  const deu = typeof deudasParaRol==='function' ? sum(deudasParaRol(emp.id, p.desde.slice(0,7), null, p.n, emp.frecuencia).map(x=>x.monto)) : 0;
+  const desc = r2(iess+mul+deu);
+  return {ing:sueldo, desc, mul, deu, neto:r2(sueldo-desc)};
 }
 function calc(r){
   const i=r.ing, d=r.desc, n=v=>Number(v)||0;
@@ -921,13 +923,13 @@ VIEWS.roles = function(){
   <div class="toolbar"><p class="muted" style="margin:0;font-size:14px">${missing.length?'Los valores en cursiva son proyecciones: se confirman al generar el rol.':'Todos los roles del mes están generados.'}</p>
     <div class="acts"><button class="btn" data-act="export-csv" data-ym="${ym}">Exportar CSV</button><button class="btn gold" data-act="gen-all" data-ym="${ym}" ${missing.length?'':'disabled'}>Generar borradores (${missing.length})</button></div></div>
   <div class="tw"><table class="t"><thead><tr><th>N.º</th><th>Colaborador</th><th>Período</th><th>Fecha de pago</th><th class="r">Ingresos</th><th class="r">Descuentos</th><th class="r">Neto</th><th>Estado</th><th></th></tr></thead><tbody>
-  ${rows.map(x=>{ const st=statusOf(x); const v = x.rol?x.rol.calc:projection(x.emp,x.p); const cls = x.rol?'':'proj'; const mul = x.rol ? v.multas : v.mul;
+  ${rows.map(x=>{ const st=statusOf(x); const v = x.rol?x.rol.calc:projection(x.emp,x.p); const cls = x.rol?'':'proj'; const mul = x.rol ? v.multas : v.mul; const deuV = x.rol ? (v.deu||0) : (v.deu||0);
     return `<tr><td class="num">${x.rol?pad(x.rol.numero,6):'—'}</td>
     <td><b>${esc(x.emp.nombre)}</b><small>${esc(deptName(x.emp.dept))}</small></td>
     <td class="num">${esc(fd(x.p.desde))} al ${esc(fd(x.p.hasta))}${x.emp.frecuencia==='quincenal'?`<small>Quincena ${x.p.n}</small>`:''}</td>
     <td class="num"><b>${esc(fd(x.p.pago))}</b></td>
     <td class="r num ${cls}">${money(x.rol?v.totIng:v.ing)}</td>
-    <td class="r num ${cls}">${money(x.rol?v.totDesc:v.desc)}${mul?`<small class="neg">Multas ${money(mul)}</small>`:''}</td>
+    <td class="r num ${cls}">${money(x.rol?v.totDesc:v.desc)}${mul?`<small class="neg">Multas y permisos ${money(mul)}</small>`:''}${deuV?`<small class="neg">Anticipos y deudas ${money(deuV)}</small>`:''}</td>
     <td class="r num ${cls}"><b>${money(v.neto)}</b></td>
     <td><span class="pill ${st.k}">${st.t}</span></td>
     <td><div class="rowacts">${x.rol? `${x.rol.estado==='aprobado'?`<button class="btn sm" data-act="pay-rol" data-id="${x.id}">Marcar pagado</button>`:''}<button class="btn sm quiet" data-act="open-rol" data-id="${x.id}">Abrir</button><button class="btn sm quiet" data-act="rol-pdf-id" data-id="${x.id}">PDF</button>` : `<button class="btn sm gold" data-act="gen-one" data-id="${x.id}" data-ym="${x.ym}" ${payable(x.emp)?'':'disabled'}>Vista previa</button>`}</div></td></tr>`; }).join('')}
@@ -1302,7 +1304,7 @@ function mulForm(empId, mulId, preset){
       <div class="f" data-f="tipo"><label for="m_tipo">Tipo</label><select id="m_tipo" name="tipo">${Object.entries(TIPOS).filter(([k])=>!k.startsWith('permiso')||m.tipo===k).map(([k,t])=>`<option value="${k}" ${m.tipo===k?'selected':''}>${t.label}</option>`).join('')}</select><div class="hint" style="font-size:12px;color:var(--muted);margin-top:4px">Los permisos y vacaciones se registran en Personal → Permisos.</div></div>
       <div class="f" data-f="fecha"><label for="m_fecha">Fecha</label><input id="m_fecha" type="date" name="fecha" value="${esc(m.fecha)}"><div class="err"></div></div>
       <div class="f full" data-f="motivo"><label for="m_mot">Motivo</label><textarea id="m_mot" name="motivo" placeholder="Ejemplo: atraso de 25 minutos en apertura de agencia">${esc(m.motivo||'')}</textarea><div class="err"></div></div>
-      <div class="f" data-f="monto" id="montoWrap"><label for="m_monto">Valor a descontar (USD)</label><input id="m_monto" type="number" step="0.01" min="0" inputmode="decimal" name="monto" value="${esc(['multa','sancion','faltante'].includes(m.tipo)?m.monto:'')}"><div class="err"></div></div>
+      <div class="f" data-f="monto" id="montoWrap"><label for="m_monto">Valor a descontar (USD)</label><input id="m_monto" type="number" step="0.01" min="0" inputmode="decimal" name="monto" value="${esc(['multa','sancion','faltante','danio'].includes(m.tipo)?m.monto:'')}"><div class="err"></div></div>
       <div class="f" data-f="dias" id="diasWrap"><label for="m_dias">Días de permiso</label><input id="m_dias" type="number" step="0.5" min="0.5" name="dias" value="${esc(m.dias||1)}"><div class="err"></div></div>
       <div class="full calcbox" id="mulCalc"></div>
     </div></div>
@@ -1338,8 +1340,9 @@ async function submitMul(form){
   const data = {...prev, id, empId:v.empId, tipo:v.tipo, fecha:v.fecha, motivo:v.motivo.trim(), monto, dias, estado: TIPOS[v.tipo].descuenta ? 'pendiente':'registrado', rolId:null, cuadreId: prev.cuadreId || form.dataset.ref || null, creado:prev.creado||new Date().toISOString()};
   closeLayer(); await put('mul', id, data);
   if(data.cuadreId && S.cua[data.cuadreId]) await put('cua', data.cuadreId, {...S.cua[data.cuadreId], multaId:id});
+  const ar = data.estado==='pendiente' ? await autoRol(data.empId) : {n:0,apro:0};
   render();
-  toast(data.estado==='pendiente' ? 'Registrado. Se descontará en el próximo rol.' : 'Permiso registrado');
+  toast((data.estado==='pendiente' ? 'Registrado. Se descontará en el rol de ese mes.' : 'Permiso registrado.') + autoMsg(ar));
 }
 
 /* --- cuadre de caja --- */
@@ -1608,11 +1611,11 @@ function docHTML(r, ed){
         <tr class="tot"><td colspan="2">TOTAL INGRESOS</td><td class="n">${o('totIng')}</td></tr>
       </tbody></table></section>
       <section class="doc-sec"><h4>DESCUENTOS / DEDUCCIONES</h4><table class="ln"><thead><tr><th>Concepto</th><th class="n">Valor</th></tr></thead><tbody>
-        ${desRow('Anticipos', fld('desc.anticipos',d.anticipos))}
-        ${desRow('Préstamos', fld('desc.prestamos',d.prestamos))}
+        ${desRow('Otros anticipos (manual)', fld('desc.anticipos',d.anticipos))}
+        ${desRow('Otros préstamos (manual)', fld('desc.prestamos',d.prestamos))}
         ${desRow('Descuentos autorizados', fld('desc.autorizados',d.autorizados))}
-        ${desRow(`Multas, sanciones y faltantes (${(r.multas||[]).length})`, o('multas'), true)}
-        ${(r.deudas||[]).length?desRow(`Anticipos, préstamos y deudas (${r.deudas.length})`, o('deu'), true):''}
+        ${desRow(`Multas, permisos, faltantes y daños (${(r.multas||[]).length})`, o('multas'), true)}
+        ${desRow(`Anticipos, préstamos y deudas registrados (${(r.deudas||[]).length})`, o('deu'), true)}
         ${desRow(lb('od'), fld('desc.otrosDesc',d.otrosDesc))}
         ${desRow(lb('o2'), fld('desc.otros',d.otros))}
         <tr class="tot"><td>TOTAL DESCUENTOS</td><td class="n">${o('totDesc')}</td></tr>
@@ -1679,7 +1682,7 @@ async function pdfRol(r){
   kvGrid(D, [['Nombre completo',r.e.nombre],['Cédula',r.e.cedula],['Código',r.e.codigo||'-'],['Cargo',r.e.cargo||'-'],['Departamento',deptName(r.e.dept)],['Tipo de contrato',r.e.contrato||'-'],['Fecha de ingreso',fd(r.e.fechaIngreso)],['Período',`${fd(r.desde)} al ${fd(r.hasta)}`],['Fecha de pago',fd(r.pago)]], 3);
   section(D, 'Detalle de la remuneración');
   const ingRows=[['Sueldo / salario', i.dias?`${i.dias} días`:'', i.sueldo],['Horas suplementarias (50%)', i.hsupH?`${i.hsupH} h`:'', k.hsup],['Horas extraordinarias (100%)', i.hextH?`${i.hextH} h`:'', k.hext],['Comisiones','',i.comisiones],['Bonificaciones','',i.bonificaciones],[L.oi,'',i.otrosIngresos],[L.o,'',i.otros]];
-  const desRows=[['Anticipos','',d.anticipos],['Préstamos','',d.prestamos],['Descuentos autorizados','',d.autorizados],[`Multas y sanciones (${(r.multas||[]).length})`,'',k.multas],...((r.deudas||[]).length?[[`Anticipos, préstamos y deudas (${r.deudas.length})`,'',k.deu]]:[]),[L.od,'',d.otrosDesc],[L.o2,'',d.otros]];
+  const desRows=[['Otros anticipos','',d.anticipos],['Otros préstamos','',d.prestamos],['Descuentos autorizados','',d.autorizados],[`Multas, permisos y daños (${(r.multas||[]).length})`,'',k.multas],[`Anticipos y deudas registrados (${(r.deudas||[]).length})`,'',k.deu],[L.od,'',d.otrosDesc],[L.o2,'',d.otros]];
   ensure(D, 20 + 8*18 + 22 + 10);
   const W=D.W-2*D.M, gap=16, cw=(W-gap)/2, y0=D.y;
   const mini = (x, title, rows, tot) => {
@@ -1709,7 +1712,8 @@ async function pdfRol(r){
   await pdfSave(D, `rol-${pad(r.numero,6)}-${slug(r.e.nombre)}.pdf`);
 }
 
-function openRol(id){
+async function openRol(id){
+  if(S.rol[id] && S.rol[id].estado==='borrador'){ const ar = await autoRol(S.rol[id].empId, id); if(ar.n) toast('Se agregaron al rol descuentos nuevos (multas, permisos o anticipos).'); }
   const r = S.rol[id]; if(!r) return;
   ED = {r:clone(r), orig:new Set((r.multas||[]).map(m=>m.id))};
   openLayer(rolModal(), true);
@@ -1835,8 +1839,8 @@ const ACT = {
   'rol-draft':async ()=>{ await saveRol('borrador'); toast('El rol volvió a borrador'); },
   'rol-pay':async ()=>{ await saveRol('pagado'); toast('Rol marcado como pagado'); },
   'rol-unpay':async ()=>{ await saveRol('aprobado'); toast('Pago deshecho; el rol queda aprobado'); },
-  'rol-refresh-mul':()=>{ const add = pendingMultas(ED.r.empId, ED.r.hasta).filter(m=>!ED.r.multas.some(x=>x.id===m.id)); ED.r.multas.push(...add.map(snapMulta)); calc(ED.r); refreshRolModal(); toast(`${add.length} ${add.length===1?'multa agregada':'multas agregadas'}. Guarda para confirmar.`); },
-  'rol-rm-mul':d=>{ ED.r.multas = ED.r.multas.filter(m=>m.id!==d.id); calc(ED.r); refreshRolModal(); },
+  'rol-refresh-mul':()=>{ const add = pendingMultas(ED.r.empId, ED.r.hasta).filter(m=>!ED.r.multas.some(x=>x.id===m.id)); ED.r.multas.push(...add.map(snapMulta)); ED.r.excl = (ED.r.excl||[]).filter(x=>!add.some(m=>m.id===x)); calc(ED.r); refreshRolModal(); toast(`${add.length} ${add.length===1?'multa agregada':'multas agregadas'}. Guarda para confirmar.`); },
+  'rol-rm-mul':d=>{ ED.r.excl = [...new Set([...(ED.r.excl||[]), d.id])]; ED.r.multas = ED.r.multas.filter(m=>m.id!==d.id); calc(ED.r); refreshRolModal(); },
   'rol-del':async ()=>{ const r=ED.r; if(!(await ask('Eliminar rol', `Se eliminará el rol N.º ${pad(r.numero,6)}. Sus multas vuelven a quedar pendientes de descuento.`, 'Eliminar rol', true))) return;
     for(const id of ED.orig) if(S.mul[id]) await put('mul', id, {...S.mul[id], estado:'pendiente', rolId:null});
     await syncDeudasRol(r, true);
@@ -2504,7 +2508,7 @@ function invForm(id, preset){
       <fieldset><legend>Observaciones</legend><div class="f"><textarea name="obs" aria-label="Observaciones" placeholder="Accesorios, daños, condiciones de uso">${esc(i.obs||'')}</textarea></div></fieldset>
       ${id && (i.hist||[]).length ? `<fieldset><legend>Historial de responsables</legend><div class="oblig">${i.hist.slice().reverse().map(h=>`<div><div class="muted num" style="font-size:13px">${esc(fd(h.fecha))}</div><div style="font-size:14px">${h.de?esc(S.emp[h.de]?.nombre||'Colaborador eliminado'):'Sin asignar'} → <b>${h.a?esc(S.emp[h.a]?.nombre||'Colaborador eliminado'):'Sin asignar'}</b></div></div>`).join('')}</div></fieldset>`:''}
     </div>
-    <div class="df">${id?`<button type="button" class="btn bad quiet" data-act="del-inv" data-id="${id}" style="margin-right:auto">Eliminar</button><button type="button" class="btn" data-act="inv-pdf" data-id="${id}">Ficha PDF</button>`:''}<button type="button" class="btn" data-act="close">Cancelar</button><button type="submit" class="btn gold">${id?'Guardar cambios':'Registrar bien'}</button></div></form>`);
+    <div class="df">${id?`<button type="button" class="btn bad quiet" data-act="del-inv" data-id="${id}" style="margin-right:auto">Eliminar</button><button type="button" class="btn" data-act="inv-pdf" data-id="${id}">Ficha PDF</button>${S.inv[id]&&S.emp[S.inv[id].responsable]&&can('personal')?`<button type="button" class="btn" data-act="inv-danio" data-id="${id}">Cobrar daño</button>`:''}`:''}<button type="button" class="btn" data-act="close">Cancelar</button><button type="submit" class="btn gold">${id?'Guardar cambios':'Registrar bien'}</button></div></form>`);
   ED = {inv:{id:id||null, foto:undefined}};
   showFotoBox(i.mini||'');
   if(id && i.foto) fotoLoad([id]).then(()=>{ if(ED && ED.inv && ED.inv.id===id && ED.inv.foto===undefined && FOTOS[id]) showFotoBox(FOTOS[id]); });
@@ -2754,6 +2758,7 @@ Object.assign(ACT, {
   'inv-foto-pick':()=>$('#ifotoIn')?.click(),
   'inv-foto-rm':()=>{ if(!ED||!ED.inv) return; ED.inv.foto = null; showFotoBox(''); },
   'inv-pdf':(d,b)=>runPdf(b, ()=>pdfFicha(d.id)),
+  'inv-danio':d=>{ const i=S.inv[d.id]; closeLayer(); mulForm(i.responsable, null, {tipo:'danio', fecha:todayS(), motivo:`Daño o pérdida del bien ${i.codigo} ${i.nombre}${+i.valor?' (valor registrado '+money(i.valor)+')':''}`}); },
   'inv-pdf-all':(d,b)=>runPdf(b, pdfInventario),
   'acta-pdf':(d,b)=>runPdf(b, ()=>pdfActa(d.id || (ED && ED.acta))),
   'acta-pdf-sel':(d,b)=>runPdf(b, ()=>pdfActa($('#pp_emp').value)),
@@ -2906,6 +2911,7 @@ async function syncPerMulta(p){
 async function savePer(p){
   p = await syncPerMulta(p);
   await put('per', p.id, p);
+  if(p.mulId){ const ar = await autoRol(p.empId); if(ar.n||ar.apro) setTimeout(()=>toast('Permiso guardado.'+autoMsg(ar)), 600); }
   return p;
 }
 async function submitPer(f){
@@ -2965,7 +2971,7 @@ const allDeudas = () => Object.values(S.emp).flatMap(e=>(e.deudas||[]).map(d=>({
 function deudasParaRol(empId, ym, rolId, n, frecuencia){
   const e = S.emp[empId]; if(!e) return [];
   if((frecuencia||e.frecuencia)==='quincenal' && +n===1) return [];
-  return (e.deudas||[]).filter(d=>!d.pausada && +d.cuota>0 && (d.inicio||'0000-00')<=ym && !(d.pagos||[]).some(p=>p.rolId && p.rolId!==rolId && p.rolId.includes(`_${ym}_`))).map(d=>{ const s = deuSaldo(d, rolId); return s>0.005 ? {id:d.id, tipo:d.tipo, concepto:d.concepto, monto:r2(Math.min(+d.cuota, s)), saldoAntes:s} : null; }).filter(Boolean);
+  return (e.deudas||[]).filter(d=>!d.pausada && (+d.cuota>0 || d.tipo==='anticipo') && (d.inicio||'0000-00')<=ym && !(d.pagos||[]).some(p=>p.rolId && p.rolId!==rolId && p.rolId.includes(`_${ym}_`))).map(d=>{ const s = deuSaldo(d, rolId); return s>0.005 ? {id:d.id, tipo:d.tipo, concepto:d.concepto, monto:r2(+d.cuota>0 ? Math.min(+d.cuota, s) : s), saldoAntes:s} : null; }).filter(Boolean);
 }
 async function putDeudas(empId, deudas){ const e = S.emp[empId]; await put('emp', empId, {...e, deudas, actualizado:new Date().toISOString()}); }
 async function syncDeudasRol(r, borrar){
@@ -3026,7 +3032,7 @@ function deuForm(empId, id){
       ${inp('fecha','Fecha en que se entregó','date')}
       ${inp('concepto','Concepto','text','placeholder="Ejemplo: anticipo de quincena, préstamo para celular"','full')}
       ${inp('monto','Monto total (USD)','number','step="0.01" min="0" inputmode="decimal"')}
-      ${inp('cuota','Descuento por mes (USD)','number','step="0.01" min="0" inputmode="decimal"','','Lo que se descuenta en cada rol mensual.')}
+      ${inp('cuota','Descuento por mes (USD)','number','step="0.01" min="0" inputmode="decimal"','','Lo que se descuenta en cada rol mensual. En anticipos, si lo dejas vacío se descuenta todo en el próximo rol.')}
       ${inp('inicio','Empezar a descontar en','month','','full','Mes del primer rol que llevará el descuento.')}
       <div class="f full"><label class="check"><input type="checkbox" name="pausada" ${d.pausada?'checked':''}> Pausar los descuentos por ahora</label></div>
       <div class="f full"><label for="d_obs">Observaciones</label><textarea id="d_obs" name="obs" placeholder="Acuerdos, garante, firma de respaldo">${esc(d.obs||'')}</textarea></div>
@@ -3044,7 +3050,7 @@ function deuForm(empId, id){
     let t = '';
     if(!(+v.monto>0)) t = 'Escribe el monto total.';
     else if(saldo<=0) t = 'Este registro ya está pagado por completo.';
-    else if(!(cuota>0)) t = `Saldo: ${money(saldo)}. Sin descuento mensual, solo bajará con abonos manuales.`;
+    else if(!(cuota>0)) t = v.tipo==='anticipo' ? `Se descontará completo (${money(saldo)}) en el rol de ${monthLabel(v.inicio||todayYM()).toLowerCase()}. Si prefieres dividirlo, escribe el descuento por mes.` : `Saldo: ${money(saldo)}. Sin descuento mensual, solo bajará con abonos manuales.`;
     else { const n = Math.ceil(saldo/cuota); const fin = addMonth(v.inicio||todayYM(), n-1); t = `Saldo: ${money(saldo)}. Se descontará ${money(cuota)} por mes durante ${n} ${n===1?'mes':'meses'}; el último descuento sería en ${monthLabel(fin).toLowerCase()}${saldo%cuota>0.005?` (de ${money(saldo - cuota*(n-1))})`:''}.`; }
     if(f.querySelector('[name=pausada]').checked) t += ' Los descuentos están pausados.';
     $('#deuCalc').textContent = t;
@@ -3062,10 +3068,10 @@ async function submitDeu(f){
   if(markErrors(f, errs)) return;
   const e = S.emp[empId]; const list = (e.deudas||[]).slice(); const ix = list.findIndex(x=>x.id===id);
   const prev = ix>=0 ? list[ix] : {pagos:[], creado:new Date().toISOString(), registradoPor:SES?SES.nombre:''};
-  const d = {...prev, id, tipo:v.tipo, fecha:v.fecha, concepto:v.concepto.trim(), monto:r2(v.monto), cuota:r2(v.cuota), inicio:v.inicio||todayYM(), pausada:fdata.has('pausada'), obs:(v.obs||'').trim()};
+  const d = {...prev, id, tipo:v.tipo, fecha:v.fecha, concepto:v.concepto.trim(), monto:r2(v.monto), cuota:r2(+v.cuota>0 ? v.cuota : (v.tipo==='anticipo' ? v.monto : 0)), inicio:v.inicio||todayYM(), pausada:fdata.has('pausada'), obs:(v.obs||'').trim()};
   if(ix>=0) list[ix] = d; else list.push(d);
-  closeLayer(); await putDeudas(empId, list); render();
-  toast(f.dataset.id ? 'Registro actualizado' : `Registrado. ${+d.cuota>0?`Se descontará ${money(d.cuota)} por mes desde ${monthLabel(d.inicio).toLowerCase()}.`:''}`);
+  closeLayer(); await putDeudas(empId, list); const ar = await autoRol(empId); render();
+  toast((f.dataset.id ? 'Registro actualizado.' : `Registrado. ${+d.cuota>0?`Se descontará ${money(Math.min(d.cuota,d.monto))}${d.cuota<d.monto?' por mes':''} desde ${monthLabel(d.inicio).toLowerCase()}.`:''}`) + autoMsg(ar));
 }
 function abonoForm(empId, id){
   const d = (S.emp[empId].deudas||[]).find(x=>x.id===id); const s = deuSaldo(d);
@@ -3112,8 +3118,8 @@ Object.assign(ACT, {
   'deu-export':()=>{ const out=[['Colaborador','Cédula','Tipo','Concepto','Fecha','Monto','Descuento por mes','Desde','Pagado','Saldo','Estado']];
     allDeudas().forEach(({e,d})=>out.push([e.nombre,e.cedula,DEU_TIPOS[d.tipo]||d.tipo,d.concepto,fd(d.fecha),NF.format(+d.monto||0),NF.format(+d.cuota||0),d.inicio?monthLabel(d.inicio):'',NF.format(deuPagado(d)),NF.format(Math.max(0,deuSaldo(d))),DEU_EST[deuEstado(d)].label]));
     saveFile(`anticipos-y-deudas-${todayS()}.csv`, csv(out), 'text/csv'); },
-  'rol-refresh-deu':()=>{ const add = deudasParaRol(ED.r.empId, ED.r.ym, ED.r.id, ED.r.n, ED.r.frecuencia).filter(x=>!(ED.r.deudas||[]).some(y=>y.id===x.id)); ED.r.deudas = [...(ED.r.deudas||[]), ...add]; calc(ED.r); refreshRolModal(); toast(`${add.length} ${add.length===1?'descuento agregado':'descuentos agregados'}. Guarda para confirmar.`); },
-  'rol-rm-deu':d=>{ ED.r.deudas = (ED.r.deudas||[]).filter(x=>x.id!==d.id); calc(ED.r); refreshRolModal(); }
+  'rol-refresh-deu':()=>{ const add = deudasParaRol(ED.r.empId, ED.r.ym, ED.r.id, ED.r.n, ED.r.frecuencia).filter(x=>!(ED.r.deudas||[]).some(y=>y.id===x.id)); ED.r.deudas = [...(ED.r.deudas||[]), ...add]; ED.r.excl = (ED.r.excl||[]).filter(x=>!add.some(m=>m.id===x)); calc(ED.r); refreshRolModal(); toast(`${add.length} ${add.length===1?'descuento agregado':'descuentos agregados'}. Guarda para confirmar.`); },
+  'rol-rm-deu':d=>{ ED.r.excl = [...new Set([...(ED.r.excl||[]), d.id])]; ED.r.deudas = (ED.r.deudas||[]).filter(x=>x.id!==d.id); calc(ED.r); refreshRolModal(); }
 });
 document.addEventListener('submit', e=>{ if(e.target.id==='deuForm') submitDeu(e.target); if(e.target.id==='abonoForm') submitAbono(e.target); });
 
@@ -3356,6 +3362,26 @@ Object.assign(ACT, {
     const a = actaOf(S.emp[d.id]); if(a.firmada && a.firmada.fileId && mode==='sheet') api('doc.del', {fileId:a.firmada.fileId}); if(a.firmada && a.firmada.fotoId) fotoRemove(a.firmada.fotoId);
     const {firmada, ...rest} = a; await setActa(d.id, rest); toast('Acta quitada'); }
 });
+
+
+/* ================= v16: descuentos automáticos en roles ================= */
+async function autoRol(empId, onlyId){
+  let n = 0, apro = 0;
+  const list = Object.values(S.rol).filter(r=>r.empId===empId && r.estado!=='pagado' && (!onlyId || r.id===onlyId)).sort((a,b)=>(a.ym+a.n).localeCompare(b.ym+b.n));
+  for(const r0 of list){
+    const ex = new Set(r0.excl||[]);
+    const addM = pendingMultas(empId, r0.hasta).filter(m=>!ex.has(m.id) && !(r0.multas||[]).some(x=>x.id===m.id));
+    const addD = deudasParaRol(empId, r0.ym, r0.id, r0.n, r0.frecuencia).filter(x=>!ex.has(x.id) && !(r0.deudas||[]).some(y=>y.id===x.id));
+    if(!addM.length && !addD.length) continue;
+    if(r0.estado!=='borrador'){ apro++; continue; }
+    const r = clone(r0); r.multas = [...(r.multas||[]), ...addM.map(snapMulta)]; r.deudas = [...(r.deudas||[]), ...addD]; calc(r); r.actualizado = new Date().toISOString();
+    await put('rol', r.id, r);
+    for(const m of addM) await put('mul', m.id, {...S.mul[m.id], estado:'aplicada', rolId:r.id});
+    await syncDeudasRol(r); n++;
+  }
+  return {n, apro};
+}
+const autoMsg = ar => (ar.n ? ` Ya se agregó al rol en borrador${ar.n>1?' ('+ar.n+')':''}.` : '') + (ar.apro ? ' Su rol ya está aprobado: vuélvelo a borrador para incluirlo.' : '');
 
 /* ================= inicio ================= */
 async function boot(){
