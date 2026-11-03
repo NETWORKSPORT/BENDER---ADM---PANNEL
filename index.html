@@ -350,6 +350,9 @@ body.locked .main{padding:0}
 .doc-in.t{text-align:left}
 .doc-in.mini{width:72px;min-width:0;display:inline-block;padding:1px 4px}
 .doc-in[type=date]{min-width:130px}
+.addbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:10px 18px;border-bottom:1px solid var(--line);font-size:13.5px;color:var(--muted)}
+.addbox{padding:14px 18px;border-bottom:1px solid var(--line);background:var(--surface-2,var(--surface))}
+.addh{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}.addh b{font-size:15px}
 .rolnote{background:var(--warn-bg);color:var(--ink);border-bottom:1px solid var(--line);padding:10px 18px;font-size:13.5px}
 
 .board{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px}
@@ -1649,6 +1652,7 @@ function rolModal(){
     <div class="mbar"><h2 id="rolT">${nuevo?'Vista previa del rol':'Rol N.º '+pad(r.numero,6)} <span class="pill ${st.k}">${st.t}</span></h2>
       <div class="acts">${acts}<button class="btn quiet" data-act="rol-print">Imprimir</button><button class="x" data-act="close" aria-label="Cerrar">×</button></div></div>
     ${ed?`<div class="rolnote noprint">${nuevo?'Revisa el rol antes de generarlo. Todo lo que tiene un recuadro se puede editar: valores, días, fechas, cargo, banco, conceptos y multas. Nada se guarda hasta que pulses Guardar.':'Este rol está en borrador: puedes editar cualquier campo con recuadro. Al aprobarlo queda bloqueado.'}</div>`:''}
+    ${ed?addPanel():''}
     <div class="mscroll" id="printArea">${docHTML(r, ed)}</div></div>`;
 }
 function previewRol(x){
@@ -3382,6 +3386,62 @@ async function autoRol(empId, onlyId){
   return {n, apro};
 }
 const autoMsg = ar => (ar.n ? ` Ya se agregó al rol en borrador${ar.n>1?' ('+ar.n+')':''}.` : '') + (ar.apro ? ' Su rol ya está aprobado: vuélvelo a borrador para incluirlo.' : '');
+
+
+/* ================= v17: agregar descuentos desde el rol ================= */
+const ADD_TIPOS = [
+  ['anticipo','Anticipo de sueldo','deu'], ['prestamo','Préstamo','deu'], ['deuda','Deuda con la empresa','deu'],
+  ['multa','Multa','mul'], ['sancion','Sanción','mul'], ['faltante','Faltante de caja','mul'], ['danio','Daño o pérdida de un bien','mul'], ['permiso_sin','Permiso sin goce de sueldo','mul']
+];
+function addPanel(){
+  if(!ED.add) return `<div class="addbar noprint"><button class="btn sm gold" data-act="rol-add-open">+ Agregar descuento</button><span>¿Falta un anticipo, multa, faltante, daño o permiso? Agrégalo aquí: entra en este rol y queda registrado en su sección.</span></div>`;
+  const t = ED.add.tipo || 'anticipo'; const g = ADD_TIPOS.find(x=>x[0]===t)[2];
+  const e = S.emp[ED.r.empId]; const sd = (+e?.sueldo||+ED.r.sueldoMensual||0)/30;
+  return `<div class="addbox noprint" id="addBox"><div class="addh"><b>Agregar descuento a este rol</b><button class="x" data-act="rol-add-close" aria-label="Cerrar">×</button></div>
+    <div class="fg">
+      <div class="f"><label for="ad_tipo">Tipo</label><select id="ad_tipo">${ADD_TIPOS.map(([k,l])=>`<option value="${k}" ${k===t?'selected':''}>${l}</option>`).join('')}</select></div>
+      <div class="f"><label for="ad_fecha">Fecha</label><input id="ad_fecha" type="date" value="${esc(ED.add.fecha||(todayS()>=ED.r.desde&&todayS()<=ED.r.hasta?todayS():ED.r.hasta))}" min="${ED.r.desde.slice(0,7)}-01" max="${ED.r.hasta}"></div>
+      <div class="f full"><label for="ad_con">${t==='permiso_sin'?'Motivo del permiso':'Concepto'}</label><input id="ad_con" value="${esc(ED.add.concepto||'')}" placeholder="${g==='deu'?'Ejemplo: anticipo entregado el 10 de noviembre':'Ejemplo: faltante en cuadre del 5 de noviembre'}"></div>
+      ${t==='permiso_sin' ? `<div class="f"><label for="ad_dias">Días sin sueldo</label><input id="ad_dias" type="number" step="0.5" min="0" value="${esc(ED.add.dias||1)}"></div><div class="f"><label>Descuento</label><div class="calcbox" id="ad_calc">${money(r2(sd*(+ED.add.dias||1)))} (sueldo diario ${money(sd)})</div></div>`
+      : g==='deu' ? `<div class="f"><label for="ad_total">Monto total (USD)</label><input id="ad_total" type="number" step="0.01" min="0" inputmode="decimal" value="${esc(ED.add.total||'')}"></div><div class="f"><label for="ad_val">Descontar en este rol (USD)</label><input id="ad_val" type="number" step="0.01" min="0" inputmode="decimal" value="${esc(ED.add.val||'')}" placeholder="Todo"><div class="hint">Vacío = todo. Lo que quede se descuenta en los próximos meses con ese mismo valor.</div></div>`
+      : `<div class="f"><label for="ad_val">Valor a descontar (USD)</label><input id="ad_val" type="number" step="0.01" min="0" inputmode="decimal" value="${esc(ED.add.val||'')}"></div>`}
+    </div>
+    <div class="acts" style="justify-content:flex-end;margin-top:12px"><button class="btn" data-act="rol-add-close">Cancelar</button><button class="btn gold" data-act="rol-add-save">Agregar al rol</button></div></div>`;
+}
+function readAdd(){ const v = id=>{ const el=$('#'+id); return el?el.value:undefined; }; ED.add = {...ED.add, tipo:v('ad_tipo')||ED.add.tipo, fecha:v('ad_fecha'), concepto:v('ad_con'), dias:v('ad_dias'), total:v('ad_total'), val:v('ad_val')}; }
+async function saveAdd(){
+  readAdd(); const a = ED.add, r = ED.r, e = S.emp[r.empId];
+  if(!e){ toast('No se encontró al colaborador.', true); return; }
+  const g = ADD_TIPOS.find(x=>x[0]===a.tipo)[2];
+  const con = (a.concepto||'').trim(); if(!con){ toast('Escribe el concepto.', true); return; }
+  const fecha = a.fecha && a.fecha<=r.hasta ? a.fecha : r.hasta;
+  if(g==='deu'){
+    const total = r2(a.total); if(!(total>0)){ toast('Escribe el monto total.', true); return; }
+    const val = +a.val>0 ? r2(Math.min(a.val, total)) : total;
+    const id = uid('d');
+    const d = {id, tipo:a.tipo, fecha, concepto:con, monto:total, cuota:val, inicio:r.ym, pausada:false, obs:`Registrado desde el rol de ${monthLabel(r.ym).toLowerCase()}.`, pagos:[], creado:new Date().toISOString(), registradoPor:SES?SES.nombre:''};
+    await putDeudas(e.id, [...(e.deudas||[]), d]);
+    r.deudas = [...(r.deudas||[]), {id, tipo:a.tipo, concepto:con, monto:val, saldoAntes:total}];
+    toast(`Agregado al rol. Quedó registrado en Anticipos y deudas${val<total?` (saldo ${money(total-val)} para los próximos meses)`:''}. Guarda el rol para confirmar.`);
+  } else {
+    let monto, dias=null;
+    if(a.tipo==='permiso_sin'){ dias = +a.dias; if(!(dias>0)){ toast('Escribe los días.', true); return; } monto = r2((+e.sueldo||+r.sueldoMensual||0)*dias/30); }
+    else { monto = r2(a.val); if(!(monto>0)){ toast('Escribe el valor a descontar.', true); return; } }
+    const id = uid('m');
+    const m = {id, empId:e.id, tipo:a.tipo, fecha, motivo:con, monto, dias, estado:'pendiente', rolId:null, creado:new Date().toISOString(), desdeRol:true};
+    await put('mul', id, m);
+    r.multas = [...(r.multas||[]), snapMulta(m)];
+    toast('Agregado al rol. Quedó registrado en Multas y sanciones. Guarda el rol para confirmar.');
+  }
+  ED.add = null; calc(r); refreshRolModal();
+}
+Object.assign(ACT, {
+  'rol-add-open':()=>{ ED.add = {tipo:'anticipo'}; refreshRolModal(); setTimeout(()=>{ const el=$('#ad_con'); if(el) el.focus(); }, 30); },
+  'rol-add-close':()=>{ ED.add = null; refreshRolModal(); },
+  'rol-add-save':()=>saveAdd()
+});
+document.addEventListener('change', e=>{ if(e.target.id==='ad_tipo' && ED && ED.add){ readAdd(); refreshRolModal(); } });
+document.addEventListener('input', e=>{ if(e.target.id==='ad_dias' && ED && ED.add){ const el=$('#ad_calc'); const em=S.emp[ED.r.empId]; const sd=(+em?.sueldo||+ED.r.sueldoMensual||0)/30; if(el) el.textContent = `${money(r2(sd*(+e.target.value||0)))} (sueldo diario ${money(sd)})`; } });
 
 /* ================= inicio ================= */
 async function boot(){
