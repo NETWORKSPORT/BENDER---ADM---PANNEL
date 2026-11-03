@@ -254,6 +254,7 @@ legend{font:600 15px var(--display);margin-bottom:12px;padding:0;color:var(--acc
 .check input{width:18px;height:18px;margin-top:2px;accent-color:#D19C00;flex:none}
 .checks{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .fpbox{border:1px solid rgba(246,185,10,.45);background:var(--surface);border-radius:12px;padding:14px 16px;margin-bottom:18px}.fph{display:flex;flex-direction:column;gap:2px;margin-bottom:10px}.fph b{font-size:15px}.fph span{font-size:13.5px;color:var(--muted)}.fpg{display:flex;flex-wrap:wrap;gap:14px 28px}.fpi{display:flex;flex-direction:column;gap:6px;min-width:260px}.fpi label{font-size:13px;font-weight:600;color:var(--muted)}.fpr{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.fpr input{width:auto;min-width:160px}.fpi small{font-size:12.5px;color:var(--muted)}
+.okc{color:var(--ok)!important}.warnc{color:var(--accent-text)!important}
 .calcbox{background:var(--warn-bg);border-radius:8px;padding:10px 12px;font-size:14px}
 
 .modal{background:var(--surface);width:min(1000px,100%);border-radius:14px;box-shadow:var(--shadow);animation:fade .2s ease-out;border:1px solid var(--line)}
@@ -862,14 +863,14 @@ function fillPersonal(){
   list = UI.dept==='inactivos' ? list.filter(e=>e.activo===false) : list.filter(e=>e.activo!==false && (UI.dept==='all' || (UI.dept==='none' ? !e.dept : e.dept===UI.dept)));
   if(q) list = list.filter(e=>[e.nombre,e.cedula,e.cargo,e.codigo,e.correo,e.telefono].join(' ').toLowerCase().includes(q));
   tb.innerHTML = list.length ? list.map(e=>{ const np = nextPayFor(e); const miss=[!e.dept&&'departamento',!e.cargo&&'cargo',!(+e.sueldo>0)&&'sueldo'].filter(Boolean); return `<tr class="click" data-act="edit-emp" data-id="${e.id}">
-    <td><b>${esc(e.nombre)}</b><small>${esc(e.codigo)}${e.nacimiento?` | ${esc(dayMonth(e.nacimiento))}`:''}</small></td>
+    <td><b>${esc(e.nombre)}</b><small>${esc(e.codigo)}${e.nacimiento?` | ${esc(dayMonth(e.nacimiento))}`:''}</small>${e.activo!==false&&can('personal')?actaLine(e):''}</td>
     <td class="num">${esc(e.cedula)}</td>
     <td>${e.cargo?esc(e.cargo):'<span class="muted">Sin cargo</span>'}<small>${dot(e.dept)}${esc(deptName(e.dept))}${e.lugar?' · '+esc(e.lugar):''}</small>${(()=>{ const st=statusDe(e,todayS()); return st.k!=='puesto'?`<small style="color:${st.c}">● ${esc(st.label)} hoy</small>`:''; })()}</td>
     <td class="num">${esc(e.telefono||'—')}<small>${esc(e.correo)}</small></td>
     <td class="r num"><b>${+e.sueldo>0?money(e.sueldo):'—'}</b><small>${e.frecuencia==='quincenal'?'Quincenal (1-15 y 16-fin de mes)':'Mensual (del 1 al fin de mes)'}</small>${e.fechaSalida?`<small class="neg">${e.fechaSalida<todayS()?'Salió el':'Trabaja hasta el'} ${fd(e.fechaSalida)}</small>`:''}</td>
     <td class="num">${np?esc(fd(np)):'—'}</td>
     <td>${e.activo===false?'<span class="pill inactivo">Inactivo</span>':miss.length?`<span class="pill borrador" title="Falta ${miss.join(', ')}">Falta ${miss[0]}${miss.length>1?' y más':''}</span>`:'<span class="pill pagado">Activo</span>'}</td>
-    <td><div class="rowacts"><button class="btn sm quiet" data-act="edit-emp" data-id="${e.id}">Editar</button><button class="btn sm quiet" data-act="new-mul" data-emp="${e.id}" ${e.activo===false?'disabled':''}>Multa</button></div></td></tr>`; }).join('')
+    <td><div class="rowacts">${e.activo===false?'':actaBtn(e)}<button class="btn sm quiet" data-act="edit-emp" data-id="${e.id}">Editar</button><button class="btn sm quiet" data-act="new-mul" data-emp="${e.id}" ${e.activo===false?'disabled':''}>Multa</button></div></td></tr>`; }).join('')
     : `<tr><td colspan="8" class="muted" style="text-align:center;padding:28px">Ningún colaborador coincide con este filtro.</td></tr>`;
 }
 
@@ -1234,6 +1235,7 @@ function empForm(id){
         ${inp('cuenta','Número de cuenta','text','inputmode="numeric"')}
       </div></fieldset>
       ${id?(()=>{ const its=invOf(id); return `<fieldset><legend>Bienes a su cargo (${its.length})</legend>${its.length?`<div class="oblig">${its.map(i=>`<div style="grid-template-columns:auto 1fr"><span class="tag num">${esc(i.codigo)}</span><span style="font-size:14px">${esc(i.nombre)}</span></div>`).join('')}</div>`:'<p class="muted" style="margin:0;font-size:14px">No tiene bienes asignados.</p>'}<div class="acts" style="margin-top:10px"><button type="button" class="btn sm" data-act="new-inv" data-emp="${id}">Asignar bien</button>${its.length?`<button type="button" class="btn sm" data-act="acta-pdf" data-id="${id}">Descargar bienes en PDF</button><button type="button" class="btn sm quiet" data-act="acta" data-id="${id}">Ver acta</button>`:''}</div></fieldset>`; })():''}
+      ${id&&can('personal')?actaBox(id):''}
       ${id?`<fieldset><legend>Estado</legend><label class="check"><input type="checkbox" name="activo" ${e.activo!==false?'checked':''}> Colaborador activo. Si lo desactivas, deja de aparecer en los roles nuevos.</label></fieldset>`:''}
     </div>
     <div class="df">${id&&!hasRoles?`<button type="button" class="btn bad quiet" data-act="del-emp" data-id="${id}" style="margin-right:auto">Eliminar</button>`:''}<button type="button" class="btn" data-act="close">Cancelar</button><button type="submit" class="btn gold">${id?'Guardar cambios':'Guardar colaborador'}</button></div>
@@ -3145,6 +3147,194 @@ async function refitRoles(empId){
   }
   return n;
 }
+
+/* ================= v14: acta de compromiso ================= */
+const actaOf = e => (e && e.actaComp) || {};
+const actaEstado = e => { const a = actaOf(e); return a.firmada ? 'firmada' : a.descargada ? 'descargada' : 'pendiente'; };
+function actaBtn(e){
+  if(!can('personal')) return '';
+  const st = actaEstado(e);
+  if(st==='firmada') return `<button class="btn sm quiet okc" data-act="acta-ver" data-id="${e.id}" title="Ver el acta firmada">✓ Acta</button>`;
+  if(st==='descargada') return `<button class="btn sm gold" data-act="acta-subir" data-id="${e.id}">Subir acta</button>`;
+  return `<button class="btn sm" data-act="acta-pdf" data-id="${e.id}">Acta</button>`;
+}
+function actaLine(e){
+  const st = actaEstado(e), a = actaOf(e);
+  if(st==='firmada') return `<small class="okc">● Acta de compromiso firmada (${esc(fd((a.firmada.subida||'').slice(0,10)))})</small>`;
+  if(st==='descargada') return `<small class="warnc">● Acta descargada, falta subirla firmada</small>`;
+  return `<small class="muted">● Sin acta de compromiso</small>`;
+}
+function actaBox(id){
+  const e = S.emp[id]; const a = actaOf(e); const st = actaEstado(e);
+  const body = st==='firmada'
+    ? `<p style="margin:0 0 10px;font-size:14px"><b class="okc">Acta firmada en el sistema.</b> ${esc(a.firmada.nombre||'')} · subida el ${esc(fd((a.firmada.subida||'').slice(0,10)))}${a.firmada.por?' por '+esc(a.firmada.por):''}.</p>
+       <div class="acts"><button type="button" class="btn sm gold" data-act="acta-ver" data-id="${id}">Ver acta firmada</button><button type="button" class="btn sm" data-act="acta-subir" data-id="${id}">Reemplazar</button><button type="button" class="btn sm quiet" data-act="acta-pdf" data-id="${id}">Descargar en blanco</button><button type="button" class="btn sm quiet bad" data-act="acta-quitar" data-id="${id}">Quitar</button></div>`
+    : st==='descargada'
+    ? `<p style="margin:0 0 10px;font-size:14px">Se descargó el ${esc(fd(a.descargada.slice(0,10)))}. Imprímela, hazla firmar y súbela aquí (PDF o fotos de las hojas).</p>
+       <div class="acts"><button type="button" class="btn sm gold" data-act="acta-subir" data-id="${id}">Subir acta firmada</button><button type="button" class="btn sm quiet" data-act="acta-pdf" data-id="${id}">Volver a descargar</button></div>`
+    : `<p style="margin:0 0 10px;font-size:14px">Acta de compromiso, confidencialidad y responsabilidad sobre bienes y valores, con sus datos y los bienes que tiene a cargo.</p>
+       <div class="acts"><button type="button" class="btn sm gold" data-act="acta-pdf" data-id="${id}">Descargar acta</button><button type="button" class="btn sm quiet" data-act="acta-subir" data-id="${id}">Ya la tengo firmada, subirla</button></div>`;
+  return `<fieldset id="actaBox"><legend>Acta de compromiso</legend>${body}</fieldset>`;
+}
+async function setActa(id, a){ const e = S.emp[id]; await put('emp', id, {...e, actaComp:a, actualizado:new Date().toISOString()}); const bx = $('#actaBox'); if(bx) bx.outerHTML = actaBox(id); render(); }
+
+/* --- PDF del acta --- */
+function clause(D, title, parts){
+  ensure(D, 46); D.y += 4;
+  wrap(D, title, 9.8, true, D.W-2*D.M).forEach(ln=>{ txt(D, ln, D.M, D.y+10, {size:9.8, bold:true}); D.y += 13.5; });
+  D.y += 1;
+  parts.forEach(p=>{
+    if(Array.isArray(p)){ p.forEach((it,i)=>{ const lab = String.fromCharCode(97+i)+')'; const ls = wrap(D, it, 9, false, D.W-2*D.M-18); ls.forEach((ln,k)=>{ ensure(D,13); if(!k) txt(D, lab, D.M+2, D.y+10, {size:9, bold:true}); txt(D, ln, D.M+18, D.y+10, {size:9}); D.y += 12.6; }); D.y += 1.5; }); D.y += 3; }
+    else paragraph(D, p, 9.2);
+  });
+}
+async function pdfActaComp(empId){
+  const e = S.emp[empId]; if(!e) return;
+  const c = S.cfg, emp = c.razon||'BENDERAM S.A.S.', items = invOf(empId);
+  const hoy = new Intl.DateTimeFormat('es-EC',{day:'numeric', month:'long', year:'numeric'}).format(new Date());
+  const D = await pdfNew('ACTA DE COMPROMISO', 'Confidencialidad, bienes y manejo de valores', false);
+  paragraph(D, `En la ciudad de ${c.ciudad||'Salcedo'}, provincia de Cotopaxi, a ${hoy}, comparecen a la suscripción de la presente acta, por una parte, ${emp}${c.ruc?', con RUC '+c.ruc:''}, representada por ${c.respNombre||'su representante legal'}${c.respCargo?', en calidad de '+c.respCargo:''}, a quien en adelante se denominará "LA EMPRESA"; y, por otra parte, la persona trabajadora cuyos datos constan a continuación, a quien en adelante se denominará "EL TRABAJADOR". Las partes, libre y voluntariamente, convienen en lo siguiente:`, 9.2);
+  section(D, 'Datos del trabajador');
+  kvGrid(D, [['Nombre completo',e.nombre],['Cédula',e.cedula],['Código',e.codigo||'-'],['Cargo',e.cargo||'-'],['Departamento',deptName(e.dept)],['Lugar de trabajo',e.lugar||'-'],['Fecha de ingreso',fd(e.fechaIngreso)],['Tipo de contrato',e.contrato||'-'],['Celular',e.telefono||'-']], 3);
+  section(D, 'Cláusulas');
+  clause(D, 'PRIMERA. ANTECEDENTES Y OBJETO', [
+    `${emp} opera una red de agentes y puntos de atención en la que EL TRABAJADOR, por razón de su cargo, tiene acceso a dinero en efectivo y valores, bienes de la empresa, sistemas y plataformas, bases de datos de clientes, agentes y proveedores, e información comercial y financiera reservada.`,
+    'El objeto de esta acta es dejar por escrito los compromisos de confidencialidad, protección de datos, custodia de bienes, manejo de dinero y conducta que EL TRABAJADOR asume, y que forman parte de las obligaciones derivadas de su relación laboral.'
+  ]);
+  clause(D, 'SEGUNDA. MARCO LEGAL', [
+    'Esta acta se fundamenta, entre otras, en las siguientes normas de la República del Ecuador:',
+    ['Constitución de la República: artículo 66 numeral 19 (protección de datos de carácter personal) y artículo 326 numeral 2 (irrenunciabilidad de los derechos laborales).',
+     'Código del Trabajo: artículo 45 (obligaciones del trabajador, entre ellas conservar en buen estado los instrumentos y útiles de trabajo y guardar escrupulosamente los secretos técnicos, comerciales o de fabricación de los que tenga conocimiento por razón del trabajo), artículo 46 (prohibiciones al trabajador, entre ellas usar los útiles y herramientas suministrados en objetos distintos del trabajo), artículo 64 (reglamento interno) y artículo 172 (causas de terminación del contrato previo visto bueno, como la indisciplina o desobediencia graves a los reglamentos internos y la falta de probidad).',
+     'Código Civil: artículo 1561 (todo contrato legalmente celebrado es ley para los contratantes) y artículo 1572 (la indemnización de perjuicios comprende el daño emergente y el lucro cesante).',
+     'Ley Orgánica de Protección de Datos Personales y su reglamento.',
+     'Código Orgánico Integral Penal (COIP): artículo 186 (estafa), artículo 187 (abuso de confianza), artículo 196 (hurto), artículo 229 (revelación ilegal de base de datos), artículo 234 (acceso no consentido a un sistema informático, telemático o de telecomunicaciones) y artículo 317 (lavado de activos).',
+     'Ley Orgánica de Regulación y Control del Poder de Mercado, en lo relativo a prácticas desleales y violación de secretos empresariales; y la Ley Orgánica de Prevención, Detección y Combate del Delito de Lavado de Activos y de la Financiación de Otros Delitos.']
+  ]);
+  clause(D, 'TERCERA. INFORMACIÓN CONFIDENCIAL', [
+    'Se considera información confidencial, sin que la lista sea limitativa: los datos de clientes, apostadores, agentes y proveedores; números de contacto, chats y grupos de trabajo; usuarios, claves y accesos a plataformas y sistemas; reportes de ventas, producción, comisiones, premios y saldos; montos de caja, depósitos y movimientos de dinero; tarifas, acuerdos comerciales, estrategias, procedimientos internos, documentos y cualquier información a la que EL TRABAJADOR acceda por razón de su trabajo.',
+    'EL TRABAJADOR se obliga a:',
+    ['No revelar, copiar, fotografiar, grabar, reenviar, extraer ni publicar información confidencial, por ningún medio, sin autorización escrita de LA EMPRESA.',
+     'Usar la información únicamente para cumplir sus funciones y nunca en beneficio propio o de terceros.',
+     'No guardar información de LA EMPRESA en dispositivos, correos o cuentas personales, salvo autorización expresa.',
+     'Mantener esta obligación durante toda la relación laboral y por cinco (5) años después de su terminación, por cualquier causa. Respecto de datos personales, la obligación no tiene límite de tiempo.',
+     'Al terminar la relación laboral, devolver o eliminar, según lo indique LA EMPRESA, toda información y documentación en su poder.']
+  ]);
+  clause(D, 'CUARTA. PROTECCIÓN DE DATOS PERSONALES', [
+    'EL TRABAJADOR tratará los datos personales de clientes, agentes y compañeros conforme a la Ley Orgánica de Protección de Datos Personales: solo para la finalidad para la que fueron entregados, con reserva y medidas de seguridad. No tomará fotos ni copias de cédulas, documentos o pantallas con datos personales fuera de los procedimientos de LA EMPRESA, y comunicará de inmediato cualquier pérdida, filtración o acceso indebido que conozca.'
+  ]);
+  clause(D, 'QUINTA. CLIENTES, AGENTES Y CONTACTOS', [
+    'Los clientes, agentes, puntos de venta y contactos comerciales que EL TRABAJADOR atienda o conozca por su trabajo son relaciones de LA EMPRESA. EL TRABAJADOR no los desviará hacia la competencia ni hacia negocios propios o de terceros, no les ofrecerá servicios por fuera de LA EMPRESA y no usará la información confidencial para captarlos, ni durante la relación laboral ni después de ella.'
+  ]);
+  clause(D, 'SEXTA. BIENES ASIGNADOS', [
+    `EL TRABAJADOR declara recibir en el estado indicado los bienes detallados al final de esta acta (${items.length} ${items.length===1?'bien':'bienes'}) y todos los que se le asignen en adelante, que constarán en el inventario de LA EMPRESA. Se compromete a:`,
+    ['Usarlos solo para actividades de LA EMPRESA, cuidarlos y conservarlos en buen estado, sin responder por el desgaste por uso normal, caso fortuito o fuerza mayor.',
+     'No prestarlos, venderlos, empeñarlos ni sacarlos del lugar de trabajo sin autorización.',
+     'Informar por escrito a LA EMPRESA, dentro de las veinticuatro (24) horas, cualquier daño, pérdida o robo, y presentar la denuncia cuando corresponda.',
+     'Responder por los daños o pérdidas causados por su culpa o mala fe, una vez verificados.',
+     'Devolverlos cuando LA EMPRESA lo solicite y, en todo caso, al terminar la relación laboral, mediante acta de entrega y recepción.']
+  ]);
+  clause(D, 'SÉPTIMA. MANEJO DE DINERO Y VALORES', [
+    'Cuando EL TRABAJADOR maneje caja, efectivo, recargas, pagos de premios, depósitos o cualquier valor de LA EMPRESA o de sus clientes, se obliga a:',
+    ['Registrar cada operación en el sistema y en el cuadre de caja diario, con sus respaldos.',
+     'Depositar o entregar los valores en los plazos y la forma que indique LA EMPRESA.',
+     'No mezclar el dinero de LA EMPRESA con dinero propio, no hacer préstamos ni anticipos con dinero de caja y no conceder créditos o fiados a clientes.',
+     'No pagar premios, retiros ni valores sin la verificación y los respaldos que exija el procedimiento.',
+     'Informar de inmediato cualquier faltante, sobrante o irregularidad.'],
+    'Los faltantes de caja atribuibles a EL TRABAJADOR, una vez verificados en el cuadre, podrán descontarse de su remuneración conforme al reglamento interno, con su autorización escrita y dentro de los límites que permite la ley. Disponer para sí o para terceros del dinero o valores entregados para su custodia puede constituir el delito de abuso de confianza (artículo 187 del COIP), sin perjuicio de otros que correspondan.'
+  ]);
+  clause(D, 'OCTAVA. CUENTAS, CLAVES Y SISTEMAS', [
+    'Los usuarios y claves de plataformas y sistemas son personales e intransferibles. EL TRABAJADOR no los compartirá, no usará los de otras personas, no ingresará a sistemas o funciones para los que no está autorizado y cerrará sesión al terminar su jornada. Las cuentas, equipos y herramientas que entrega LA EMPRESA son de uso laboral, y LA EMPRESA podrá revisar su uso dentro del marco de la ley.'
+  ]);
+  clause(D, 'NOVENA. PREVENCIÓN DE LAVADO DE ACTIVOS Y JUEGO RESPONSABLE', [
+    'EL TRABAJADOR verificará la identidad de los clientes según los procedimientos de LA EMPRESA, no permitirá la participación de menores de edad, no fraccionará operaciones para evitar controles, informará cualquier operación inusual o sospechosa y no realizará apuestas ni operaciones a título personal usando cuentas, terminales o saldos de LA EMPRESA o de clientes.'
+  ]);
+  clause(D, 'DÉCIMA. PROBIDAD Y CONFLICTO DE INTERÉS', [
+    'EL TRABAJADOR actuará con honradez y lealtad. No recibirá dinero, regalos ni beneficios de clientes, agentes o proveedores a cambio de favores, y no trabajará al mismo tiempo para negocios que compitan con LA EMPRESA sin autorización escrita.'
+  ]);
+  clause(D, 'UNDÉCIMA. INCUMPLIMIENTO', [
+    'El incumplimiento de esta acta podrá ser considerado indisciplina o desobediencia grave a los reglamentos internos o falta de probidad, para efectos del artículo 172 del Código del Trabajo, previo el trámite de visto bueno ante la autoridad del trabajo. Además, LA EMPRESA podrá reclamar la indemnización de los daños y perjuicios causados (daño emergente y lucro cesante) y presentar las denuncias penales que correspondan. Toda sanción se aplicará respetando el debido proceso y el derecho de EL TRABAJADOR a ser escuchado.'
+  ]);
+  clause(D, 'DUODÉCIMA. TERMINACIÓN DE LA RELACIÓN LABORAL', [
+    'Al terminar la relación laboral, EL TRABAJADOR entregará los bienes, documentos, dinero, valores, claves y accesos a su cargo, mediante acta de entrega y recepción. Las obligaciones de confidencialidad, protección de datos y no uso de clientes y contactos continúan vigentes después de la terminación, en los términos de esta acta.'
+  ]);
+  clause(D, 'DECIMOTERCERA. DERECHOS DEL TRABAJADOR', [
+    'Nada de lo establecido en esta acta implica renuncia a los derechos que la Constitución y el Código del Trabajo reconocen a EL TRABAJADOR, que son irrenunciables. Cualquier cláusula que los contradiga se tendrá por no escrita, sin afectar la validez de las demás.'
+  ]);
+  clause(D, 'DECIMOCUARTA. ACEPTACIÓN', [
+    'EL TRABAJADOR declara que leyó esta acta, que le fue explicada, que la entiende y que la acepta en todas sus partes. Para constancia, las partes firman en dos ejemplares de igual valor.'
+  ]);
+  section(D, `Anexo: bienes a cargo de EL TRABAJADOR (${items.length})`);
+  if(items.length) await table(D, [{h:'Foto', w:46, img:true},{h:'Código', w:64, bold:true},{h:'Bien', sub:true},{h:'Estado', w:60},{h:'Asignado', w:62},{h:'Valor', w:62, align:'right'}],
+    items.map(i=>({key:i.id, img:i.mini, colors:{3:estadoColor(i.estado)}, cells:['', i.codigo, [i.nombre,[i.marca,i.modelo,i.serie&&'S/N '+i.serie].filter(Boolean).join(' · ')].filter(Boolean).join('\n'), EST_INV[i.estado]?.label||'', i.fechaAsignacion?fd(i.fechaAsignacion):'-', +i.valor?pmoney(i.valor):'-']})),
+    {minH:42, foot:['', '', `Total: ${items.length} ${items.length===1?'bien':'bienes'}`, '', '', pmoney(sum(items.map(i=>i.valor)))]});
+  else paragraph(D, 'A la fecha no tiene bienes registrados a su cargo. Los que se le asignen después quedan cubiertos por la cláusula sexta.', 9.2);
+  ensure(D, 150);
+  signatures(D, ['EL TRABAJADOR', e.nombre, 'C.I. '+e.cedula], ['LA EMPRESA', c.respNombre||emp, (c.respCargo||'Representante')+' · '+emp]);
+  await pdfSave(D, `acta-de-compromiso-${slug(e.nombre)}.pdf`);
+  const a = actaOf(S.emp[empId]);
+  if(!a.firmada) await setActa(empId, {...a, descargada:new Date().toISOString(), descargadaPor:SES?SES.nombre:''});
+}
+
+/* --- subir y ver el acta firmada --- */
+const ACTA_MAX = 15*1024*1024;
+const b64ToBytes = b => { const s = atob(b); const u = new Uint8Array(s.length); for(let i=0;i<s.length;i++) u[i]=s.charCodeAt(i); return u; };
+const bytesToB64 = u => { let s=''; for(let i=0;i<u.length;i+=0x8000) s += String.fromCharCode.apply(null, u.subarray(i,i+0x8000)); return btoa(s); };
+async function imagesToPdf(files){
+  const L = await getPdfLib(); const pdf = await L.PDFDocument.create();
+  for(const f of files){
+    const url = await new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(f); });
+    const im = await loadImg(url); const jpg = scaled(im, 2000, .82);
+    const img = await pdf.embedJpg(b64ToBytes(jpg.split(',')[1]));
+    const W = 595.28, H = 841.89, s = Math.min((W-40)/img.width, (H-40)/img.height);
+    const pg = pdf.addPage([W,H]); pg.drawImage(img, {x:(W-img.width*s)/2, y:(H-img.height*s)/2, width:img.width*s, height:img.height*s});
+  }
+  return await pdf.save();
+}
+function pickActa(id){
+  const inp = document.createElement('input'); inp.type='file'; inp.accept='application/pdf,image/*'; inp.multiple = true;
+  inp.onchange = ()=>{ const fs=[...inp.files]; if(fs.length) uploadActa(id, fs); };
+  inp.click();
+}
+async function uploadActa(id, files){
+  const e = S.emp[id];
+  const pdfs = files.filter(f=>f.type==='application/pdf'||/\.pdf$/i.test(f.name)), imgs = files.filter(f=>f.type.startsWith('image/'));
+  if(pdfs.length>1 || (pdfs.length && imgs.length)){ toast('Sube un solo PDF, o varias fotos de las hojas (no los dos juntos).', true); return; }
+  if(!pdfs.length && !imgs.length){ toast('El archivo debe ser PDF o foto.', true); return; }
+  toast('Subiendo el acta firmada…');
+  let bytes;
+  try{ bytes = pdfs.length ? new Uint8Array(await pdfs[0].arrayBuffer()) : await imagesToPdf(imgs); }
+  catch(err){ toast('No se pudo leer el archivo. Prueba con otra foto o PDF.', true); return; }
+  if(bytes.length > ACTA_MAX){ toast('El archivo pesa más de 15 MB. Escanéalo con menos resolución.', true); return; }
+  const nombre = `Acta de compromiso - ${e.nombre}.pdf`;
+  const b64 = bytesToB64(bytes);
+  let ref;
+  if(mode==='sheet'){
+    const j = await api('doc.put', {nombre, tipo:'application/pdf', data:b64, prev:(actaOf(e).firmada||{}).fileId||''});
+    if(!j.ok){ toast(j.error==='unknown_action' ? 'Para guardar actas firmadas, primero actualiza el código de Google (Codigo.gs).' : 'No se subió el acta: '+(j.error||'error'), true); return; }
+    ref = {fileId:j.fileId};
+  } else {
+    const fid = 'acta_'+id; fotoSave(fid, 'data:application/pdf;base64,'+b64); ref = {fotoId:fid};
+  }
+  await setActa(id, {...actaOf(S.emp[id]), firmada:{...ref, nombre, tam:bytes.length, subida:new Date().toISOString(), por:SES?SES.nombre:''}});
+  toast('Acta firmada guardada en el sistema');
+}
+async function verActa(id){
+  const e = S.emp[id]; const f = actaOf(e).firmada; if(!f) return;
+  let b64;
+  if(f.fileId){ toast('Abriendo el acta…'); const j = await api('doc.get', {fileId:f.fileId}); if(!j.ok){ toast('No se pudo abrir el acta: '+(j.error||'error'), true); return; } b64 = j.data; }
+  else { await fotoLoad([f.fotoId]); const d = FOTOS[f.fotoId]; if(!d){ toast('El archivo no está en este navegador.', true); return; } b64 = d.split(',')[1]; }
+  const blob = new Blob([b64ToBytes(b64)], {type:'application/pdf'});
+  const w = window.open(URL.createObjectURL(blob), '_blank');
+  if(!w) await saveFile(f.nombre||'acta-firmada.pdf', blob, 'application/pdf');
+}
+Object.assign(ACT, {
+  'acta-pdf':(d,b)=>runPdf(b, ()=>pdfActaComp(d.id)),
+  'acta-subir':d=>pickActa(d.id),
+  'acta-ver':d=>verActa(d.id),
+  'acta-quitar':async d=>{ if(!(await ask('Quitar acta firmada', 'Se quitará el acta firmada de este colaborador. Podrás subirla de nuevo.', 'Quitar', true))) return;
+    const a = actaOf(S.emp[d.id]); if(a.firmada && a.firmada.fileId && mode==='sheet') api('doc.del', {fileId:a.firmada.fileId}); if(a.firmada && a.firmada.fotoId) fotoRemove(a.firmada.fotoId);
+    const {firmada, ...rest} = a; await setActa(d.id, rest); toast('Acta quitada'); }
+});
 
 /* ================= inicio ================= */
 async function boot(){
