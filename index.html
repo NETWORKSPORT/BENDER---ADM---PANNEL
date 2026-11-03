@@ -575,7 +575,7 @@ function prorate(emp,p){
 const pendingMultas = (empId, hasta) => Object.values(S.mul).filter(m=>m.empId===empId && m.estado==='pendiente' && m.fecha<=hasta && (+m.monto||0)>0).sort((a,b)=>a.fecha.localeCompare(b.fecha));
 function projection(emp,p){
   const {sueldo} = prorate(emp,p);
-  const iess = emp.afiliado!==false ? r2(sueldo*(+S.cfg.iess||0)/100) : 0;
+  const iess = 0;
   const mul = sum(pendingMultas(emp.id,p.hasta).map(m=>m.monto));
   const desc = r2(iess+mul);
   return {ing:sueldo, desc, mul, neto:r2(sueldo-desc)};
@@ -586,7 +586,7 @@ function calc(r){
   const hsup = r2(n(i.hsupH)*vh*1.5), hext = r2(n(i.hextH)*vh*2);
   const multas = sum((r.multas||[]).map(m=>m.monto));
   const base = n(i.sueldo)+hsup+hext+n(i.comisiones)+n(i.bonificaciones);
-  const iess = r.afiliado ? r2(base*n(r.iessPct)/100) : 0;
+  const iess = 0; /* BENDERAM no aporta al IESS */
   const totIng = r2(base + n(i.otrosIngresos) + n(i.otros));
   const deu = r2(sum((r.deudas||[]).map(x=>x.monto)));
   const totDesc = r2(iess + n(d.anticipos)+n(d.prestamos)+n(d.autorizados)+multas+deu+n(d.otrosDesc)+n(d.otros));
@@ -640,7 +640,7 @@ function buildRol(emp, p, ym){
     id:`${emp.id}_${ym}_${p.n}`, numero:nextNum(), empId:emp.id, ym, n:p.n, frecuencia:emp.frecuencia||'mensual',
     desde:p.desde, hasta:p.hasta, pago:p.pago,
     e:{nombre:emp.nombre, cedula:emp.cedula, codigo:emp.codigo, cargo:emp.cargo, dept:emp.dept, fechaIngreso:emp.fechaIngreso, contrato:emp.contrato, formaPago:emp.formaPago, banco:emp.banco, cuenta:emp.cuenta},
-    sueldoMensual:+emp.sueldo||0, afiliado:emp.afiliado!==false, iessPct:+S.cfg.iess||0,
+    sueldoMensual:+emp.sueldo||0, afiliado:false, iessPct:0,
     ing:{sueldo, dias, hsupH:0, hextH:0, comisiones:0, bonificaciones:0, otrosIngresos:0, otros:0},
     desc:{anticipos:0, prestamos:0, autorizados:0, otrosDesc:0, otros:0},
     multas: pend.map(snapMulta), deudas: deudasParaRol(emp.id, ym, null, p.n, emp.frecuencia), obs: dias < p.base ? `Sueldo proporcional por ${dias} días laborados desde el ingreso.` : '',
@@ -745,7 +745,15 @@ function renderSide(){
   $('#storeNote').textContent = mode==='sheet' ? 'Datos conectados a Google Sheets.' : mode==='db' ? 'Datos guardados en la nube del panel.' : 'Datos guardados solo en este navegador. Descarga un respaldo en Empresa.';
 }
 const VIEWS = {};
+function noIess(){
+  for(const r of Object.values(S.rol)){
+    if(!r || !r.calc || !(+r.calc.iess>0) || r.estado==='pagado') continue;
+    r.afiliado = false; r.iessPct = 0; calc(r);
+    if(can('personal')) put('rol', r.id, r);
+  }
+}
 function render(){
+  try{ noIess(); }catch(e){}
   const a = document.activeElement;
   if(a && $('#main').contains(a) && a.matches('input,select,textarea') && !a.classList.contains('search')){ pendingRender=true; return; }
   pendingRender=false;
@@ -873,7 +881,7 @@ VIEWS.roles = function(){
   const sinSueldo = activeEmps().filter(e=>!(+e.sueldo>0)).length;
   let ti=0, td=0, tn=0, tp=0;
   rows.forEach(x=>{ const v = x.rol ? x.rol.calc : projection(x.emp,x.p); const ing = x.rol?v.totIng:v.ing, des = x.rol?v.totDesc:v.desc; ti+=ing; td+=des; tn+=v.neto; if(x.rol&&x.rol.estado==='pagado') tp+=v.neto; });
-  let head = `<header class="vh"><div><h1>Roles de pago</h1><p class="sub">El sistema calcula período, aporte IESS, multas y deudas de cada colaborador. La fecha de pago la eliges tú.</p></div>
+  let head = `<header class="vh"><div><h1>Roles de pago</h1><p class="sub">El sistema calcula período, multas y deudas de cada colaborador. La fecha de pago la eliges tú.</p></div>
     <div class="acts"><div class="monthnav"><button class="btn sm" data-act="month" data-k="-1" aria-label="Mes anterior">‹</button><b>${esc(monthLabel(ym))}</b><button class="btn sm" data-act="month" data-k="1" aria-label="Mes siguiente">›</button></div>
     ${ym!==todayYM()?'<button class="btn sm quiet" data-act="month" data-k="0">Mes actual</button>':''}</div></header>
     ${sinSueldo?`<div class="note"><span>${sinSueldo} ${sinSueldo===1?'colaborador no tiene':'colaboradores no tienen'} sueldo registrado y no aparecen aquí.</span><button class="btn sm" data-act="go-dept" data-id="all">Revisar personal</button></div>`:''}
@@ -885,7 +893,7 @@ VIEWS.roles = function(){
   <section class="strip">
     <div><small>Roles en el mes</small><b class="num">${rows.length}</b><em>${rows.length-missing.length} generados</em></div>
     <div><small>Total ingresos</small><b class="num">${money(ti)}</b></div>
-    <div><small>Total descuentos</small><b class="num">${money(td)}</b><em>Incluye IESS y multas</em></div>
+    <div><small>Total descuentos</small><b class="num">${money(td)}</b><em>Multas, anticipos y deudas</em></div>
     <div class="hl"><small>Neto a pagar</small><b class="num">${money(tn)}</b><em>Pagado: ${money(tp)}</em></div>
   </section>
   <div class="toolbar"><p class="muted" style="margin:0;font-size:14px">${missing.length?'Los valores en cursiva son proyecciones: se confirman al generar el rol.':'Todos los roles del mes están generados.'}</p>
@@ -1087,7 +1095,6 @@ function obligaciones(){
   const nx = (m,d) => { let x=new Date(y,m,d); if(x<t) x=new Date(y+1,m,d); return ymd(x); };
   const nm = (d) => { let x=new Date(y,t.getMonth(),d); if(x<t) x=new Date(y,t.getMonth()+1,d); return ymd(x); };
   return [
-    [nm(15),'Pago de aportes al IESS','Planillas del mes anterior. Pagar hasta el día 15 evita recargos e intereses.'],
     [nm(28),'Declaraciones mensuales del SRI','IVA y retenciones. La fecha exacta depende del noveno dígito del RUC (entre el 10 y el 28).'],
     [nx(3,15),'Pago de utilidades','15% de las utilidades a los trabajadores, hasta el 15 de abril.'],
     [nx(7,15),'Décimo cuarto sueldo (Sierra y Amazonía)','Un salario básico unificado, hasta el 15 de agosto, salvo que se pague mensualizado.'],
@@ -1106,7 +1113,6 @@ VIEWS.empresa = function(){
     </div></fieldset>
     <fieldset><legend>Firma responsable en los roles</legend><div class="fg">${f('respNombre','Nombre del responsable')}${f('respCargo','Cargo')}</div></fieldset>
     <fieldset><legend>Reglas de cálculo</legend><div class="fg">
-      ${f('iess','Aporte personal IESS (%)','number','step="0.01" min="0" max="30"')}
       <div class="f full"><label class="check"><input type="checkbox" name="moverFinde" ${c.moverFinde?'checked':''}> Si la fecha de pago cae sábado o domingo, adelantarla al viernes anterior</label></div>
     </div></fieldset>
     <div class="acts"><button class="btn gold" type="submit">Guardar datos de la empresa</button></div></form>`;
@@ -1141,7 +1147,7 @@ VIEWS.empresa = function(){
     ['Expediente por agencia','Exige los 8 documentos antes de activar una agencia y asigna un asesor responsable de su seguimiento.'],
     ['Metas comerciales','Fija metas mensuales de agencias creadas y de producción por asesor. Puedes pagarlas como comisión en el rol.'],
     ['Base de datos en línea','Para que todo el equipo vea los mismos datos con usuario y contraseña, el siguiente paso es conectar el panel a una base de datos en línea.'],
-    ['Contratos registrados','Registra cada contrato en el SUT del Ministerio del Trabajo y afilia al IESS desde el primer día de trabajo.']
+    ['Contratos registrados','Registra cada contrato en el SUT del Ministerio del Trabajo.']
   ].map(([t,p])=>`<div class="reco"><h3>${t}</h3><p>${p}</p></div>`).join('')}</div>`;
   return `<header class="vh"><div><h1>Empresa</h1><p class="sub">Datos de BENDERAM, reglamento interno, cajas, obligaciones y respaldo de la información.</p></div><div class="acts"><button class="btn" data-act="theme">${document.documentElement.getAttribute('data-theme')==='light'?'Usar tema oscuro':'Usar tema claro'}</button></div></header>
   <div class="seg" role="tablist">${T.map(([k,l])=>`<button class="${tab===k?'on':''}" data-act="emp-tab" data-id="${k}" role="tab" aria-selected="${tab===k}">${l}</button>`).join('')}</div>${body}`;
@@ -1220,7 +1226,7 @@ function empForm(id){
         ${inp('sueldo','Sueldo mensual (USD)','number','step="0.01" min="0" inputmode="decimal"','','Sin sueldo no se generan roles.')}
         ${sel('frecuencia','Frecuencia de pago',opts([['mensual','Mensual'],['quincenal','Quincenal']],e.frecuencia||'mensual'))}
         <div class="f" data-f="diaCorte" id="corteWrap"><label for="e_diaCorte">Día de corte</label><input id="e_diaCorte" name="diaCorte" type="number" min="1" max="31" value="${esc(e.diaCorte||30)}"><div class="hint">Si el mes es más corto, se usa el último día.</div><div class="err"></div></div>
-        <div class="f" style="align-self:center"><label class="check"><input type="checkbox" name="afiliado" ${e.afiliado!==false?'checked':''}> Afiliado al IESS (${esc(S.cfg.iess)}%)</label></div>
+        
         ${sel('formaPago','Forma de pago',opts(FORMAS,e.formaPago))}
         ${inp('banco','Banco o cooperativa')}
         ${sel('tipoCuenta','Tipo de cuenta',opts(['Ahorros','Corriente'],e.tipoCuenta||'Ahorros'))}
@@ -1250,7 +1256,7 @@ async function submitEmp(form){
   if(markErrors(form, errs)) return;
   const data = {...prev, id, nombre:v.nombre, cedula:v.cedula, nacimiento:v.nacimiento, telefono:v.telefono, correo:v.correo.toLowerCase(), estadoCivil:v.estadoCivil, hijos:+v.hijos||0, conyuge:v.conyuge, direccion:v.direccion,
     emergNombre:v.emergNombre, parentesco:v.parentesco, emergTel:v.emergTel,
-    dept:v.dept, cargo:v.cargo, lugar:v.lugar||'', codigo:v.codigo, fechaIngreso:v.fechaIngreso, contrato:v.contrato, sueldo:r2(v.sueldo), frecuencia:v.frecuencia, diaCorte:+v.diaCorte||30, afiliado:fdata.has('afiliado'),
+    dept:v.dept, cargo:v.cargo, lugar:v.lugar||'', codigo:v.codigo, fechaIngreso:v.fechaIngreso, contrato:v.contrato, sueldo:r2(v.sueldo), frecuencia:v.frecuencia, diaCorte:+v.diaCorte||30, afiliado:false,
     formaPago:v.formaPago, banco:v.banco, tipoCuenta:v.tipoCuenta, cuenta:v.cuenta, activo: form.dataset.id ? fdata.has('activo') : true, actualizado:new Date().toISOString()};
   if(!prev.creado) data.creado = data.actualizado;
   closeLayer(); await put('emp', id, data); render();
@@ -1576,7 +1582,6 @@ function docHTML(r, ed){
         <tr class="tot"><td colspan="2">TOTAL INGRESOS</td><td class="n">${o('totIng')}</td></tr>
       </tbody></table></section>
       <section class="doc-sec"><h4>DESCUENTOS / DEDUCCIONES</h4><table class="ln"><thead><tr><th>Concepto</th><th class="n">Valor</th></tr></thead><tbody>
-        ${desRow(`Aporte IESS (${r.afiliado?(ed?`<input class="doc-in mini" data-k="r.iessPct" type="number" step="0.01" min="0" max="30" value="${r.iessPct}" aria-label="Porcentaje IESS">%`:NF.format(r.iessPct)+'%'):'no afiliado'})`, o('iess'), true)}
         ${desRow('Anticipos', fld('desc.anticipos',d.anticipos))}
         ${desRow('Préstamos', fld('desc.prestamos',d.prestamos))}
         ${desRow('Descuentos autorizados', fld('desc.autorizados',d.autorizados))}
@@ -1647,7 +1652,7 @@ async function pdfRol(r){
   kvGrid(D, [['Nombre completo',r.e.nombre],['Cédula',r.e.cedula],['Código',r.e.codigo||'-'],['Cargo',r.e.cargo||'-'],['Departamento',deptName(r.e.dept)],['Tipo de contrato',r.e.contrato||'-'],['Fecha de ingreso',fd(r.e.fechaIngreso)],['Período',`${fd(r.desde)} al ${fd(r.hasta)}`],['Fecha de pago',fd(r.pago)]], 3);
   section(D, 'Detalle de la remuneración');
   const ingRows=[['Sueldo / salario', i.dias?`${i.dias} días`:'', i.sueldo],['Horas suplementarias (50%)', i.hsupH?`${i.hsupH} h`:'', k.hsup],['Horas extraordinarias (100%)', i.hextH?`${i.hextH} h`:'', k.hext],['Comisiones','',i.comisiones],['Bonificaciones','',i.bonificaciones],[L.oi,'',i.otrosIngresos],[L.o,'',i.otros]];
-  const desRows=[[`Aporte IESS (${r.afiliado?NF.format(r.iessPct)+'%':'no afiliado'})`,'',k.iess],['Anticipos','',d.anticipos],['Préstamos','',d.prestamos],['Descuentos autorizados','',d.autorizados],[`Multas y sanciones (${(r.multas||[]).length})`,'',k.multas],...((r.deudas||[]).length?[[`Anticipos, préstamos y deudas (${r.deudas.length})`,'',k.deu]]:[]),[L.od,'',d.otrosDesc],[L.o2,'',d.otros]];
+  const desRows=[['Anticipos','',d.anticipos],['Préstamos','',d.prestamos],['Descuentos autorizados','',d.autorizados],[`Multas y sanciones (${(r.multas||[]).length})`,'',k.multas],...((r.deudas||[]).length?[[`Anticipos, préstamos y deudas (${r.deudas.length})`,'',k.deu]]:[]),[L.od,'',d.otrosDesc],[L.o2,'',d.otros]];
   ensure(D, 20 + 8*18 + 22 + 10);
   const W=D.W-2*D.M, gap=16, cw=(W-gap)/2, y0=D.y;
   const mini = (x, title, rows, tot) => {
@@ -1778,9 +1783,9 @@ const ACT = {
   'pay-rol':d=>payDirect(d.id),
   'export-csv':d=>{
     const rows = rowsForMonth(d.ym);
-    const out = [['N.º','Colaborador','Cédula','Departamento','Cargo','Desde','Hasta','Fecha de pago','Total ingresos','Aporte IESS','Multas y sanciones','Total descuentos','Neto','Estado','Banco','Tipo de cuenta','Cuenta']];
+    const out = [['N.º','Colaborador','Cédula','Departamento','Cargo','Desde','Hasta','Fecha de pago','Total ingresos','Multas y sanciones','Total descuentos','Neto','Estado','Banco','Tipo de cuenta','Cuenta']];
     rows.forEach(x=>{ const v = x.rol?x.rol.calc:null; const p=projection(x.emp,x.p);
-      out.push([x.rol?pad(x.rol.numero,6):'',x.emp.nombre,x.emp.cedula,deptName(x.emp.dept),x.emp.cargo,fd(x.p.desde),fd(x.p.hasta),fd(x.p.pago), NF.format(v?v.totIng:p.ing), NF.format(v?v.iess:0), NF.format(v?v.multas:p.mul), NF.format(v?v.totDesc:p.desc), NF.format(v?v.neto:p.neto), statusOf(x).t, x.emp.banco, x.emp.tipoCuenta, x.emp.cuenta]); });
+      out.push([x.rol?pad(x.rol.numero,6):'',x.emp.nombre,x.emp.cedula,deptName(x.emp.dept),x.emp.cargo,fd(x.p.desde),fd(x.p.hasta),fd(x.p.pago), NF.format(v?v.totIng:p.ing), NF.format(v?v.multas:p.mul), NF.format(v?v.totDesc:p.desc), NF.format(v?v.neto:p.neto), statusOf(x).t, x.emp.banco, x.emp.tipoCuenta, x.emp.cuenta]); });
     saveFile(`roles-de-pago-${d.ym}.csv`, csv(out), 'text/csv');
   },
   'export-emp':()=>{
@@ -1852,7 +1857,7 @@ document.addEventListener('submit', e=>{
   else if(f.id==='movForm') submitMov(f);
   else if(f.id==='ageForm') submitAge(f);
   else if(f.id==='cfgForm'){ const fd_=new FormData(f); const v=Object.fromEntries(fd_.entries());
-    const c = {...S.cfg, ...v, iess:r2(v.iess), moverFinde:fd_.has('moverFinde')};
+    const c = {...S.cfg, ...v, iess:0, moverFinde:fd_.has('moverFinde')};
     document.activeElement && document.activeElement.blur(); putCfg(c).then(()=>{ render(); toast('Datos de la empresa guardados'); }); }
   else if(f.id==='tarForm'){ const rows=[...f.querySelectorAll('.le')].map(r=>({id:r.dataset.id, motivo:r.querySelector('[name=motivo]').value.trim(), tipo:r.querySelector('[name=tipo]').value, monto:r2(r.querySelector('[name=monto]').value)})).filter(t=>t.motivo);
     document.activeElement && document.activeElement.blur(); putCfg({...S.cfg, tarifario:rows}).then(()=>{ render(); toast('Reglamento guardado'); }); }
