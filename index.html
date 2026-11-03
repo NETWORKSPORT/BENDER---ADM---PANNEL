@@ -910,7 +910,7 @@ VIEWS.roles = function(){
   rows.forEach(x=>{ const v = x.rol ? x.rol.calc : projection(x.emp,x.p); const ing = x.rol?v.totIng:v.ing, des = x.rol?v.totDesc:v.desc; ti+=ing; td+=des; tn+=v.neto; if(x.rol&&x.rol.estado==='pagado') tp+=v.neto; });
   let head = `<header class="vh"><div><h1>Roles de pago</h1><p class="sub">El sistema calcula período, multas y deudas de cada colaborador. La fecha de pago la eliges tú.</p></div>
     <div class="acts"><div class="monthnav"><button class="btn sm" data-act="month" data-k="-1" aria-label="Mes anterior">‹</button><b>${esc(monthLabel(ym))}</b><button class="btn sm" data-act="month" data-k="1" aria-label="Mes siguiente">›</button></div>
-    ${ym!==todayYM()?'<button class="btn sm quiet" data-act="month" data-k="0">Mes actual</button>':''}</div></header>
+    ${ym!==todayYM()?'<button class="btn sm quiet" data-act="month" data-k="0">Mes actual</button>':''}${rows.some(x=>x.rol)?`<button class="btn gold" data-act="rol-zip" data-ym="${ym}">Descargar todos los roles</button>`:''}</div></header>
     ${sinSueldo?`<div class="note"><span>${sinSueldo} ${sinSueldo===1?'colaborador no tiene':'colaboradores no tienen'} sueldo registrado y no aparecen aquí.</span><button class="btn sm" data-act="go-dept" data-id="all">Revisar personal</button></div>`:''}
     ${(()=>{ const mal = rows.filter(x=>x.rol && !x.rol.custom && x.rol.estado==='borrador' && (x.rol.desde!==x.p.desde || x.rol.hasta!==x.p.hasta)); if(!mal.length) return ''; const bor = mal.length;
       return `<div class="note"><span>${mal.length} ${mal.length===1?'rol tiene':'roles tienen'} fechas que no coinciden con el mes o con las fechas de trabajo del colaborador.</span>${bor?`<button class="btn sm" data-act="fix-periods" data-ym="${ym}">Corregir ${bor} ${bor===1?'borrador':'borradores'}</button>`:''}</div>`; })()}`;
@@ -2669,6 +2669,7 @@ const estadoColor = e => ({nuevo:P.ok, bueno:P.ok, regular:P.warn, danado:P.bad,
 async function pdfSave(D, name){
   pdfFooters(D);
   const bytes = await D.pdf.save();
+  if(PDF_COLLECT){ PDF_COLLECT.push({name, bytes}); return; }
   await saveFile(name, new Blob([bytes], {type:'application/pdf'}), 'application/pdf');
 }
 
@@ -3442,6 +3443,58 @@ Object.assign(ACT, {
 });
 document.addEventListener('change', e=>{ if(e.target.id==='ad_tipo' && ED && ED.add){ readAdd(); refreshRolModal(); } });
 document.addEventListener('input', e=>{ if(e.target.id==='ad_dias' && ED && ED.add){ const el=$('#ad_calc'); const em=S.emp[ED.r.empId]; const sd=(+em?.sueldo||+ED.r.sueldoMensual||0)/30; if(el) el.textContent = `${money(r2(sd*(+e.target.value||0)))} (sueldo diario ${money(sd)})`; } });
+
+
+/* ================= v18: descargar todos los roles en ZIP ================= */
+let PDF_COLLECT = null;
+const CRC_T = (()=>{ const t = new Uint32Array(256); for(let n=0;n<256;n++){ let c=n; for(let k=0;k<8;k++) c = c&1 ? 0xEDB88320^(c>>>1) : c>>>1; t[n]=c>>>0; } return t; })();
+const crc32 = u => { let c = 0xFFFFFFFF; for(let i=0;i<u.length;i++) c = CRC_T[(c^u[i])&255]^(c>>>8); return (c^0xFFFFFFFF)>>>0; };
+function makeZip(files){
+  const enc = new TextEncoder(); const parts = [], cen = []; let off = 0;
+  const now = new Date(); const dt = ((now.getHours()<<11)|(now.getMinutes()<<5)|(now.getSeconds()>>1)) & 0xFFFF, dd = (((now.getFullYear()-1980)<<9)|((now.getMonth()+1)<<5)|now.getDate()) & 0xFFFF;
+  for(const f of files){
+    const name = enc.encode(f.name), data = f.bytes instanceof Uint8Array ? f.bytes : new Uint8Array(f.bytes), crc = crc32(data);
+    const h = new DataView(new ArrayBuffer(30)); h.setUint32(0,0x04034b50,true); h.setUint16(4,20,true); h.setUint16(6,0x0800,true); h.setUint16(8,0,true); h.setUint16(10,dt,true); h.setUint16(12,dd,true); h.setUint32(14,crc,true); h.setUint32(18,data.length,true); h.setUint32(22,data.length,true); h.setUint16(26,name.length,true); h.setUint16(28,0,true);
+    parts.push(new Uint8Array(h.buffer), name, data);
+    const c = new DataView(new ArrayBuffer(46)); c.setUint32(0,0x02014b50,true); c.setUint16(4,20,true); c.setUint16(6,20,true); c.setUint16(8,0x0800,true); c.setUint16(10,0,true); c.setUint16(12,dt,true); c.setUint16(14,dd,true); c.setUint32(16,crc,true); c.setUint32(20,data.length,true); c.setUint32(24,data.length,true); c.setUint16(28,name.length,true); c.setUint32(42,off,true);
+    cen.push(new Uint8Array(c.buffer), name);
+    off += 30 + name.length + data.length;
+  }
+  const csz = cen.reduce((a,b)=>a+b.length,0);
+  const e = new DataView(new ArrayBuffer(22)); e.setUint32(0,0x06054b50,true); e.setUint16(8,files.length,true); e.setUint16(10,files.length,true); e.setUint32(12,csz,true); e.setUint32(16,off,true);
+  return new Blob([...parts, ...cen, new Uint8Array(e.buffer)], {type:'application/zip'});
+}
+const fileSafe = s => String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^\w\s.-]/g,'').replace(/\s+/g,' ').trim();
+async function pdfResumenPagos(ym, list){
+  const D = await pdfNew('RESUMEN DE PAGOS', `Roles de ${monthLabel(ym).toLowerCase()} · ${list.length} ${list.length===1?'colaborador':'colaboradores'}`, true);
+  stats(D, [['Roles', String(list.length)], ['Total ingresos', pmoney(sum(list.map(r=>r.calc.totIng)))], ['Total descuentos', pmoney(sum(list.map(r=>r.calc.totDesc)))], ['Neto a pagar', pmoney(sum(list.map(r=>r.calc.neto)))]]);
+  await table(D, [{h:'N.º', w:52},{h:'Código', w:58, bold:true},{h:'Colaborador', sub:true},{h:'Banco y cuenta', w:170, sub:true},{h:'Fecha de pago', w:72},{h:'Ingresos', w:70, align:'right'},{h:'Descuentos', w:70, align:'right'},{h:'Neto', w:74, align:'right', bold:true},{h:'Pagado', w:62}],
+    list.map(r=>({cells:[pad(r.numero,6), r.e.codigo||'-', [r.e.nombre, 'C.I. '+(r.e.cedula||'')].join('\n'), [r.e.banco||r.e.formaPago||'-', [S.emp[r.empId]?.tipoCuenta, r.e.cuenta].filter(Boolean).join(' ')].filter(Boolean).join('\n'), fd(r.pago), pmoney(r.calc.totIng), pmoney(r.calc.totDesc), pmoney(r.calc.neto), r.estado==='pagado'?'Sí':'']})),
+    {minH:30, foot:['', '', `Total: ${list.length}`, '', '', pmoney(sum(list.map(r=>r.calc.totIng))), pmoney(sum(list.map(r=>r.calc.totDesc))), pmoney(sum(list.map(r=>r.calc.neto))), '']});
+  await pdfSave(D, `00 - Resumen de pagos ${ym}.pdf`);
+}
+async function zipRoles(ym, btn){
+  const rows = rowsForMonth(ym); const list = rows.filter(x=>x.rol).map(x=>{ const r = clone(x.rol); calc(r); return r; }).sort((a,b)=>String(a.e.codigo||'').localeCompare(String(b.e.codigo||''), 'es', {numeric:true}) || a.e.nombre.localeCompare(b.e.nombre));
+  if(!list.length){ toast('No hay roles generados en este mes.', true); return; }
+  const faltan = rows.filter(x=>!x.rol && payable(x.emp)).length, bor = list.filter(r=>r.estado==='borrador').length;
+  if((faltan || bor) && !(await ask('Descargar todos los roles', `${bor?`${bor} ${bor===1?'rol está':'roles están'} en borrador (todavía se pueden cambiar). `:''}${faltan?`${faltan} ${faltan===1?'colaborador no tiene':'colaboradores no tienen'} rol generado y no ${faltan===1?'irá':'irán'} en el archivo. `:''}¿Descargar igual?`, 'Descargar'))) return;
+  const label = btn.textContent; btn.disabled = true;
+  PDF_COLLECT = [];
+  try{
+    await pdfResumenPagos(ym, list);
+    for(let i=0;i<list.length;i++){ btn.textContent = `Generando ${i+1} de ${list.length}…`; await pdfRol(list[i]); }
+    const used = new Set();
+    const files = PDF_COLLECT.map((f,i)=>{ let name;
+      if(i===0) name = f.name;
+      else { const r = list[i-1]; name = `${fileSafe(r.e.codigo||'SIN-CODIGO')} - ${fileSafe(r.e.nombre)} - Rol ${pad(r.numero,6)}${r.frecuencia==='quincenal'?' Q'+r.n:''}.pdf`; }
+      while(used.has(name)) name = name.replace(/\.pdf$/, ' (2).pdf'); used.add(name); return {name, bytes:f.bytes}; });
+    PDF_COLLECT = null;
+    await saveFile(`Roles de pago ${fileSafe(monthLabel(ym))}.zip`, makeZip(files), 'application/zip');
+    toast(`Listo: ${list.length} ${list.length===1?'rol':'roles'} y el resumen de pagos en un solo archivo.`);
+  }catch(e){ toast('No se pudo generar el archivo: '+(e&&e.message||'error'), true); }
+  finally{ PDF_COLLECT = null; if(btn.isConnected){ btn.disabled=false; btn.textContent=label; } }
+}
+Object.assign(ACT, { 'rol-zip':(d,b)=>zipRoles(d.ym, b) });
 
 /* ================= inicio ================= */
 async function boot(){
