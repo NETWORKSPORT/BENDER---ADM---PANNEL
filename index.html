@@ -253,6 +253,7 @@ legend{font:600 15px var(--display);margin-bottom:12px;padding:0;color:var(--acc
 .check{display:flex;gap:10px;align-items:flex-start;font-size:14px;cursor:pointer}
 .check input{width:18px;height:18px;margin-top:2px;accent-color:#D19C00;flex:none}
 .checks{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.fpbox{border:1px solid rgba(246,185,10,.45);background:var(--surface);border-radius:12px;padding:14px 16px;margin-bottom:18px}.fph{display:flex;flex-direction:column;gap:2px;margin-bottom:10px}.fph b{font-size:15px}.fph span{font-size:13.5px;color:var(--muted)}.fpg{display:flex;flex-wrap:wrap;gap:14px 28px}.fpi{display:flex;flex-direction:column;gap:6px;min-width:260px}.fpi label{font-size:13px;font-weight:600;color:var(--muted)}.fpr{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.fpr input{width:auto;min-width:160px}.fpi small{font-size:12.5px;color:var(--muted)}
 .calcbox{background:var(--warn-bg);border-radius:8px;padding:10px 12px;font-size:14px}
 
 .modal{background:var(--surface);width:min(1000px,100%);border-radius:14px;box-shadow:var(--shadow);animation:fade .2s ease-out;border:1px solid var(--line)}
@@ -548,6 +549,7 @@ function adjustPay(d){
   if(w===0) d.setDate(d.getDate()-2);
   return d;
 }
+const fpKey = (ym, frec, n) => frec==='quincenal' ? `${ym}-q${n}` : `${ym}-m`;
 function periods(emp, ym){
   const [y,m] = ym.split('-').map(Number); const ld = lastDay(y,m); let out;
   if(emp.frecuencia==='quincenal'){
@@ -558,7 +560,8 @@ function periods(emp, ym){
   } else {
     out = [{n:1, desde:ymd(new Date(y,m-1,1)), hasta:ymd(new Date(y,m-1,ld)), factor:1, base:ld}];
   }
-  out.forEach(p=>p.pago = ymd(adjustPay(pd(p.hasta))));
+  const fp = S.cfg.fechasPago||{};
+  out.forEach(p=>{ p.fpKey = fpKey(ym, emp.frecuencia, p.n); p.pagoAuto = ymd(adjustPay(pd(p.hasta))); p.pago = fp[p.fpKey] || p.pagoAuto; });
   return out.filter(p => !emp.fechaIngreso || emp.fechaIngreso <= p.hasta);
 }
 function prorate(emp,p){
@@ -870,12 +873,13 @@ VIEWS.roles = function(){
   const sinSueldo = activeEmps().filter(e=>!(+e.sueldo>0)).length;
   let ti=0, td=0, tn=0, tp=0;
   rows.forEach(x=>{ const v = x.rol ? x.rol.calc : projection(x.emp,x.p); const ing = x.rol?v.totIng:v.ing, des = x.rol?v.totDesc:v.desc; ti+=ing; td+=des; tn+=v.neto; if(x.rol&&x.rol.estado==='pagado') tp+=v.neto; });
-  const head = `<header class="vh"><div><h1>Roles de pago</h1><p class="sub">El sistema calcula período, fecha de pago, aporte IESS y multas de cada colaborador.</p></div>
+  let head = `<header class="vh"><div><h1>Roles de pago</h1><p class="sub">El sistema calcula período, aporte IESS, multas y deudas de cada colaborador. La fecha de pago la eliges tú.</p></div>
     <div class="acts"><div class="monthnav"><button class="btn sm" data-act="month" data-k="-1" aria-label="Mes anterior">‹</button><b>${esc(monthLabel(ym))}</b><button class="btn sm" data-act="month" data-k="1" aria-label="Mes siguiente">›</button></div>
     ${ym!==todayYM()?'<button class="btn sm quiet" data-act="month" data-k="0">Mes actual</button>':''}</div></header>
     ${sinSueldo?`<div class="note"><span>${sinSueldo} ${sinSueldo===1?'colaborador no tiene':'colaboradores no tienen'} sueldo registrado y no aparecen aquí.</span><button class="btn sm" data-act="go-dept" data-id="all">Revisar personal</button></div>`:''}
     ${(()=>{ const mal = rows.filter(x=>x.rol && (x.rol.desde!==x.p.desde || x.rol.hasta!==x.p.hasta)); if(!mal.length) return ''; const bor = mal.filter(x=>x.rol.estado==='borrador').length;
       return `<div class="note"><span>${mal.length} ${mal.length===1?'rol tiene':'roles tienen'} un período antiguo (no va del 1 al fin de mes).${bor<mal.length?' Los aprobados o pagados se corrigen volviéndolos a borrador.':''}</span>${bor?`<button class="btn sm" data-act="fix-periods" data-ym="${ym}">Corregir ${bor} ${bor===1?'borrador':'borradores'}</button>`:''}</div>`; })()}`;
+  if(rows.length) head += payBox(ym, rows);
   if(!rows.length) return head + emptyBlock('No hay pagos en este mes', Object.keys(S.emp).length ? 'Ningún colaborador con sueldo tiene un período de pago que cierre en este mes.' : 'Primero registra colaboradores en Personal.', '');
   return head + `
   <section class="strip">
@@ -3080,6 +3084,40 @@ Object.assign(ACT, {
   'rol-rm-deu':d=>{ ED.r.deudas = (ED.r.deudas||[]).filter(x=>x.id!==d.id); calc(ED.r); refreshRolModal(); }
 });
 document.addEventListener('submit', e=>{ if(e.target.id==='deuForm') submitDeu(e.target); if(e.target.id==='abonoForm') submitAbono(e.target); });
+
+
+/* ================= v11: fecha de pago editable ================= */
+function payBox(ym, rows){
+  const groups = [];
+  const has = k => rows.some(x=>x.p.fpKey===k);
+  if(has(`${ym}-m`)) groups.push([`${ym}-m`, 'Rol mensual']);
+  if(has(`${ym}-q1`)) groups.push([`${ym}-q1`, '1.ª quincena']);
+  if(has(`${ym}-q2`)) groups.push([`${ym}-q2`, '2.ª quincena']);
+  const fp = S.cfg.fechasPago||{}; const ed = can('empresa');
+  const items = groups.map(([k,l])=>{ const x = rows.find(r=>r.p.fpKey===k); const fij = !!fp[k];
+    const n = rows.filter(r=>r.p.fpKey===k && r.rol && r.rol.estado!=='pagado' && r.rol.pago!==x.p.pago).length;
+    return `<div class="fpi"><label for="fp_${k}">${l} de ${esc(monthLabel(ym).toLowerCase())}</label>
+      <div class="fpr">${ed?`<input id="fp_${k}" type="date" value="${x.p.pago}" data-fp="${k}"><button class="btn sm gold" data-act="fp-save" data-k="${k}">Guardar fecha</button>${fij?`<button class="btn sm quiet" data-act="fp-auto" data-k="${k}">Usar automática</button>`:''}`:`<b class="num">${esc(fd(x.p.pago))}</b>`}</div>
+      <small>${fij?'Fecha elegida por ti.':`Fecha automática: ${esc(longDay(x.p.pagoAuto).toLowerCase())}. Cámbiala si pagarás otro día.`}${n?` <b class="neg">${n} ${n===1?'rol tiene':'roles tienen'} otra fecha.</b>`:''}</small></div>`; }).join('');
+  return `<section class="fpbox"><div class="fph"><b>Fecha de pago</b><span>Elige el día que vas a pagar. Se pone sola en todos los roles del mes que aún no están pagados${ed?'':'. Solo gerencia puede cambiarla'}.</span></div><div class="fpg">${items}</div></section>`;
+}
+async function setPayDate(k, val){
+  const fp = {...(S.cfg.fechasPago||{})};
+  if(val) fp[k] = val; else delete fp[k];
+  await putCfg({...S.cfg, fechasPago:fp});
+  const ym = k.slice(0,7); let n = 0;
+  for(const x of rowsForMonth(ym)){
+    if(x.p.fpKey!==k || !x.rol || x.rol.estado==='pagado' || x.rol.pago===x.p.pago) continue;
+    const r = {...clone(x.rol), pago:x.p.pago, actualizado:new Date().toISOString()};
+    await put('rol', r.id, r); await syncDeudasRol(r); n++;
+  }
+  render();
+  toast(`Fecha de pago: ${fd(rowsForMonth(ym).find(x=>x.p.fpKey===k)?.p.pago)}.${n?` Se actualizó en ${n} ${n===1?'rol':'roles'}.`:''}`);
+}
+Object.assign(ACT, {
+  'fp-save':d=>{ const v = $(`[data-fp="${d.k}"]`).value; if(!v){ toast('Elige una fecha.', true); return; } setPayDate(d.k, v); },
+  'fp-auto':d=>setPayDate(d.k, null)
+});
 
 /* ================= inicio ================= */
 async function boot(){
