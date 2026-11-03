@@ -562,14 +562,14 @@ function periods(emp, ym){
   }
   const fp = S.cfg.fechasPago||{};
   out.forEach(p=>{ p.fpKey = fpKey(ym, emp.frecuencia, p.n); p.pagoAuto = ymd(adjustPay(pd(p.hasta))); p.pago = fp[p.fpKey] || p.pagoAuto; });
-  return out.filter(p => !emp.fechaIngreso || emp.fechaIngreso <= p.hasta);
+  out = out.filter(p => (!emp.fechaIngreso || emp.fechaIngreso <= p.hasta) && (!emp.fechaSalida || emp.fechaSalida >= p.desde));
+  out.forEach(p=>{ if(emp.fechaIngreso && emp.fechaIngreso > p.desde) p.desde = emp.fechaIngreso; if(emp.fechaSalida && emp.fechaSalida < p.hasta) p.hasta = emp.fechaSalida; });
+  return out;
 }
 function prorate(emp,p){
   const full = r2((+emp.sueldo||0) * p.factor);
-  if(emp.fechaIngreso && emp.fechaIngreso > p.desde){
-    const days = Math.min(daysBetween(emp.fechaIngreso, p.hasta)+1, p.base);
-    return {sueldo:r2((+emp.sueldo||0)*p.factor*days/p.base), dias:days};
-  }
+  const days = Math.min(daysBetween(p.desde, p.hasta)+1, p.base);
+  if(days < p.base) return {sueldo:r2((+emp.sueldo||0)*p.factor*days/p.base), dias:days};
   return {sueldo:full, dias:p.base};
 }
 const pendingMultas = (empId, hasta) => Object.values(S.mul).filter(m=>m.empId===empId && m.estado==='pendiente' && m.fecha<=hasta && (+m.monto||0)>0).sort((a,b)=>a.fecha.localeCompare(b.fecha));
@@ -643,7 +643,7 @@ function buildRol(emp, p, ym){
     sueldoMensual:+emp.sueldo||0, afiliado:false, iessPct:0,
     ing:{sueldo, dias, hsupH:0, hextH:0, comisiones:0, bonificaciones:0, otrosIngresos:0, otros:0},
     desc:{anticipos:0, prestamos:0, autorizados:0, otrosDesc:0, otros:0},
-    multas: pend.map(snapMulta), deudas: deudasParaRol(emp.id, ym, null, p.n, emp.frecuencia), obs: dias < p.base ? `Sueldo proporcional por ${dias} días laborados desde el ingreso.` : '',
+    multas: pend.map(snapMulta), deudas: deudasParaRol(emp.id, ym, null, p.n, emp.frecuencia), obs: dias < p.base ? `Sueldo proporcional por ${dias} días laborados, del ${fd(p.desde)} al ${fd(p.hasta)}.` : '',
     estado:'borrador', creado:new Date().toISOString()
   };
   return {r:calc(r), pend};
@@ -866,7 +866,7 @@ function fillPersonal(){
     <td class="num">${esc(e.cedula)}</td>
     <td>${e.cargo?esc(e.cargo):'<span class="muted">Sin cargo</span>'}<small>${dot(e.dept)}${esc(deptName(e.dept))}${e.lugar?' · '+esc(e.lugar):''}</small>${(()=>{ const st=statusDe(e,todayS()); return st.k!=='puesto'?`<small style="color:${st.c}">● ${esc(st.label)} hoy</small>`:''; })()}</td>
     <td class="num">${esc(e.telefono||'—')}<small>${esc(e.correo)}</small></td>
-    <td class="r num"><b>${+e.sueldo>0?money(e.sueldo):'—'}</b><small>${e.frecuencia==='quincenal'?'Quincenal (1-15 y 16-fin de mes)':'Mensual (del 1 al fin de mes)'}</small></td>
+    <td class="r num"><b>${+e.sueldo>0?money(e.sueldo):'—'}</b><small>${e.frecuencia==='quincenal'?'Quincenal (1-15 y 16-fin de mes)':'Mensual (del 1 al fin de mes)'}</small>${e.fechaSalida?`<small class="neg">${e.fechaSalida<todayS()?'Salió el':'Trabaja hasta el'} ${fd(e.fechaSalida)}</small>`:''}</td>
     <td class="num">${np?esc(fd(np)):'—'}</td>
     <td>${e.activo===false?'<span class="pill inactivo">Inactivo</span>':miss.length?`<span class="pill borrador" title="Falta ${miss.join(', ')}">Falta ${miss[0]}${miss.length>1?' y más':''}</span>`:'<span class="pill pagado">Activo</span>'}</td>
     <td><div class="rowacts"><button class="btn sm quiet" data-act="edit-emp" data-id="${e.id}">Editar</button><button class="btn sm quiet" data-act="new-mul" data-emp="${e.id}" ${e.activo===false?'disabled':''}>Multa</button></div></td></tr>`; }).join('')
@@ -885,8 +885,8 @@ VIEWS.roles = function(){
     <div class="acts"><div class="monthnav"><button class="btn sm" data-act="month" data-k="-1" aria-label="Mes anterior">‹</button><b>${esc(monthLabel(ym))}</b><button class="btn sm" data-act="month" data-k="1" aria-label="Mes siguiente">›</button></div>
     ${ym!==todayYM()?'<button class="btn sm quiet" data-act="month" data-k="0">Mes actual</button>':''}</div></header>
     ${sinSueldo?`<div class="note"><span>${sinSueldo} ${sinSueldo===1?'colaborador no tiene':'colaboradores no tienen'} sueldo registrado y no aparecen aquí.</span><button class="btn sm" data-act="go-dept" data-id="all">Revisar personal</button></div>`:''}
-    ${(()=>{ const mal = rows.filter(x=>x.rol && (x.rol.desde!==x.p.desde || x.rol.hasta!==x.p.hasta)); if(!mal.length) return ''; const bor = mal.filter(x=>x.rol.estado==='borrador').length;
-      return `<div class="note"><span>${mal.length} ${mal.length===1?'rol tiene':'roles tienen'} un período antiguo (no va del 1 al fin de mes).${bor<mal.length?' Los aprobados o pagados se corrigen volviéndolos a borrador.':''}</span>${bor?`<button class="btn sm" data-act="fix-periods" data-ym="${ym}">Corregir ${bor} ${bor===1?'borrador':'borradores'}</button>`:''}</div>`; })()}`;
+    ${(()=>{ const mal = rows.filter(x=>x.rol && !x.rol.custom && x.rol.estado==='borrador' && (x.rol.desde!==x.p.desde || x.rol.hasta!==x.p.hasta)); if(!mal.length) return ''; const bor = mal.length;
+      return `<div class="note"><span>${mal.length} ${mal.length===1?'rol tiene':'roles tienen'} fechas que no coinciden con el mes o con las fechas de trabajo del colaborador.</span>${bor?`<button class="btn sm" data-act="fix-periods" data-ym="${ym}">Corregir ${bor} ${bor===1?'borrador':'borradores'}</button>`:''}</div>`; })()}`;
   if(rows.length) head += payBox(ym, rows);
   if(!rows.length) return head + emptyBlock('No hay pagos en este mes', Object.keys(S.emp).length ? 'Ningún colaborador con sueldo tiene un período de pago que cierre en este mes.' : 'Primero registra colaboradores en Personal.', '');
   return head + `
@@ -1220,6 +1220,7 @@ function empForm(id){
         ${inp('lugar','Lugar de trabajo','text','placeholder="Ejemplo: Oficina Salcedo, agencia Latacunga"')}
         ${inp('codigo','Código de empleado','text','required')}
         ${inp('fechaIngreso','Fecha de ingreso','date')}
+        ${inp('fechaSalida','Fecha de salida o fin de contrato','date','','','Opcional. Úsalo si dejó de trabajar o si trabaja por un tiempo (pasantía, plazo fijo). El rol se paga solo hasta ese día.')}
         ${sel('contrato','Tipo de contrato',opts(CONTRATOS,e.contrato))}
       </div></fieldset>
       <fieldset><legend>Sueldo y pago</legend><div class="fg">
@@ -1256,11 +1257,13 @@ async function submitEmp(form){
   if(markErrors(form, errs)) return;
   const data = {...prev, id, nombre:v.nombre, cedula:v.cedula, nacimiento:v.nacimiento, telefono:v.telefono, correo:v.correo.toLowerCase(), estadoCivil:v.estadoCivil, hijos:+v.hijos||0, conyuge:v.conyuge, direccion:v.direccion,
     emergNombre:v.emergNombre, parentesco:v.parentesco, emergTel:v.emergTel,
-    dept:v.dept, cargo:v.cargo, lugar:v.lugar||'', codigo:v.codigo, fechaIngreso:v.fechaIngreso, contrato:v.contrato, sueldo:r2(v.sueldo), frecuencia:v.frecuencia, diaCorte:+v.diaCorte||30, afiliado:false,
+    dept:v.dept, cargo:v.cargo, lugar:v.lugar||'', codigo:v.codigo, fechaIngreso:v.fechaIngreso, fechaSalida:v.fechaSalida||'', contrato:v.contrato, sueldo:r2(v.sueldo), frecuencia:v.frecuencia, diaCorte:+v.diaCorte||30, afiliado:false,
     formaPago:v.formaPago, banco:v.banco, tipoCuenta:v.tipoCuenta, cuenta:v.cuenta, activo: form.dataset.id ? fdata.has('activo') : true, actualizado:new Date().toISOString()};
   if(!prev.creado) data.creado = data.actualizado;
-  closeLayer(); await put('emp', id, data); render();
-  toast(form.dataset.id ? 'Cambios guardados' : 'Colaborador guardado');
+  closeLayer(); await put('emp', id, data);
+  const fx = (prev.fechaIngreso!==data.fechaIngreso || (prev.fechaSalida||'')!==data.fechaSalida) ? await refitRoles(id) : 0;
+  render();
+  toast((form.dataset.id ? 'Cambios guardados' : 'Colaborador guardado') + (fx?`. Se ${fx===1?'ajustó 1 rol en borrador':`ajustaron ${fx} roles en borrador`} a las nuevas fechas.`:''));
 }
 
 /* --- formulario multa --- */
@@ -1633,7 +1636,8 @@ function rolInput(t){
   const v = num ? (t.value===''?0:r2(t.value)) : t.value;
   const r = ED.r;
   if(a==='obs') r.obs = t.value;
-  else if(a==='r') r[b] = v;
+  else if(a==='r'){ r[b] = v; if((b==='desde'||b==='hasta') && r.desde && r.hasta){ r.custom = true; const ds = Math.max(0, daysBetween(r.desde, r.hasta)+1); const bs = rolBase(r); r.ing.dias = Math.min(ds, bs); r.ing.sueldo = r2(rolFull(r)*r.ing.dias/bs); syncIn('ing.dias', r.ing.dias); syncIn('ing.sueldo', r.ing.sueldo); } }
+  else if(a==='ing' && b==='dias'){ r.ing.dias = v; r.custom = true; r.ing.sueldo = r2(rolFull(r)*Math.min(v, rolBase(r))/rolBase(r)); syncIn('ing.sueldo', r.ing.sueldo); }
   else if(a==='mul'){ if(r.multas[+b]) r.multas[+b].monto = v; }
   else if(a==='deu'){ const x=(r.deudas||[])[+b]; if(x){ x.monto = Math.min(v, x.saldoAntes||v); const sp=document.querySelector(`[data-deu="${b}"]`); if(sp) sp.textContent = money(Math.max(0,r2((x.saldoAntes||0)-x.monto))); } }
   else if(a==='lbl'){ r.lbl = r.lbl||{}; r.lbl[b] = t.value; }
@@ -1773,11 +1777,11 @@ const ACT = {
   'rol-pdf-id':(d,b)=>runPdf(b, ()=>pdfRol(S.rol[d.id])),
   'rol-save-pdf':async ()=>{ await saveRol(); if(!ED || !ED.r) return; toast('Rol guardado. Generando PDF…'); await runPdf(null, ()=>pdfRol(ED.r)); },
   'fix-periods':async (d,b)=>{ b.disabled=true; let n=0;
-    for(const x of rowsForMonth(d.ym)){ const r=x.rol; if(!r || r.estado!=='borrador' || (r.desde===x.p.desde && r.hasta===x.p.hasta)) continue;
+    for(const x of rowsForMonth(d.ym)){ const r=x.rol; if(!r || r.estado!=='borrador' || r.custom || (r.desde===x.p.desde && r.hasta===x.p.hasta)) continue;
       const {sueldo,dias} = prorate(x.emp, x.p);
-      const nr = calc({...clone(r), desde:x.p.desde, hasta:x.p.hasta, pago:x.p.pago, ing:{...r.ing, sueldo, dias}, actualizado:new Date().toISOString()});
+      const nr = calc({...clone(r), desde:x.p.desde, hasta:x.p.hasta, pago:x.p.pago, ing:{...r.ing, sueldo, dias}, obs: dias < x.p.base ? `Sueldo proporcional por ${dias} días laborados, del ${fd(x.p.desde)} al ${fd(x.p.hasta)}.` : (/^Sueldo proporcional/.test(r.obs||'')?'':r.obs), actualizado:new Date().toISOString()});
       await put('rol', r.id, nr); n++; }
-    render(); toast(`${n} ${n===1?'borrador corregido':'borradores corregidos'}: ahora van del 1 al fin de mes`); },
+    render(); toast(`${n} ${n===1?'borrador corregido':'borradores corregidos'}`); },
   'gen-all':async (d,b)=>{ b.disabled=true; const n = await generate(rowsForMonth(d.ym).filter(x=>!x.rol && payable(x.emp) && !preReg(x))); render(); toast(`${n} ${n===1?'rol generado':'roles generados'} en borrador`); },
   'open-rol':d=>openRol(d.id),
   'pay-rol':d=>payDirect(d.id),
@@ -3123,6 +3127,24 @@ Object.assign(ACT, {
   'fp-save':d=>{ const v = $(`[data-fp="${d.k}"]`).value; if(!v){ toast('Elige una fecha.', true); return; } setPayDate(d.k, v); },
   'fp-auto':d=>setPayDate(d.k, null)
 });
+
+
+/* ================= v13: fechas de trabajo (salida, pasantías) ================= */
+const rolBase = r => { const [y,m] = r.ym.split('-').map(Number); const ld = lastDay(y,m); return r.frecuencia==='quincenal' ? (+r.n===1 ? 15 : ld-15) : ld; };
+const rolFull = r => r2((+r.sueldoMensual||0) * (r.frecuencia==='quincenal' ? .5 : 1));
+const syncIn = (k, v) => { const el = document.querySelector(`[data-k="${k}"]`); if(el && el!==document.activeElement) el.value = v; };
+async function refitRoles(empId){
+  const e = S.emp[empId]; let n = 0;
+  for(const r of Object.values(S.rol).filter(r=>r.empId===empId && r.estado==='borrador' && !r.custom)){
+    const p = periods(e, r.ym).find(p=>p.n===r.n);
+    if(!p){ for(const m of r.multas||[]) if(S.mul[m.id]) await put('mul', m.id, {...S.mul[m.id], estado:'pendiente', rolId:null}); await syncDeudasRol(r, true); await del('rol', r.id); n++; continue; }
+    if(r.desde===p.desde && r.hasta===p.hasta) continue;
+    const {sueldo, dias} = prorate(e, p);
+    await put('rol', r.id, calc({...clone(r), desde:p.desde, hasta:p.hasta, ing:{...r.ing, sueldo, dias}, obs: dias < p.base ? `Sueldo proporcional por ${dias} días laborados, del ${fd(p.desde)} al ${fd(p.hasta)}.` : (/^Sueldo proporcional/.test(r.obs||'')?'':r.obs), actualizado:new Date().toISOString()}));
+    n++;
+  }
+  return n;
+}
 
 /* ================= inicio ================= */
 async function boot(){
