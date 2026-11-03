@@ -585,8 +585,9 @@ function calc(r){
   const base = n(i.sueldo)+hsup+hext+n(i.comisiones)+n(i.bonificaciones);
   const iess = r.afiliado ? r2(base*n(r.iessPct)/100) : 0;
   const totIng = r2(base + n(i.otrosIngresos) + n(i.otros));
-  const totDesc = r2(iess + n(d.anticipos)+n(d.prestamos)+n(d.autorizados)+multas+n(d.otrosDesc)+n(d.otros));
-  r.calc = {hsup, hext, multas, iess, totIng, totDesc, neto:r2(totIng-totDesc)};
+  const deu = r2(sum((r.deudas||[]).map(x=>x.monto)));
+  const totDesc = r2(iess + n(d.anticipos)+n(d.prestamos)+n(d.autorizados)+multas+deu+n(d.otrosDesc)+n(d.otros));
+  r.calc = {hsup, hext, multas, deu, iess, totIng, totDesc, neto:r2(totIng-totDesc)};
   return r;
 }
 function rowsForMonth(ym){
@@ -639,7 +640,7 @@ function buildRol(emp, p, ym){
     sueldoMensual:+emp.sueldo||0, afiliado:emp.afiliado!==false, iessPct:+S.cfg.iess||0,
     ing:{sueldo, dias, hsupH:0, hextH:0, comisiones:0, bonificaciones:0, otrosIngresos:0, otros:0},
     desc:{anticipos:0, prestamos:0, autorizados:0, otrosDesc:0, otros:0},
-    multas: pend.map(snapMulta), obs: dias < p.base ? `Sueldo proporcional por ${dias} días laborados desde el ingreso.` : '',
+    multas: pend.map(snapMulta), deudas: deudasParaRol(emp.id, ym, null, p.n, emp.frecuencia), obs: dias < p.base ? `Sueldo proporcional por ${dias} días laborados desde el ingreso.` : '',
     estado:'borrador', creado:new Date().toISOString()
   };
   return {r:calc(r), pend};
@@ -650,6 +651,7 @@ async function generate(rows){
     if(S.rol[x.id]) continue;
     const {r,pend} = buildRol(x.emp, x.p, x.ym);
     await put('rol', r.id, r);
+    await syncDeudasRol(r);
     for(const m of pend) await put('mul', m.id, {...m, estado:'aplicada', rolId:r.id});
     n++;
   }
@@ -1527,6 +1529,7 @@ function docHTML(r, ed){
   const o = (key) => `<span data-o="${key}">${money(k[key])}</span>`;
   const ingRow = (l,q,v) => `<tr><td>${l}</td><td class="q">${q}</td><td class="n">${v}</td></tr>`;
   const desRow = (l,v,auto) => `<tr${auto?' class="auto"':''}><td>${l}</td><td class="n">${v}</td></tr>`;
+  const deuList = (r.deudas||[]).map((x,ix)=>`<li>${esc(DEU_TIPOS[x.tipo]||x.tipo)}: ${esc(x.concepto)} (${ed?`<input class="doc-in mini" data-k="deu.${ix}" type="number" step="0.01" min="0" value="${x.monto}" aria-label="Valor del descuento">`:money(x.monto)}). Saldo pendiente después de este rol: <span data-deu="${ix}">${money(Math.max(0,r2((x.saldoAntes||0)-(+x.monto||0))))}</span>${ed?` <button class="doc-x noprint" data-act="rol-rm-deu" data-id="${x.id}" aria-label="Quitar del rol">Quitar</button>`:''}</li>`).join('');
   const mulList = (r.multas||[]).map((m,ix)=>`<li>${esc(fd(m.fecha))}, ${esc(TIPOS[m.tipo]?.label||m.tipo)}: ${esc(m.motivo)} (${ed?`<input class="doc-in mini" data-k="mul.${ix}" type="number" step="0.01" min="0" value="${m.monto}" aria-label="Valor de la multa">`:money(m.monto)})${ed?` <button class="doc-x noprint" data-act="rol-rm-mul" data-id="${m.id}" aria-label="Quitar del rol">Quitar</button>`:''}</li>`).join('');
   return `<article class="doc">
   <header class="doc-head"><img src="${LOGO}" alt="BENDERAM">
@@ -1574,6 +1577,7 @@ function docHTML(r, ed){
         ${desRow('Préstamos', fld('desc.prestamos',d.prestamos))}
         ${desRow('Descuentos autorizados', fld('desc.autorizados',d.autorizados))}
         ${desRow(`Multas, sanciones y faltantes (${(r.multas||[]).length})`, o('multas'), true)}
+        ${(r.deudas||[]).length?desRow(`Anticipos, préstamos y deudas (${r.deudas.length})`, o('deu'), true):''}
         ${desRow(lb('od'), fld('desc.otrosDesc',d.otrosDesc))}
         ${desRow(lb('o2'), fld('desc.otros',d.otros))}
         <tr class="tot"><td>TOTAL DESCUENTOS</td><td class="n">${o('totDesc')}</td></tr>
@@ -1586,7 +1590,7 @@ function docHTML(r, ed){
       </div>
       <table class="kv kv4" style="border-top:1px solid #E3DACB"><tr><td class="k">Forma de pago:</td><td>${tx('e.formaPago',r.e.formaPago,'Forma de pago')}</td><td class="k">Banco / institución:</td><td>${tx('e.banco',r.e.banco,'Banco')}</td></tr><tr><td class="k">Número de cuenta:</td><td colspan="3">${tx('e.cuenta',r.e.cuenta,'Número de cuenta')}</td></tr></table>
     </section>
-    <section class="doc-sec"><h4>OBSERVACIONES</h4><div class="doc-obs">${ed?`<textarea class="doc-in" data-k="obs" placeholder="Notas para este rol">${esc(r.obs)}</textarea>`:esc(r.obs)}${mulList?`<div style="margin-top:6px"><b>Detalle de descuentos por multas, sanciones y faltantes:</b><ul>${mulList}</ul></div>`:''}</div></section>
+    <section class="doc-sec"><h4>OBSERVACIONES</h4><div class="doc-obs">${ed?`<textarea class="doc-in" data-k="obs" placeholder="Notas para este rol">${esc(r.obs)}</textarea>`:esc(r.obs)}${mulList?`<div style="margin-top:6px"><b>Detalle de descuentos por multas, sanciones y faltantes:</b><ul>${mulList}</ul></div>`:''}${deuList?`<div style="margin-top:6px"><b>Detalle de anticipos, préstamos y deudas:</b><ul>${deuList}</ul></div>`:''}</div></section>
     <div class="doc-sign">
       <div><b>FIRMA DEL TRABAJADOR</b><span>Recibí conforme</span><div style="height:46px"></div><div class="ln2">Nombre: ${esc(r.e.nombre)}<br>C.I.: ${esc(r.e.cedula)}</div></div>
       <div><b>${esc(c.razon||'BENDERAM S.A.S.')}</b><span>Responsable / gerencia</span><div style="height:46px"></div><div class="ln2">Nombre: ${esc(c.respNombre)}<br>Cargo: ${esc(c.respCargo)}<br>Sello:</div></div>
@@ -1597,9 +1601,10 @@ function rolModal(){
   const r = ED.r; const nuevo = !!ED.nuevo; const ed = nuevo || r.estado==='borrador';
   const st = nuevo ? {k:'borrador', t:'Vista previa, sin guardar'} : statusOf({rol:r, p:{pago:r.pago}});
   const pendNew = pendingMultas(r.empId, r.hasta).filter(m=>!r.multas.some(x=>x.id===m.id));
+  const deuNew = typeof deudasParaRol==='function' ? deudasParaRol(r.empId, r.ym, r.id, r.n, r.frecuencia).filter(x=>!(r.deudas||[]).some(y=>y.id===x.id)) : [];
   let acts = '';
   if(nuevo) acts = `<button class="btn quiet" data-act="close">Cancelar</button><button class="btn" data-act="rol-save">Guardar borrador</button><button class="btn" data-act="rol-save-pdf">Guardar y descargar PDF</button><button class="btn gold" data-act="rol-approve">Aprobar rol</button>`;
-  else if(r.estado==='borrador') acts = `<button class="btn quiet bad" data-act="rol-del">Eliminar</button>${pendNew.length?`<button class="btn" data-act="rol-refresh-mul">Actualizar multas (${pendNew.length})</button>`:''}<button class="btn" data-act="rol-save">Guardar borrador</button><button class="btn" data-act="rol-save-pdf">Guardar y descargar PDF</button><button class="btn gold" data-act="rol-approve">Aprobar rol</button>`;
+  else if(r.estado==='borrador') acts = `<button class="btn quiet bad" data-act="rol-del">Eliminar</button>${pendNew.length?`<button class="btn" data-act="rol-refresh-mul">Actualizar multas (${pendNew.length})</button>`:''}${deuNew.length?`<button class="btn" data-act="rol-refresh-deu">Agregar deudas (${deuNew.length})</button>`:''}<button class="btn" data-act="rol-save">Guardar borrador</button><button class="btn" data-act="rol-save-pdf">Guardar y descargar PDF</button><button class="btn gold" data-act="rol-approve">Aprobar rol</button>`;
   else if(r.estado==='aprobado') acts = `<button class="btn quiet" data-act="rol-draft">Volver a borrador para editar</button><button class="btn" data-act="rol-pdf">Descargar PDF</button><button class="btn gold" data-act="rol-pay">Marcar como pagado</button>`;
   else acts = `<span class="muted" style="font-size:13px">Pagado el ${fd(r.pagadoEn)}</span><button class="btn quiet" data-act="rol-unpay">Deshacer pago</button><button class="btn gold" data-act="rol-pdf">Descargar PDF</button>`;
   return `<div class="modal" role="dialog" aria-modal="true" aria-labelledby="rolT">
@@ -1621,6 +1626,7 @@ function rolInput(t){
   if(a==='obs') r.obs = t.value;
   else if(a==='r') r[b] = v;
   else if(a==='mul'){ if(r.multas[+b]) r.multas[+b].monto = v; }
+  else if(a==='deu'){ const x=(r.deudas||[])[+b]; if(x){ x.monto = Math.min(v, x.saldoAntes||v); const sp=document.querySelector(`[data-deu="${b}"]`); if(sp) sp.textContent = money(Math.max(0,r2((x.saldoAntes||0)-x.monto))); } }
   else if(a==='lbl'){ r.lbl = r.lbl||{}; r.lbl[b] = t.value; }
   else { r[a] = r[a]||{}; r[a][b] = v; }
   calc(r);
@@ -1637,8 +1643,8 @@ async function pdfRol(r){
   kvGrid(D, [['Nombre completo',r.e.nombre],['Cédula',r.e.cedula],['Código',r.e.codigo||'-'],['Cargo',r.e.cargo||'-'],['Departamento',deptName(r.e.dept)],['Tipo de contrato',r.e.contrato||'-'],['Fecha de ingreso',fd(r.e.fechaIngreso)],['Período',`${fd(r.desde)} al ${fd(r.hasta)}`],['Fecha de pago',fd(r.pago)]], 3);
   section(D, 'Detalle de la remuneración');
   const ingRows=[['Sueldo / salario', i.dias?`${i.dias} días`:'', i.sueldo],['Horas suplementarias (50%)', i.hsupH?`${i.hsupH} h`:'', k.hsup],['Horas extraordinarias (100%)', i.hextH?`${i.hextH} h`:'', k.hext],['Comisiones','',i.comisiones],['Bonificaciones','',i.bonificaciones],[L.oi,'',i.otrosIngresos],[L.o,'',i.otros]];
-  const desRows=[[`Aporte IESS (${r.afiliado?NF.format(r.iessPct)+'%':'no afiliado'})`,'',k.iess],['Anticipos','',d.anticipos],['Préstamos','',d.prestamos],['Descuentos autorizados','',d.autorizados],[`Multas y sanciones (${(r.multas||[]).length})`,'',k.multas],[L.od,'',d.otrosDesc],[L.o2,'',d.otros]];
-  ensure(D, 20 + 7*18 + 22 + 10);
+  const desRows=[[`Aporte IESS (${r.afiliado?NF.format(r.iessPct)+'%':'no afiliado'})`,'',k.iess],['Anticipos','',d.anticipos],['Préstamos','',d.prestamos],['Descuentos autorizados','',d.autorizados],[`Multas y sanciones (${(r.multas||[]).length})`,'',k.multas],...((r.deudas||[]).length?[[`Anticipos, préstamos y deudas (${r.deudas.length})`,'',k.deu]]:[]),[L.od,'',d.otrosDesc],[L.o2,'',d.otros]];
+  ensure(D, 20 + 8*18 + 22 + 10);
   const W=D.W-2*D.M, gap=16, cw=(W-gap)/2, y0=D.y;
   const mini = (x, title, rows, tot) => {
     let y=y0; rect(D,x,y,cw,20,{fill:P.gold}); txt(D,title,x+8,y+13.5,{size:8,bold:true,color:'#1A1206'}); txt(D,'Valor',x+cw-8,y+13.5,{size:8,bold:true,color:'#1A1206',align:'right'}); y+=20;
@@ -1657,10 +1663,11 @@ async function pdfRol(r){
   txt(D,'VALOR NETO A RECIBIR',nx+16,D.y+20,{size:8.5,bold:true,color:'#C9BC9F'}); txt(D,pmoney(k.neto),nx+16,D.y+48,{size:22,bold:true,color:'#FFD23F'});
   D.y += 76;
   kvGrid(D, [['Forma de pago',r.e.formaPago||'-'],['Banco o institución',r.e.banco||'-'],['Número de cuenta',r.e.cuenta||'-']], 3);
-  if(r.obs || (r.multas||[]).length){
+  if(r.obs || (r.multas||[]).length || (r.deudas||[]).length){
     section(D, 'Observaciones');
     if(r.obs) paragraph(D, r.obs);
     if((r.multas||[]).length){ paragraph(D, 'Detalle de descuentos por multas, sanciones y faltantes:', 9); r.multas.forEach(m=>paragraph(D, `•  ${fd(m.fecha)}, ${TIPOS[m.tipo]?.label||m.tipo}: ${m.motivo} (${pmoney(m.monto)})`, 9)); }
+    if((r.deudas||[]).length){ paragraph(D, 'Detalle de anticipos, préstamos y deudas:', 9); r.deudas.forEach(x=>paragraph(D, `•  ${DEU_TIPOS[x.tipo]||x.tipo}: ${x.concepto} (${pmoney(x.monto)}). Saldo pendiente: ${pmoney(Math.max(0,r2((x.saldoAntes||0)-(+x.monto||0))))}`, 9)); }
   }
   signatures(D, ['Firma del trabajador', 'Recibí conforme: '+r.e.nombre, 'C.I. '+r.e.cedula], [c.razon||'BENDERAM S.A.S.', 'Responsable: '+(c.respNombre||''), c.respCargo||'']);
   await pdfSave(D, `rol-${pad(r.numero,6)}-${slug(r.e.nombre)}.pdf`);
@@ -1687,6 +1694,7 @@ async function saveRol(estado){
   for(const id of now) if(!ED.orig.has(id) && S.mul[id]) await put('mul', id, {...S.mul[id], estado:'aplicada', rolId:r.id});
   for(const id of ED.orig) if(!now.has(id) && S.mul[id]) await put('mul', id, {...S.mul[id], estado:'pendiente', rolId:null});
   ED.orig = now;
+  await syncDeudasRol(r);
   render(); refreshRolModal();
 }
 async function payDirect(id){
@@ -1795,6 +1803,7 @@ const ACT = {
   'rol-rm-mul':d=>{ ED.r.multas = ED.r.multas.filter(m=>m.id!==d.id); calc(ED.r); refreshRolModal(); },
   'rol-del':async ()=>{ const r=ED.r; if(!(await ask('Eliminar rol', `Se eliminará el rol N.º ${pad(r.numero,6)}. Sus multas vuelven a quedar pendientes de descuento.`, 'Eliminar rol', true))) return;
     for(const id of ED.orig) if(S.mul[id]) await put('mul', id, {...S.mul[id], estado:'pendiente', rolId:null});
+    await syncDeudasRol(r, true);
     await del('rol', r.id); closeLayer(); render(); toast('Rol eliminado'); },
   'rol-print':()=>{ try{ window.print(); }catch(e){ toast('Usa Descargar y abre el archivo para imprimirlo.', true); } },
   /* caja */
@@ -1853,12 +1862,13 @@ document.addEventListener('input', e=>{
 });
 
 /* ================= v3: inventario, multiagencia, pestañas de personal ================= */
-const PERSON_TABS = [['personal','Equipo'],['permisos','Permisos'],['roles','Roles de pago'],['multas','Multas y sanciones'],['cumple','Cumpleaños'],['bienes','Bienes a cargo']];
+const PERSON_TABS = [['personal','Equipo'],['permisos','Permisos'],['roles','Roles de pago'],['deudas','Anticipos y deudas'],['multas','Multas y sanciones'],['cumple','Cumpleaños'],['bienes','Bienes a cargo']];
 const CAJA_TABS = [['caja','Cajas'],['multi','Multiagencia']];
 function subTabs(tabs){
   const badge = k => {
     if(k==='multas'){ const n=Object.values(S.mul).filter(m=>m.estado==='pendiente').length; return n?` <span class="sbadge">${n}</span>`:''; }
     if(k==='permisos'){ const n=Object.values(S.per).filter(p=>p.estado==='solicitado').length; const f=activeEmps().filter(e=>Object.values(S.per).some(p=>p.empId===e.id&&enDia(p,todayS()))).length; return n?` <span class="sbadge">${n}</span>`:(f?` <span class="sbadge mute">${f} fuera</span>`:''); }
+    if(k==='deudas'){ const n=new Set(allDeudas().filter(x=>deuEstado(x.d)!=='pagada').map(x=>x.e.id)).size; return n?` <span class="sbadge mute">${n}</span>`:''; }
     if(k==='cumple'){ const n=bdays().filter(x=>x.b.days<=7).length; return n?` <span class="sbadge">${n}</span>`:''; }
     if(k==='bienes'){ const n=Object.values(S.inv).filter(i=>i.responsable && i.estado!=='baja').length; return n?` <span class="sbadge mute">${n}</span>`:''; }
     if(k==='multi'){ const n=S.cfg.multi.length; return n?` <span class="sbadge mute">${n}</span>`:''; }
@@ -2142,7 +2152,7 @@ const SHEETS_URL = (window.BENDERAM_SHEETS_URL || '').trim();
 const SKEY = 'benderam-sesion';
 let SES = null, inflight = 0, BATCH = [], btimer = null, QUEUE = Promise.resolve(), refreshTimer = null;
 const AREA_L = {personal:'Personal y nómina', caja:'Cuadres de caja y multiagencia', finanzas:'Finanzas', agencias:'Agencias', inventario:'Inventario', empresa:'Empresa y configuración'};
-const AREA_OF = {resumen:'personal', personal:'personal', permisos:'personal', roles:'personal', multas:'personal', cumple:'personal', bienes:'personal', caja:'caja', multi:'caja', finanzas:'finanzas', agencias:'agencias', inventario:'inventario', empresa:'empresa'};
+const AREA_OF = {resumen:'personal', personal:'personal', permisos:'personal', roles:'personal', deudas:'personal', multas:'personal', cumple:'personal', bienes:'personal', caja:'caja', multi:'caja', finanzas:'finanzas', agencias:'agencias', inventario:'inventario', empresa:'empresa'};
 const isGerente = () => mode!=='sheet' || (SES && SES.rol==='gerente');
 const can = area => mode!=='sheet' || isGerente() || !!(SES && SES.areas && SES.areas.includes(area));
 const canView = v => can(AREA_OF[v]||v);
@@ -2908,6 +2918,168 @@ Object.assign(ACT, {
 });
 document.addEventListener('submit', e=>{ if(e.target.id==='perForm') submitPer(e.target); });
 document.addEventListener('change', e=>{ if(e.target.id==='perDay' && e.target.value){ UI.perDay = e.target.value; e.target.blur(); render(); } });
+
+/* ================= v10: anticipos y deudas ================= */
+const DEU_TIPOS = {anticipo:'Anticipo de sueldo', prestamo:'Préstamo', deuda:'Deuda con la empresa', otro:'Otro'};
+const deuSaldo = (d, sinRol) => r2((+d.monto||0) - sum((d.pagos||[]).filter(p=>!sinRol || p.rolId!==sinRol).map(p=>p.monto)));
+const deuPagado = d => sum((d.pagos||[]).map(p=>p.monto));
+const deuEstado = d => deuSaldo(d) <= 0.005 ? 'pagada' : d.pausada ? 'pausada' : 'activa';
+const DEU_EST = {activa:{label:'Activa', cls:'pendiente'}, pausada:{label:'Pausada', cls:'inactivo'}, pagada:{label:'Pagada', cls:'ok'}};
+const allDeudas = () => Object.values(S.emp).flatMap(e=>(e.deudas||[]).map(d=>({e, d})));
+function deudasParaRol(empId, ym, rolId, n, frecuencia){
+  const e = S.emp[empId]; if(!e) return [];
+  if((frecuencia||e.frecuencia)==='quincenal' && +n===1) return [];
+  return (e.deudas||[]).filter(d=>!d.pausada && +d.cuota>0 && (d.inicio||'0000-00')<=ym && !(d.pagos||[]).some(p=>p.rolId && p.rolId!==rolId && p.rolId.includes(`_${ym}_`))).map(d=>{ const s = deuSaldo(d, rolId); return s>0.005 ? {id:d.id, tipo:d.tipo, concepto:d.concepto, monto:r2(Math.min(+d.cuota, s)), saldoAntes:s} : null; }).filter(Boolean);
+}
+async function putDeudas(empId, deudas){ const e = S.emp[empId]; await put('emp', empId, {...e, deudas, actualizado:new Date().toISOString()}); }
+async function syncDeudasRol(r, borrar){
+  const e = S.emp[r.empId]; if(!e || !(e.deudas||[]).length) return;
+  let cambio = false;
+  const deudas = e.deudas.map(d=>{
+    const antes = (d.pagos||[]).length;
+    let pagos = (d.pagos||[]).filter(p=>p.rolId!==r.id);
+    const it = !borrar && (r.deudas||[]).find(x=>x.id===d.id);
+    if(it && +it.monto>0) pagos = [...pagos, {id:uid('pg'), fecha:r.pago, monto:r2(it.monto), rolId:r.id, nota:`Rol N.º ${pad(r.numero,6)}`}];
+    if(pagos.length!==antes || it) cambio = true;
+    return {...d, pagos};
+  });
+  if(cambio) await putDeudas(r.empId, deudas);
+}
+
+VIEWS.deudas = function(){
+  const all = allDeudas();
+  const head = `<header class="vh"><div><h1>Anticipos y deudas</h1><p class="sub">Registra anticipos, préstamos y deudas del personal con la empresa. El descuento mensual entra solo en cada rol de pago y el saldo baja automáticamente.</p></div>
+    <div class="acts">${all.length?'<button class="btn" data-act="deu-export">Exportar CSV</button>':''}<button class="btn gold" data-act="deu-new" ${activeEmps().length?'':'disabled'}>Registrar anticipo o deuda</button></div></header>`;
+  if(!all.length) return head + emptyBlock('Sin anticipos ni deudas', 'Registra lo que cada colaborador debe a la empresa y cuánto se le descuenta por mes. El sistema lleva el saldo por ti.', activeEmps().length?`<button class="btn gold" data-act="deu-new">Registrar anticipo o deuda</button>`:'');
+  const act = all.filter(x=>deuEstado(x.d)!=='pagada');
+  const F = {activas:['Con saldo',x=>deuEstado(x.d)!=='pagada'], pagadas:['Pagadas',x=>deuEstado(x.d)==='pagada'], todas:['Todas',()=>true]};
+  if(!F[UI.deuF]) UI.deuF = 'activas';
+  const list = all.filter(F[UI.deuF][1]).sort((a,b)=>a.e.nombre.localeCompare(b.e.nombre) || (a.d.fecha||'').localeCompare(b.d.fecha||''));
+  const personas = new Set(act.map(x=>x.e.id)).size;
+  return head + `
+  <section class="strip">
+    <div class="hl"><small>Saldo pendiente total</small><b class="num">${money(sum(act.map(x=>deuSaldo(x.d))))}</b><em>${act.length} ${act.length===1?'registro':'registros'} con saldo</em></div>
+    <div><small>Descuento mensual total</small><b class="num">${money(sum(act.filter(x=>!x.d.pausada).map(x=>Math.min(+x.d.cuota||0, deuSaldo(x.d)))))}</b><em>Se aplica en los roles</em></div>
+    <div><small>Personas con saldo</small><b class="num">${personas}</b></div>
+    <div><small>Ya cobrado</small><b class="num">${money(sum(all.map(x=>deuPagado(x.d))))}</b><em>Por roles y abonos</em></div>
+  </section>
+  <div class="toolbar"><div class="tabs">${Object.entries(F).map(([k,[l,f]])=>`<button class="tab ${UI.deuF===k?'on':''}" data-act="deu-f" data-id="${k}">${l} <span>${all.filter(f).length}</span></button>`).join('')}</div></div>
+  ${list.length?`<div class="tw"><table class="t"><thead><tr><th>Colaborador</th><th>Tipo y concepto</th><th>Fecha</th><th class="r">Monto</th><th class="r">Por mes</th><th>Saldo</th><th>Estado</th><th></th></tr></thead><tbody>
+  ${list.map(({e,d})=>{ const s=deuSaldo(d), pg=deuPagado(d), es=DEU_EST[deuEstado(d)]; const meses = s>0 && +d.cuota>0 ? Math.ceil(s/d.cuota) : 0; return `<tr class="click" data-act="deu-edit" data-emp="${e.id}" data-id="${d.id}">
+    <td style="min-width:170px"><b style="white-space:normal">${esc(e.nombre)}</b><small>${esc(deptName(e.dept))}</small></td>
+    <td>${esc(DEU_TIPOS[d.tipo]||d.tipo)}<small>${esc(d.concepto||'')}</small></td>
+    <td><span class="num">${esc(fd(d.fecha))}</span><small>Desde ${esc(d.inicio?monthLabel(d.inicio).toLowerCase():'—')}</small></td>
+    <td class="r num">${money(d.monto)}</td>
+    <td class="r num">${+d.cuota>0?money(d.cuota):'—'}${meses?`<small>${meses} ${meses===1?'mes':'meses'} más</small>`:''}</td>
+    <td class="num"><b class="${s>0.005?'neg':''}">${money(Math.max(0,s))}</b><div class="prog" style="margin-top:4px"><div class="bar"><i style="width:${Math.min(100,pg/(+d.monto||1)*100)}%;background:${s<=0.005?'var(--ok)':'var(--gold)'}"></i></div><span class="muted" style="font-size:12px">${NF0.format(Math.min(100,pg/(+d.monto||1)*100))}% pagado</span></div></td>
+    <td><span class="pill ${es.cls}">${es.label}</span></td>
+    <td><div class="rowacts">${s>0.005?`<button class="btn sm" data-act="deu-abono" data-emp="${e.id}" data-id="${d.id}">Abono</button>`:''}<button class="btn sm quiet" data-act="deu-pdf" data-emp="${e.id}" data-id="${d.id}">PDF</button></div></td></tr>`; }).join('')}
+  </tbody></table></div>`:`<div class="empty"><h2>Nada en este filtro</h2><p>Cambia de pestaña para ver los demás registros.</p></div>`}`;
+};
+function deuForm(empId, id){
+  const e0 = S.emp[empId];
+  const d = id && e0 ? (e0.deudas||[]).find(x=>x.id===id) : {tipo:'anticipo', fecha:todayS(), inicio:todayYM(), monto:'', cuota:''};
+  if(!d) return;
+  const emps = activeEmps();
+  const inp = inpF(d,'d');
+  openLayer(`<form class="drawer" id="deuForm" data-id="${id||''}" data-emp="${empId||''}" role="dialog" aria-modal="true" aria-labelledby="dT" novalidate>
+    <div class="dh"><h2 id="dT">${id?esc(DEU_TIPOS[d.tipo]||'Registro')+' de '+esc(shortName(e0.nombre)):'Registrar anticipo o deuda'}</h2><button type="button" class="x" data-act="close" aria-label="Cerrar">×</button></div>
+    <div class="db"><div class="fg">
+      <div class="f full" data-f="empId"><label for="d_emp">Colaborador</label><select id="d_emp" name="empId" ${id?'disabled':''}><option value="">Elige un colaborador</option>${emps.map(e=>`<option value="${e.id}" ${empId===e.id?'selected':''}>${esc(e.nombre)}</option>`).join('')}</select><div class="err"></div></div>
+      <div class="f" data-f="tipo"><label for="d_tipo">Tipo</label><select id="d_tipo" name="tipo">${opts(Object.entries(DEU_TIPOS),d.tipo)}</select></div>
+      ${inp('fecha','Fecha en que se entregó','date')}
+      ${inp('concepto','Concepto','text','placeholder="Ejemplo: anticipo de quincena, préstamo para celular"','full')}
+      ${inp('monto','Monto total (USD)','number','step="0.01" min="0" inputmode="decimal"')}
+      ${inp('cuota','Descuento por mes (USD)','number','step="0.01" min="0" inputmode="decimal"','','Lo que se descuenta en cada rol mensual.')}
+      ${inp('inicio','Empezar a descontar en','month','','full','Mes del primer rol que llevará el descuento.')}
+      <div class="f full"><label class="check"><input type="checkbox" name="pausada" ${d.pausada?'checked':''}> Pausar los descuentos por ahora</label></div>
+      <div class="f full"><label for="d_obs">Observaciones</label><textarea id="d_obs" name="obs" placeholder="Acuerdos, garante, firma de respaldo">${esc(d.obs||'')}</textarea></div>
+      <div class="full calcbox" id="deuCalc"></div>
+    </div>
+    ${id?`<fieldset style="margin-top:22px"><legend>Pagos y descuentos (${(d.pagos||[]).length})</legend>${(d.pagos||[]).length?`<table class="t" style="font-size:14px"><tbody>${d.pagos.slice().sort((a,b)=>(a.fecha||'').localeCompare(b.fecha||'')).map(p=>`<tr><td class="num">${esc(fd(p.fecha))}</td><td>${p.rolId?esc(p.nota||'Rol de pago'):esc(p.nota||'Abono')}${p.rolId&&S.rol[p.rolId]?`<small>${esc(statusOf({rol:S.rol[p.rolId],p:{pago:S.rol[p.rolId].pago}}).t)}</small>`:''}</td><td class="r num"><b>${money(p.monto)}</b></td><td style="width:40px">${p.rolId?'':`<button type="button" class="btn sm quiet bad" data-act="deu-pago-rm" data-emp="${empId}" data-id="${id}" data-pago="${p.id}" aria-label="Quitar abono">×</button>`}</td></tr>`).join('')}</tbody></table>`:'<p class="muted" style="margin:0;font-size:14px">Todavía no hay pagos.</p>'}
+      <p style="margin:12px 0 0;font-size:14px">Pagado: <b>${money(deuPagado(d))}</b> · Saldo: <b class="${deuSaldo(d)>0.005?'neg':''}">${money(Math.max(0,deuSaldo(d)))}</b></p></fieldset>`:''}
+    </div>
+    <div class="df">${id?`<button type="button" class="btn bad quiet" data-act="deu-del" data-emp="${empId}" data-id="${id}" style="margin-right:auto">Eliminar</button><button type="button" class="btn" data-act="deu-abono" data-emp="${empId}" data-id="${id}">Registrar abono</button>`:''}<button type="button" class="btn" data-act="close">Cancelar</button><button type="submit" class="btn gold">${id?'Guardar cambios':'Registrar'}</button></div></form>`);
+  const f = $('#deuForm');
+  const sync = ()=>{
+    const v = Object.fromEntries(new FormData(f).entries());
+    const pagado = id ? deuPagado(d) : 0;
+    const saldo = r2((+v.monto||0) - pagado), cuota = +v.cuota||0;
+    let t = '';
+    if(!(+v.monto>0)) t = 'Escribe el monto total.';
+    else if(saldo<=0) t = 'Este registro ya está pagado por completo.';
+    else if(!(cuota>0)) t = `Saldo: ${money(saldo)}. Sin descuento mensual, solo bajará con abonos manuales.`;
+    else { const n = Math.ceil(saldo/cuota); const fin = addMonth(v.inicio||todayYM(), n-1); t = `Saldo: ${money(saldo)}. Se descontará ${money(cuota)} por mes durante ${n} ${n===1?'mes':'meses'}; el último descuento sería en ${monthLabel(fin).toLowerCase()}${saldo%cuota>0.005?` (de ${money(saldo - cuota*(n-1))})`:''}.`; }
+    if(f.querySelector('[name=pausada]').checked) t += ' Los descuentos están pausados.';
+    $('#deuCalc').textContent = t;
+  };
+  f.addEventListener('input', sync); f.addEventListener('change', sync); sync();
+}
+async function submitDeu(f){
+  const fdata = new FormData(f); const v = Object.fromEntries(fdata.entries());
+  const empId = f.dataset.emp || v.empId; const id = f.dataset.id || uid('d');
+  const errs = {};
+  if(!S.emp[empId]) errs.empId = 'Elige al colaborador.';
+  if(!(+v.monto>0)) errs.monto = 'Escribe el monto total.';
+  if(+v.cuota<0) errs.cuota = 'El descuento no puede ser negativo.';
+  if(!(v.concepto||'').trim()) errs.concepto = 'Escribe el concepto.';
+  if(markErrors(f, errs)) return;
+  const e = S.emp[empId]; const list = (e.deudas||[]).slice(); const ix = list.findIndex(x=>x.id===id);
+  const prev = ix>=0 ? list[ix] : {pagos:[], creado:new Date().toISOString(), registradoPor:SES?SES.nombre:''};
+  const d = {...prev, id, tipo:v.tipo, fecha:v.fecha, concepto:v.concepto.trim(), monto:r2(v.monto), cuota:r2(v.cuota), inicio:v.inicio||todayYM(), pausada:fdata.has('pausada'), obs:(v.obs||'').trim()};
+  if(ix>=0) list[ix] = d; else list.push(d);
+  closeLayer(); await putDeudas(empId, list); render();
+  toast(f.dataset.id ? 'Registro actualizado' : `Registrado. ${+d.cuota>0?`Se descontará ${money(d.cuota)} por mes desde ${monthLabel(d.inicio).toLowerCase()}.`:''}`);
+}
+function abonoForm(empId, id){
+  const d = (S.emp[empId].deudas||[]).find(x=>x.id===id); const s = deuSaldo(d);
+  openLayer(`<form class="modal small-modal" id="abonoForm" data-emp="${empId}" data-id="${id}" role="dialog" aria-modal="true" aria-labelledby="abT" novalidate><h2 id="abT">Registrar abono</h2>
+    <p>${esc(S.emp[empId].nombre)} · ${esc(d.concepto)}. Saldo actual: <b>${money(s)}</b>. Usa esto cuando la persona paga en efectivo o por transferencia, fuera del rol.</p>
+    <div class="fg"><div class="f" data-f="monto"><label for="ab_m">Valor (USD)</label><input id="ab_m" name="monto" type="number" step="0.01" min="0" value="${s}"><div class="err"></div></div>
+    <div class="f"><label for="ab_f">Fecha</label><input id="ab_f" name="fecha" type="date" value="${todayS()}"></div>
+    <div class="f full"><label for="ab_n">Nota</label><input id="ab_n" name="nota" placeholder="Ejemplo: pago en efectivo, transferencia Pichincha"></div></div>
+    <div class="acts" style="justify-content:flex-end;margin-top:16px"><button type="button" class="btn" data-act="close">Cancelar</button><button class="btn gold" type="submit">Registrar abono</button></div></form>`, true);
+}
+async function submitAbono(f){
+  const v = Object.fromEntries(new FormData(f).entries());
+  if(!(+v.monto>0)){ markErrors(f, {monto:'Escribe el valor del abono.'}); return; }
+  const empId=f.dataset.emp, id=f.dataset.id;
+  const list = S.emp[empId].deudas.map(d=>d.id===id ? {...d, pagos:[...(d.pagos||[]), {id:uid('pg'), fecha:v.fecha||todayS(), monto:r2(v.monto), nota:(v.nota||'').trim()||'Abono'}]} : d);
+  closeLayer(); await putDeudas(empId, list); render(); toast('Abono registrado');
+}
+async function pdfDeuda(empId, id){
+  const e = S.emp[empId]; const d = (e.deudas||[]).find(x=>x.id===id); if(!d) return;
+  const D = await pdfNew('ESTADO DE CUENTA', `${DEU_TIPOS[d.tipo]||''} · ${fd(todayS())}`, false);
+  section(D, 'Colaborador');
+  kvGrid(D, [['Nombre completo',e.nombre],['Cédula',e.cedula],['Cargo',e.cargo||'-']], 3);
+  section(D, 'Detalle');
+  kvGrid(D, [['Tipo',DEU_TIPOS[d.tipo]||d.tipo],['Concepto',d.concepto],['Fecha de entrega',fd(d.fecha)],['Monto total',pmoney(d.monto)],['Descuento por mes',+d.cuota>0?pmoney(d.cuota):'-'],['Desde',d.inicio?monthLabel(d.inicio):'-'],['Pagado',pmoney(deuPagado(d))],['Saldo pendiente',pmoney(Math.max(0,deuSaldo(d)))],['Estado',DEU_EST[deuEstado(d)].label]], 3);
+  section(D, 'Pagos y descuentos');
+  let acc = +d.monto||0;
+  const rows = (d.pagos||[]).slice().sort((a,b)=>(a.fecha||'').localeCompare(b.fecha||'')).map(p=>{ acc = r2(acc - p.monto); return {cells:[fd(p.fecha), p.rolId?(p.nota||'Rol de pago'):(p.nota||'Abono'), pmoney(p.monto), pmoney(Math.max(0,acc))]}; });
+  if(rows.length) await table(D, [{h:'Fecha', w:90},{h:'Origen'},{h:'Valor', w:90, align:'right'},{h:'Saldo', w:90, align:'right'}], rows, {foot:['', 'Total pagado', pmoney(deuPagado(d)), pmoney(Math.max(0,deuSaldo(d)))]});
+  else paragraph(D, 'Todavía no hay pagos registrados.');
+  if(d.obs){ section(D, 'Observaciones'); paragraph(D, d.obs); }
+  section(D, 'Declaración');
+  paragraph(D, `Reconozco el valor detallado y autorizo a ${S.cfg.razon||'BENDERAM S.A.S.'} a descontarlo de mi rol de pagos en las cuotas indicadas hasta cubrir el saldo.`);
+  signatures(D, ['Colaborador', e.nombre, 'C.I. '+e.cedula], ['Empresa', S.cfg.respNombre||(S.cfg.razon||'BENDERAM S.A.S.'), S.cfg.respCargo||'']);
+  await pdfSave(D, `estado-de-cuenta-${slug(e.nombre)}-${slug(d.concepto)}.pdf`);
+}
+Object.assign(ACT, {
+  'deu-new':()=>deuForm(UI.deuEmp||null),
+  'deu-edit':d=>deuForm(d.emp, d.id),
+  'deu-f':d=>{ UI.deuF=d.id; render(); },
+  'deu-abono':d=>abonoForm(d.emp, d.id),
+  'deu-pago-rm':async d=>{ if(!(await ask('Quitar abono', 'Se borrará este abono y el saldo volverá a subir.', 'Quitar', true))) return; const list = S.emp[d.emp].deudas.map(x=>x.id===d.id?{...x, pagos:x.pagos.filter(p=>p.id!==d.pago)}:x); await putDeudas(d.emp, list); deuForm(d.emp, d.id); render(); toast('Abono quitado'); },
+  'deu-del':async d=>{ const x=(S.emp[d.emp].deudas||[]).find(y=>y.id===d.id); if((x.pagos||[]).some(p=>p.rolId) && !(await ask('Eliminar registro', 'Este registro ya tiene descuentos en roles. Los roles no cambian, pero se perderá el historial del saldo.', 'Eliminar', true))) return; if(!(x.pagos||[]).some(p=>p.rolId) && !(await ask('Eliminar registro', 'Se borrará este anticipo o deuda.', 'Eliminar', true))) return; await putDeudas(d.emp, S.emp[d.emp].deudas.filter(y=>y.id!==d.id)); closeLayer(); render(); toast('Registro eliminado'); },
+  'deu-pdf':(d,b)=>runPdf(b, ()=>pdfDeuda(d.emp, d.id)),
+  'deu-export':()=>{ const out=[['Colaborador','Cédula','Tipo','Concepto','Fecha','Monto','Descuento por mes','Desde','Pagado','Saldo','Estado']];
+    allDeudas().forEach(({e,d})=>out.push([e.nombre,e.cedula,DEU_TIPOS[d.tipo]||d.tipo,d.concepto,fd(d.fecha),NF.format(+d.monto||0),NF.format(+d.cuota||0),d.inicio?monthLabel(d.inicio):'',NF.format(deuPagado(d)),NF.format(Math.max(0,deuSaldo(d))),DEU_EST[deuEstado(d)].label]));
+    saveFile(`anticipos-y-deudas-${todayS()}.csv`, csv(out), 'text/csv'); },
+  'rol-refresh-deu':()=>{ const add = deudasParaRol(ED.r.empId, ED.r.ym, ED.r.id, ED.r.n, ED.r.frecuencia).filter(x=>!(ED.r.deudas||[]).some(y=>y.id===x.id)); ED.r.deudas = [...(ED.r.deudas||[]), ...add]; calc(ED.r); refreshRolModal(); toast(`${add.length} ${add.length===1?'descuento agregado':'descuentos agregados'}. Guarda para confirmar.`); },
+  'rol-rm-deu':d=>{ ED.r.deudas = (ED.r.deudas||[]).filter(x=>x.id!==d.id); calc(ED.r); refreshRolModal(); }
+});
+document.addEventListener('submit', e=>{ if(e.target.id==='deuForm') submitDeu(e.target); if(e.target.id==='abonoForm') submitAbono(e.target); });
 
 /* ================= inicio ================= */
 async function boot(){
