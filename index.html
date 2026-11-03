@@ -473,7 +473,7 @@ let db = null, mode = 'local', downloads = null, ED = null, pendingRender = fals
 function clone(o){ return JSON.parse(JSON.stringify(o)); }
 const $ = (s,r=document)=>r.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const r2 = n => Math.round((Number(n)||0)*100)/100;
+const r2 = n => { const x = Number(n)||0; if(Math.abs(x) < 1e-9) return 0; return Math.sign(x) * Number(Math.round(Number(Math.abs(x).toFixed(9)+'e2'))+'e-2'); };
 const NF = new Intl.NumberFormat('es-EC',{minimumFractionDigits:2,maximumFractionDigits:2});
 const NF0 = new Intl.NumberFormat('es-EC',{maximumFractionDigits:0});
 const money = n => (r2(n)<0?'−$':'$') + NF.format(Math.abs(r2(n)));
@@ -556,10 +556,10 @@ function periods(emp, ym){
   if(emp.frecuencia==='quincenal'){
     out = [
       {n:1, desde:ymd(new Date(y,m-1,1)), hasta:ymd(new Date(y,m-1,15)), factor:.5, base:15},
-      {n:2, desde:ymd(new Date(y,m-1,16)), hasta:ymd(new Date(y,m-1,ld)), factor:.5, base:ld-15}
+      {n:2, desde:ymd(new Date(y,m-1,16)), hasta:ymd(new Date(y,m-1,ld)), factor:.5, base:15}
     ];
   } else {
-    out = [{n:1, desde:ymd(new Date(y,m-1,1)), hasta:ymd(new Date(y,m-1,ld)), factor:1, base:ld}];
+    out = [{n:1, desde:ymd(new Date(y,m-1,1)), hasta:ymd(new Date(y,m-1,ld)), factor:1, base:30}];
   }
   const fp = S.cfg.fechasPago||{};
   out.forEach(p=>{ p.fpKey = fpKey(ym, emp.frecuencia, p.n); p.pagoAuto = ymd(adjustPay(pd(p.hasta))); p.pago = fp[p.fpKey] || p.pagoAuto; });
@@ -567,10 +567,16 @@ function periods(emp, ym){
   out.forEach(p=>{ if(emp.fechaIngreso && emp.fechaIngreso > p.desde) p.desde = emp.fechaIngreso; if(emp.fechaSalida && emp.fechaSalida < p.hasta) p.hasta = emp.fechaSalida; });
   return out;
 }
+/* Mes comercial de 30 días: el último día del mes cuenta como día 30 (febrero y meses de 31 días pagan 30) */
+const cday = s => { const [y,m,d] = s.split('-').map(Number); return d >= lastDay(y,m) ? 30 : Math.min(d, 30); };
+const comDays = (desde, hasta) => { if(!desde || !hasta || hasta < desde) return 0; if(desde.slice(0,7)===hasta.slice(0,7)) return Math.max(0, cday(hasta) - cday(desde) + 1); return Math.max(0, 30 - cday(desde) + 1) + cday(hasta) + 30*Math.max(0, monthsBetween(desde, hasta) - 1); };
+const monthsBetween = (a,b) => { const [y1,m1]=a.split('-').map(Number), [y2,m2]=b.split('-').map(Number); return (y2-y1)*12 + (m2-m1); };
+const salDia = sueldo => (+sueldo||0)/30;
 function prorate(emp,p){
   const full = r2((+emp.sueldo||0) * p.factor);
-  const days = Math.min(daysBetween(p.desde, p.hasta)+1, p.base);
-  if(days < p.base) return {sueldo:r2((+emp.sueldo||0)*p.factor*days/p.base), dias:days};
+  const start = p.n===2 && emp.frecuencia==='quincenal' ? Math.max(cday(p.desde), 16) : cday(p.desde);
+  const days = Math.max(0, Math.min(cday(p.hasta) - start + 1, p.base));
+  if(days < p.base) return {sueldo:r2((+emp.sueldo||0)*days/30), dias:days};
   return {sueldo:full, dias:p.base};
 }
 const pendingMultas = (empId, hasta) => Object.values(S.mul).filter(m=>m.empId===empId && m.estado==='pendiente' && m.fecha<=hasta && (+m.monto||0)>0).sort((a,b)=>a.fecha.localeCompare(b.fecha));
@@ -645,7 +651,7 @@ function buildRol(emp, p, ym){
     ing:{sueldo, dias, hsupH:0, hextH:0, comisiones:0, bonificaciones:0, otrosIngresos:0, otros:0},
     desc:{anticipos:0, prestamos:0, autorizados:0, otrosDesc:0, otros:0},
     multas: pend.map(snapMulta), deudas: deudasParaRol(emp.id, ym, null, p.n, emp.frecuencia), obs: dias < p.base ? `Sueldo proporcional por ${dias} días laborados, del ${fd(p.desde)} al ${fd(p.hasta)}.` : '',
-    estado:'borrador', creado:new Date().toISOString()
+    estado:'borrador', calcV:2, creado:new Date().toISOString()
   };
   return {r:calc(r), pend};
 }
@@ -746,7 +752,22 @@ function renderSide(){
   $('#storeNote').textContent = mode==='sheet' ? 'Datos conectados a Google Sheets.' : mode==='db' ? 'Datos guardados en la nube del panel.' : 'Datos guardados solo en este navegador. Descarga un respaldo en Empresa.';
 }
 const VIEWS = {};
+function migCalc2(){
+  for(const r of Object.values(S.rol)){
+    if(!r || r.calcV>=2 || r.estado!=='borrador' || r.custom) continue;
+    const e = S.emp[r.empId]; const p = e && periods(e, r.ym).find(p=>p.n===r.n);
+    r.calcV = 2;
+    if(!p) continue;
+    const [y,m] = r.ym.split('-').map(Number); const ld = lastDay(y,m);
+    const ob = e.frecuencia==='quincenal' ? (p.n===1?15:ld-15) : ld, of = e.frecuencia==='quincenal' ? .5 : 1;
+    const od = Math.min(daysBetween(r.desde, r.hasta)+1, ob), os = od < ob ? r2((+r.sueldoMensual||0)*of*od/ob) : r2((+r.sueldoMensual||0)*of);
+    if(r2(r.ing.sueldo)===os && +r.ing.dias===od){ const {sueldo, dias} = prorate(e, {...p, desde:r.desde, hasta:r.hasta}); r.ing.sueldo = sueldo; r.ing.dias = dias;
+      if(/^Sueldo proporcional/.test(r.obs||'')) r.obs = dias < p.base ? `Sueldo proporcional por ${dias} días laborados, del ${fd(r.desde)} al ${fd(r.hasta)}.` : ''; }
+    calc(r); if(can('personal')) put('rol', r.id, r);
+  }
+}
 function noIess(){
+  try{ migCalc2(); }catch(e){ console.error(e); }
   for(const r of Object.values(S.rol)){
     if(!r || !r.calc || !(+r.calc.iess>0) || r.estado==='pagado') continue;
     r.afiliado = false; r.iessPct = 0; calc(r);
@@ -1638,8 +1659,8 @@ function rolInput(t){
   const v = num ? (t.value===''?0:r2(t.value)) : t.value;
   const r = ED.r;
   if(a==='obs') r.obs = t.value;
-  else if(a==='r'){ r[b] = v; if((b==='desde'||b==='hasta') && r.desde && r.hasta){ r.custom = true; const ds = Math.max(0, daysBetween(r.desde, r.hasta)+1); const bs = rolBase(r); r.ing.dias = Math.min(ds, bs); r.ing.sueldo = r2(rolFull(r)*r.ing.dias/bs); syncIn('ing.dias', r.ing.dias); syncIn('ing.sueldo', r.ing.sueldo); } }
-  else if(a==='ing' && b==='dias'){ r.ing.dias = v; r.custom = true; r.ing.sueldo = r2(rolFull(r)*Math.min(v, rolBase(r))/rolBase(r)); syncIn('ing.sueldo', r.ing.sueldo); }
+  else if(a==='r'){ r[b] = v; if((b==='desde'||b==='hasta') && r.desde && r.hasta){ r.custom = true; const ds = r.frecuencia==='quincenal' && +r.n===2 ? Math.max(0, cday(r.hasta) - Math.max(cday(r.desde),16) + 1) : comDays(r.desde, r.hasta); const bs = rolBase(r); r.ing.dias = Math.min(ds, bs); r.ing.sueldo = r.ing.dias>=bs ? rolFull(r) : r2((+r.sueldoMensual||0)*r.ing.dias/30); syncIn('ing.dias', r.ing.dias); syncIn('ing.sueldo', r.ing.sueldo); } }
+  else if(a==='ing' && b==='dias'){ r.ing.dias = v; r.custom = true; r.ing.sueldo = Math.min(v, rolBase(r))>=rolBase(r) ? rolFull(r) : r2((+r.sueldoMensual||0)*Math.min(v, rolBase(r))/30); syncIn('ing.sueldo', r.ing.sueldo); }
   else if(a==='mul'){ if(r.multas[+b]) r.multas[+b].monto = v; }
   else if(a==='deu'){ const x=(r.deudas||[])[+b]; if(x){ x.monto = Math.min(v, x.saldoAntes||v); const sp=document.querySelector(`[data-deu="${b}"]`); if(sp) sp.textContent = money(Math.max(0,r2((x.saldoAntes||0)-x.monto))); } }
   else if(a==='lbl'){ r.lbl = r.lbl||{}; r.lbl[b] = t.value; }
@@ -3132,7 +3153,7 @@ Object.assign(ACT, {
 
 
 /* ================= v13: fechas de trabajo (salida, pasantías) ================= */
-const rolBase = r => { const [y,m] = r.ym.split('-').map(Number); const ld = lastDay(y,m); return r.frecuencia==='quincenal' ? (+r.n===1 ? 15 : ld-15) : ld; };
+const rolBase = r => r.frecuencia==='quincenal' ? 15 : 30;
 const rolFull = r => r2((+r.sueldoMensual||0) * (r.frecuencia==='quincenal' ? .5 : 1));
 const syncIn = (k, v) => { const el = document.querySelector(`[data-k="${k}"]`); if(el && el!==document.activeElement) el.value = v; };
 async function refitRoles(empId){
