@@ -910,7 +910,7 @@ VIEWS.roles = function(){
   rows.forEach(x=>{ const v = x.rol ? x.rol.calc : projection(x.emp,x.p); const ing = x.rol?v.totIng:v.ing, des = x.rol?v.totDesc:v.desc; ti+=ing; td+=des; tn+=v.neto; if(x.rol&&x.rol.estado==='pagado') tp+=v.neto; });
   let head = `<header class="vh"><div><h1>Roles de pago</h1><p class="sub">El sistema calcula período, multas y deudas de cada colaborador. La fecha de pago la eliges tú.</p></div>
     <div class="acts"><div class="monthnav"><button class="btn sm" data-act="month" data-k="-1" aria-label="Mes anterior">‹</button><b>${esc(monthLabel(ym))}</b><button class="btn sm" data-act="month" data-k="1" aria-label="Mes siguiente">›</button></div>
-    ${ym!==todayYM()?'<button class="btn sm quiet" data-act="month" data-k="0">Mes actual</button>':''}${rows.some(x=>x.rol)?`<button class="btn gold" data-act="rol-zip" data-ym="${ym}">Descargar todos los roles</button>`:''}</div></header>
+    ${ym!==todayYM()?'<button class="btn sm quiet" data-act="month" data-k="0">Mes actual</button>':''}${rows.some(x=>x.rol)?`<button class="btn" data-act="rol-regen-mes" data-ym="${ym}">Volver a generar el mes</button><button class="btn gold" data-act="rol-zip" data-ym="${ym}">Descargar todos los roles</button>`:''}</div></header>
     ${sinSueldo?`<div class="note"><span>${sinSueldo} ${sinSueldo===1?'colaborador no tiene':'colaboradores no tienen'} sueldo registrado y no aparecen aquí.</span><button class="btn sm" data-act="go-dept" data-id="all">Revisar personal</button></div>`:''}
     ${(()=>{ const mal = rows.filter(x=>x.rol && !x.rol.custom && x.rol.estado==='borrador' && (x.rol.desde!==x.p.desde || x.rol.hasta!==x.p.hasta)); if(!mal.length) return ''; const bor = mal.length;
       return `<div class="note"><span>${mal.length} ${mal.length===1?'rol tiene':'roles tienen'} fechas que no coinciden con el mes o con las fechas de trabajo del colaborador.</span>${bor?`<button class="btn sm" data-act="fix-periods" data-ym="${ym}">Corregir ${bor} ${bor===1?'borrador':'borradores'}</button>`:''}</div>`; })()}`;
@@ -1650,7 +1650,7 @@ function rolModal(){
   else acts = `<span class="muted" style="font-size:13px">Pagado el ${fd(r.pagadoEn)}</span><button class="btn quiet" data-act="rol-unpay">Deshacer pago</button><button class="btn gold" data-act="rol-pdf">Descargar PDF</button>`;
   return `<div class="modal" role="dialog" aria-modal="true" aria-labelledby="rolT">
     <div class="mbar"><h2 id="rolT">${nuevo?'Vista previa del rol':'Rol N.º '+pad(r.numero,6)} <span class="pill ${st.k}">${st.t}</span></h2>
-      <div class="acts">${acts}<button class="btn quiet" data-act="rol-print">Imprimir</button><button class="x" data-act="close" aria-label="Cerrar">×</button></div></div>
+      <div class="acts">${nuevo?'':'<button class="btn quiet" data-act="rol-regen">Volver a generar</button>'}${acts}<button class="btn quiet" data-act="rol-print">Imprimir</button><button class="x" data-act="close" aria-label="Cerrar">×</button></div></div>
     ${ed?`<div class="rolnote noprint">${nuevo?'Revisa el rol antes de generarlo. Todo lo que tiene un recuadro se puede editar: valores, días, fechas, cargo, banco, conceptos y multas. Nada se guarda hasta que pulses Guardar.':'Este rol está en borrador: puedes editar cualquier campo con recuadro. Al aprobarlo queda bloqueado.'}</div>`:''}
     ${ed?addPanel():''}
     <div class="mscroll" id="printArea">${docHTML(r, ed)}</div></div>`;
@@ -3495,6 +3495,42 @@ async function zipRoles(ym, btn){
   finally{ PDF_COLLECT = null; if(btn.isConnected){ btn.disabled=false; btn.textContent=label; } }
 }
 Object.assign(ACT, { 'rol-zip':(d,b)=>zipRoles(d.ym, b) });
+
+
+/* ================= v19: volver a generar roles ================= */
+async function regenRol(r0){
+  const e = S.emp[r0.empId]; if(!e) return 'skip';
+  const p = periods(e, r0.ym).find(p=>p.n===r0.n);
+  for(const m of r0.multas||[]) if(S.mul[m.id] && S.mul[m.id].rolId===r0.id) await put('mul', m.id, {...S.mul[m.id], estado:'pendiente', rolId:null});
+  await syncDeudasRol(r0, true);
+  if(!p || !payable(e)){ await del('rol', r0.id); return 'del'; }
+  const {r} = buildRol(e, p, r0.ym);
+  r.numero = r0.numero; r.creado = r0.creado || r.creado;
+  ['hsupH','hextH','comisiones','bonificaciones','otrosIngresos','otros'].forEach(k=>r.ing[k] = (r0.ing||{})[k]||0);
+  ['anticipos','prestamos','autorizados','otrosDesc','otros'].forEach(k=>r.desc[k] = (r0.desc||{})[k]||0);
+  if(r0.lbl) r.lbl = r0.lbl;
+  calc(r); r.actualizado = new Date().toISOString();
+  await put('rol', r.id, r);
+  for(const m of r.multas) if(S.mul[m.id]) await put('mul', m.id, {...S.mul[m.id], estado:'aplicada', rolId:r.id});
+  await syncDeudasRol(r);
+  return 'ok';
+}
+const regenMsg = 'Se recalcula con los datos actuales: sueldo, días trabajados (mes de 30 días), fecha de pago, multas, permisos, faltantes, daños, anticipos y deudas. Se conservan el número del rol y lo que escribiste a mano en comisiones, bonos, horas extra y otros valores. El rol queda en borrador para que lo revises y lo apruebes.';
+Object.assign(ACT, {
+  'rol-regen':async ()=>{ const r0 = S.rol[ED.r.id]; if(!r0) return;
+    if(!(await ask('Volver a generar este rol', (r0.estado==='pagado'?'Este rol está marcado como PAGADO: volverá a borrador. ':r0.estado==='aprobado'?'Este rol está aprobado: volverá a borrador. ':'') + regenMsg, 'Volver a generar', r0.estado==='pagado'))) return;
+    const res = await regenRol(r0); closeLayer(); render();
+    if(res==='ok'){ openRol(r0.id); toast(`Rol recalculado. Neto: ${money(S.rol[r0.id].calc.neto)}`); } else toast('El colaborador ya no tiene período de pago en este mes; se eliminó el rol.'); },
+  'rol-regen-mes':async (d,b)=>{ const list = Object.values(S.rol).filter(r=>r.ym===d.ym);
+    if(!list.length) return;
+    const pag = list.filter(r=>r.estado==='pagado').length, apr = list.filter(r=>r.estado==='aprobado').length;
+    if(!(await ask(`Volver a generar ${monthLabel(d.ym).toLowerCase()}`, `Se recalcularán ${list.length} ${list.length===1?'rol':'roles'}${pag||apr?` (${[apr&&apr+' aprobado'+(apr>1?'s':''), pag&&pag+' pagado'+(pag>1?'s':'')].filter(Boolean).join(' y ')}; todos vuelven a borrador)`:''}. ${regenMsg}`, 'Volver a generar', !!pag))) return;
+    const label = b.textContent; b.disabled = true; let ok=0, gone=0; const antes = sum(list.map(r=>r.calc?r.calc.neto:0));
+    for(let i=0;i<list.length;i++){ b.textContent = `Recalculando ${i+1} de ${list.length}…`; const res = await regenRol(list[i]); if(res==='ok') ok++; else if(res==='del') gone++; }
+    const desp = sum(Object.values(S.rol).filter(r=>r.ym===d.ym).map(r=>r.calc.neto));
+    if(b.isConnected){ b.disabled=false; b.textContent=label; }
+    render(); toast(`${ok} ${ok===1?'rol recalculado':'roles recalculados'}${gone?`, ${gone} eliminado${gone>1?'s':''} (sin período en el mes)`:''}. Neto del mes: ${money(antes)} antes, ${money(desp)} ahora.`); }
+});
 
 /* ================= inicio ================= */
 async function boot(){
