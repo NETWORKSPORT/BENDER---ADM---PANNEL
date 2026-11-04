@@ -255,6 +255,12 @@ legend{font:600 15px var(--display);margin-bottom:12px;padding:0;color:var(--acc
 .checks{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .fpbox{border:1px solid rgba(246,185,10,.45);background:var(--surface);border-radius:12px;padding:14px 16px;margin-bottom:18px}.fph{display:flex;flex-direction:column;gap:2px;margin-bottom:10px}.fph b{font-size:15px}.fph span{font-size:13.5px;color:var(--muted)}.fpg{display:flex;flex-wrap:wrap;gap:14px 28px}.fpi{display:flex;flex-direction:column;gap:6px;min-width:260px}.fpi label{font-size:13px;font-weight:600;color:var(--muted)}.fpr{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.fpr input{width:auto;min-width:160px}.fpi small{font-size:12.5px;color:var(--muted)}
 .okc{color:var(--ok)!important}.warnc{color:var(--accent-text)!important}
+.rchips{display:flex;flex-wrap:wrap;gap:6px}.rchip{display:inline-block;background:var(--surface-2);border:1px solid var(--line);border-radius:999px;padding:3px 10px;font-size:12.5px}
+.sel{background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:8px 12px;font:inherit;font-size:14px;max-width:100%}
+.drawer.wide{width:min(780px,100%)}
+.repsec{margin-top:16px;border:1px solid var(--line);border-radius:12px;padding:14px;background:var(--surface-2)}.repsh{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:baseline;margin-bottom:10px}.repsh b{font-size:15px}.repsh span{font-size:13px}
+.agrow{display:grid;grid-template-columns:2fr 1.3fr 1.2fr 1.3fr 32px;gap:10px;align-items:end;padding:10px 0;border-bottom:1px dashed var(--line)}.agrow.one{grid-template-columns:1fr 32px}.agrow:last-of-type{border-bottom:0}.agrow .f label{font-size:12.5px}.agx{align-self:center;margin-top:18px}
+@media (max-width:700px){.agrow{grid-template-columns:1fr 1fr}.agrow .f:first-child{grid-column:1/-1}.agx{grid-column:1/-1;justify-self:end;margin-top:0}}
 .calcbox{background:var(--warn-bg);border-radius:8px;padding:10px 12px;font-size:14px}
 
 .modal{background:var(--surface);width:min(1000px,100%);border-radius:14px;box-shadow:var(--shadow);animation:fade .2s ease-out;border:1px solid var(--line)}
@@ -466,8 +472,8 @@ const DEF_CFG = {razon:'BENDERAM S.A.S.', comercial:'BENDERAM', ruc:'', direccio
     {id:'t6', motivo:'Incumplimiento de uniforme o imagen', tipo:'multa', monto:5}
   ]};
 
-const KEYS = ['emp','mul','rol','cua','fin','age','com','inv','mag','per'];
-const COL = {emp:'empleados', mul:'multas', rol:'roles', cua:'cuadres', fin:'movimientos', age:'agencias', com:'comisiones', inv:'inventario', mag:'multiagencia', per:'permisos'};
+const KEYS = ['emp','mul','rol','cua','fin','age','com','inv','mag','per','rep'];
+const COL = {emp:'empleados', mul:'multas', rol:'roles', cua:'cuadres', fin:'movimientos', age:'agencias', com:'comisiones', inv:'inventario', mag:'multiagencia', per:'permisos', rep:'reportes'};
 const S = {emp:{}, mul:{}, rol:{}, cua:{}, fin:{}, age:{}, com:{}, inv:{}, mag:{}, per:{}, cfg:clone(DEF_CFG)};
 const UI = {perF:'', perDay:null, invTab:'bienes', invQ:'', invCat:'all', mMonth:null, view:'resumen', dept:'all', q:'', month:null, mulF:'pendiente', ready:false, cajaMonth:null, finMonth:null, finTab:'mov', agF:'all', agQ:'', empTab:'datos'};
 const LKEY = 'benderam-nomina-v1';
@@ -730,6 +736,7 @@ function chartSVG(months){
 const ICON = {
   resumen:'<path d="M4 13h6V4H4zM14 20h6v-9h-6zM4 20h6v-4H4zM14 4v4h6V4z"/>',
   inventario:'<path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4M12 11v10"/>',
+  reportes:'<path d="M9 4h6l1 2h3v15H5V6h3z"/><path d="M9 11h6M9 15h4"/>',
   personal:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.3-5.5 6.5-5.5s5.9 1.9 6.5 5.5"/><path d="M16 4.7a3.4 3.4 0 0 1 0 6.6M18 14.8c2 .7 3.2 2.4 3.5 5.2"/>',
   roles:'<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6M9 16h3"/>',
   multas:'<path d="M12 3 2.5 20h19z"/><path d="M12 10v4.5M12 17.2v.1"/>',
@@ -740,7 +747,7 @@ const ICON = {
   empresa:'<path d="M4 21V5l8-2v18M12 8h8v13M8 8v.1M8 12v.1M8 16v.1M16 12v.1M16 16v.1M2 21h20"/>'
 };
 const NAV = [
-  ['General', [['resumen','Resumen'],['personal','Personal']]],
+  ['General', [['resumen','Resumen'],['personal','Personal'],['reportes','Reportes']]],
   ['Operación', [['caja','Cuadres de caja'],['finanzas','Finanzas'],['agencias','Agencias'],['inventario','Inventario']]],
   ['Administración', [['empresa','Empresa']]]
 ];
@@ -2195,12 +2202,12 @@ async function migrateV3(){
 const SHEETS_URL = (window.BENDERAM_SHEETS_URL || '').trim();
 const SKEY = 'benderam-sesion';
 let SES = null, inflight = 0, BATCH = [], btimer = null, QUEUE = Promise.resolve(), refreshTimer = null;
-const AREA_L = {personal:'Personal y nómina', caja:'Cuadres de caja y multiagencia', finanzas:'Finanzas', agencias:'Agencias', inventario:'Inventario', empresa:'Empresa y configuración'};
-const AREA_OF = {resumen:'personal', personal:'personal', permisos:'personal', roles:'personal', deudas:'personal', multas:'personal', cumple:'personal', bienes:'personal', caja:'caja', multi:'caja', finanzas:'finanzas', agencias:'agencias', inventario:'inventario', empresa:'empresa'};
+const AREA_L = {personal:'Personal y nómina', caja:'Cuadres de caja y multiagencia', finanzas:'Finanzas', agencias:'Agencias', inventario:'Inventario', empresa:'Empresa y configuración', reportes:'Reportes de actividades (solo ve los suyos)'};
+const AREA_OF = {resumen:'personal', personal:'personal', permisos:'personal', roles:'personal', deudas:'personal', multas:'personal', cumple:'personal', bienes:'personal', caja:'caja', multi:'caja', finanzas:'finanzas', agencias:'agencias', inventario:'inventario', empresa:'empresa', reportes:'reportes'};
 const isGerente = () => mode!=='sheet' || (SES && SES.rol==='gerente');
 const can = area => mode!=='sheet' || isGerente() || !!(SES && SES.areas && SES.areas.includes(area));
 const canView = v => can(AREA_OF[v]||v);
-const firstView = () => ['resumen','caja','finanzas','agencias','inventario','empresa'].find(canView) || 'resumen';
+const firstView = () => ['resumen','caja','finanzas','agencias','inventario','empresa','reportes'].find(canView) || 'resumen';
 
 async function api(action, payload){
   let res;
@@ -2340,10 +2347,12 @@ function userForm(usuario){
         <label class="check"><input type="radio" name="rol" value="area" ${u.rol!=='gerente'?'checked':''}> Solo las áreas que marque</label>
       </fieldset>
       <fieldset id="areasBox"><legend>Áreas permitidas</legend><div class="checks">${Object.entries(AREA_L).map(([k,l])=>`<label class="check"><input type="checkbox" name="area_${k}" ${u.areas.includes(k)?'checked':''}> ${l}</label>`).join('')}</div><div class="err" id="areasErr" style="color:var(--danger);font-size:12.5px;margin-top:6px"></div></fieldset>
+      <fieldset id="repBox"><legend>Actividades que reporta</legend><div class="checks">${repCat().map(a=>`<label class="check"><input type="checkbox" name="rep_${a.id}" ${((repUsers()[u.usuario]||{}).acts||[]).includes(a.id)?'checked':''}> ${esc(a.nombre)}</label>`).join('')}</div><div class="hint">Solo lo que esta persona hace. Podrás cambiarlo luego en Reportes → Actividades por persona.</div>
+        <div class="f" style="margin-top:12px"><label for="u_emp">Colaborador de la ficha de Personal (opcional)</label><select id="u_emp" name="repEmp"><option value="">Sin vincular</option>${activeEmps().map(e=>`<option value="${e.id}" ${(repUsers()[u.usuario]||{}).empId===e.id?'selected':''}>${esc(e.nombre)}</option>`).join('')}</select><div class="hint">Así su nombre completo y cargo salen en el PDF del reporte.</div></div></fieldset>
       <fieldset><legend>Estado</legend><label class="check"><input type="checkbox" name="activo" ${u.activo!==false?'checked':''}> Usuario activo. Si lo desmarcas, no podrá ingresar.</label></fieldset>
     </div>
     <div class="df">${usuario && usuario!==SES.usuario?`<button type="button" class="btn bad quiet" data-act="user-del" data-id="${esc(usuario)}" style="margin-right:auto">Eliminar</button>`:''}<button type="button" class="btn" data-act="close">Cancelar</button><button type="submit" class="btn gold">${usuario?'Guardar cambios':'Crear usuario'}</button></div></form>`);
-  const sync = ()=>{ $('#areasBox').style.display = $('#userForm').querySelector('[name=rol]:checked').value==='gerente' ? 'none' : ''; };
+  const sync = ()=>{ const ger = $('#userForm').querySelector('[name=rol]:checked').value==='gerente'; $('#areasBox').style.display = ger ? 'none' : ''; $('#repBox').style.display = !ger && $('#userForm').querySelector('[name=area_reportes]').checked ? '' : 'none'; };
   $('#userForm').addEventListener('change', sync); sync();
 }
 async function submitUser(form){
@@ -2361,6 +2370,9 @@ async function submitUser(form){
   const j = await api('users.save', {user:{usuario, nombre:v.nombre.trim(), rol:v.rol, areas, activo:fdata.has('activo'), clave:v.clave||''}});
   b.disabled=false;
   if(!j.ok){ toast(j.error, true); return; }
+  const racts = areas.includes('reportes') && v.rol!=='gerente' ? repCat().filter(a=>fdata.has('rep_'+a.id)).map(a=>a.id) : [];
+  const prevR = (repUsers()[usuario]||{});
+  if(racts.length || (prevR.acts||[]).length){ const ru = clone(repUsers()); if(racts.length) ru[usuario] = {nombre:v.nombre.trim(), acts:racts, empId:v.repEmp||''}; else delete ru[usuario]; await putCfg({...S.cfg, repAct:ru}); }
   UI.users = j.users; closeLayer(); render();
   toast(form.dataset.id ? 'Usuario actualizado' : `Usuario ${usuario} creado. Comparte la contraseña en privado.`);
 }
@@ -2414,7 +2426,7 @@ document.addEventListener('submit', e=>{
   if(f.id==='passForm') submitPass(f);
 });
 
-const WRITE_COLS = {per:['personal'], emp:['personal'], rol:['personal'], mul:['personal','caja'], cua:['caja'], mag:['caja'], fin:['finanzas'], age:['agencias'], com:['agencias'], inv:['inventario','personal']};
+const WRITE_COLS = {per:['personal'], emp:['personal'], rol:['personal'], mul:['personal','caja'], cua:['caja'], mag:['caja'], fin:['finanzas'], age:['agencias'], com:['agencias'], inv:['inventario','personal'], rep:['reportes']};
 const canWriteCol = k => mode!=='sheet' || isGerente() || (WRITE_COLS[k]||[]).some(a=>SES.areas.includes(a));
 /* ================= v5: fotos del inventario y PDFs ================= */
 const FKEY = 'benderam-fotos';
@@ -3531,6 +3543,260 @@ Object.assign(ACT, {
     if(b.isConnected){ b.disabled=false; b.textContent=label; }
     render(); toast(`${ok} ${ok===1?'rol recalculado':'roles recalculados'}${gone?`, ${gone} eliminado${gone>1?'s':''} (sin período en el mes)`:''}. Neto del mes: ${money(antes)} antes, ${money(desp)} ahora.`); }
 });
+
+/* ================= v20: reportes de actividades ================= */
+const REP_CAT_DEF = [
+  {id:'cuasino', nombre:'Registro de agencias Cuasino', tipo:'agencias'},
+  {id:'masparley', nombre:'Creación de agencias Más Parley', tipo:'agencias'},
+  {id:'boletos', nombre:'Entrega de boletos del sorteo de vehículos', tipo:'cantidad', unidad:'boletos'},
+  {id:'mensajes', nombre:'Despacho de mensajes de clientes', tipo:'cantidad', unidad:'mensajes'},
+  {id:'otras', nombre:'Otras actividades', tipo:'texto'}
+];
+const REP_TIPO_L = {agencias:'Lista de agencias (nombre, teléfono, fecha, pago de $100)', cantidad:'Cantidad y detalle', texto:'Descripción libre'};
+const repCat = () => (S.cfg.repCat && S.cfg.repCat.length) ? S.cfg.repCat : REP_CAT_DEF;
+const repActOf = id => repCat().find(a=>a.id===id);
+const repUsers = () => S.cfg.repAct || {};
+const meUser = () => mode==='sheet' && SES ? SES.usuario : 'gerencia';
+const meName = () => mode==='sheet' && SES ? SES.nombre : (S.cfg.respNombre || 'Gerencia');
+const myActs = () => { const u = repUsers()[meUser()]; return (u && u.acts && u.acts.length ? u.acts : (isGerente() ? repCat().map(a=>a.id) : [])).map(repActOf).filter(Boolean); };
+const repId = (u, f) => `${u}__${f}`;
+const repSeeAll = () => isGerente();
+const repList = () => Object.values(S.rep||{}).filter(r=>r && r.fecha && (repSeeAll() || r.usuario===meUser()));
+function repStats(list){
+  const ag = {}, pag = {cnt:0, no:0}; let bol = 0, men = 0, otras = 0;
+  list.forEach(r=>Object.entries(r.acts||{}).forEach(([k,v])=>{ const a = repActOf(k) || {tipo:v.agencias?'agencias':v.items?'texto':'cantidad', unidad:''};
+    if(a.tipo==='agencias'){ ag[k] = (ag[k]||0) + (v.agencias||[]).length; (v.agencias||[]).forEach(x=>{ if(x.pago) pag.cnt++; else pag.no++; }); }
+    else if(a.tipo==='cantidad'){ if(k==='boletos') bol += +v.cantidad||0; else if(k==='mensajes') men += +v.cantidad||0; }
+    else otras += (v.items||[]).filter(Boolean).length; }));
+  return {ag, pag, bol, men, otras};
+}
+function repChips(r){
+  return Object.entries(r.acts||{}).map(([k,v])=>{ const a = repActOf(k); const n = a ? a.nombre : k;
+    if(!a || a.tipo==='agencias'){ const l = v.agencias||[]; const p = l.filter(x=>x.pago).length; return `<span class="rchip">${esc(n)}: <b>${l.length}</b>${l.length?` <span class="muted">(${p} con $100)</span>`:''}</span>`; }
+    if(a.tipo==='cantidad') return `<span class="rchip">${esc(n)}: <b>${NF0.format(+v.cantidad||0)}</b></span>`;
+    return `<span class="rchip">${esc(n)}: <b>${(v.items||[]).filter(Boolean).length}</b></span>`; }).join('');
+}
+
+VIEWS.reportes = function(){
+  const all = repSeeAll();
+  if(!UI.repTab) UI.repTab = 'lista';
+  const tabs = all ? `<div class="toolbar"><div class="tabs">${[['lista','Reportes recibidos'],['acts','Actividades por persona']].map(([k,l])=>`<button class="tab ${UI.repTab===k?'on':''}" data-act="rep-tab" data-id="${k}">${l}</button>`).join('')}</div></div>` : '';
+  const ym = UI.repYm || todayYM();
+  const head = `<header class="vh"><div><h1>${all?'Reportes de actividades':'Mis reportes'}</h1><p class="sub">${all?'Cada colaborador entrega un reporte por día con las actividades que realizó. Aquí ves todos y los totales.':'Registra un reporte por día con las actividades que hiciste. Descárgalo en PDF para enviarlo al grupo; gerencia lo ve en el panel.'}</p></div>
+    <div class="acts">${myActs().length?`<button class="btn gold" data-act="rep-new">Nuevo reporte</button>`:''}</div></header>`;
+  if(all && UI.repTab==='acts') return head + tabs + repActsTab();
+  if(!all && !myActs().length) return head + emptyBlock('Todavía no tienes actividades asignadas', 'Pide a gerencia que te asigne las actividades que debes reportar. Cuando lo haga, aquí podrás crear tus reportes diarios.');
+  const fp = UI.repP || '';
+  let list = repList().filter(r=>r.fecha.slice(0,7)===ym && (!fp || r.usuario===fp)).sort((a,b)=>b.fecha.localeCompare(a.fecha) || (a.nombre||'').localeCompare(b.nombre||''));
+  const people = all ? [...new Map([...Object.entries(repUsers()).filter(([u,x])=>x.acts&&x.acts.length).map(([u,x])=>[u,x.nombre||u]), ...repList().map(r=>[r.usuario, r.nombre||r.usuario])]).entries()] : [];
+  const st = repStats(list);
+  const hoy = todayS();
+  const faltan = all ? Object.entries(repUsers()).filter(([u,x])=>x.acts&&x.acts.length && !S.rep[repId(u,hoy)]) : [];
+  const nav = `<div class="toolbar"><div class="monthnav"><button class="btn sm" data-act="rep-month" data-k="-1" aria-label="Mes anterior">‹</button><b>${esc(monthLabel(ym))}</b><button class="btn sm" data-act="rep-month" data-k="1" aria-label="Mes siguiente">›</button>${ym!==todayYM()?'<button class="btn sm quiet" data-act="rep-month" data-k="0">Mes actual</button>':''}</div>
+    ${all&&people.length?`<select id="repP" class="sel" aria-label="Filtrar por persona"><option value="">Todas las personas</option>${people.map(([u,n])=>`<option value="${esc(u)}" ${fp===u?'selected':''}>${esc(n)}</option>`).join('')}</select>`:''}</div>`;
+  const agTot = sum(Object.values(st.ag));
+  const strip = `<section class="strip">
+    <div class="hl"><small>Reportes del mes</small><b class="num">${list.length}</b><em>${all?`${new Set(list.map(r=>r.usuario)).size} ${new Set(list.map(r=>r.usuario)).size===1?'persona':'personas'}`:'Uno por día'}</em></div>
+    <div><small>Agencias registradas</small><b class="num">${agTot}</b><em>${repCat().filter(a=>a.tipo==='agencias' && st.ag[a.id]).map(a=>`${esc(a.nombre.replace(/^(Registro|Creación) de agencias /,''))}: ${st.ag[a.id]}`).join(' · ')||'—'}</em></div>
+    <div><small>Pagaron los $100</small><b class="num">${st.pag.cnt}</b><em>${money(st.pag.cnt*100)} · ${st.pag.no} sin pagar</em></div>
+    <div><small>Boletos entregados</small><b class="num">${NF0.format(st.bol)}</b><em>${st.men?`${NF0.format(st.men)} mensajes despachados`:'Sorteo de vehículos'}</em></div>
+  </section>`;
+  const warn = all && ym===todayYM() && faltan.length ? `<div class="rolnote" style="border-radius:10px;margin-bottom:14px;border:1px solid var(--line)">Hoy todavía no reportan: <b>${faltan.map(([u,x])=>esc(x.nombre||u)).join(', ')}</b>.</div>` : '';
+  const empty = !list.length ? `<div class="empty"><h2>Sin reportes en ${esc(monthLabel(ym).toLowerCase())}</h2><p>${all?'Cuando el personal registre sus reportes diarios, aparecerán aquí.':'Pulsa "Nuevo reporte" para registrar lo que hiciste hoy.'}</p>${myActs().length?'<button class="btn gold" data-act="rep-new">Nuevo reporte</button>':''}</div>` : '';
+  return head + tabs + nav + warn + strip + (empty || `<div class="tw"><table class="t"><thead><tr><th>Fecha</th>${all?'<th>Colaborador</th>':''}<th>Actividades</th><th></th></tr></thead><tbody>
+    ${list.map(r=>`<tr class="click" data-act="rep-open" data-id="${esc(r.id)}"><td class="num" style="white-space:nowrap"><b>${esc(fd(r.fecha))}</b><small>${esc(longDay(r.fecha).split(',')[0])}</small></td>${all?`<td><b>${esc(r.nombre||r.usuario)}</b><small>${esc(r.usuario)}</small></td>`:''}
+      <td><div class="rchips">${repChips(r)||'<span class="muted">Sin actividades</span>'}</div>${r.obs?`<small>${esc(r.obs.slice(0,120))}</small>`:''}</td>
+      <td><div class="rowacts"><button class="btn sm" data-act="rep-share" data-id="${esc(r.id)}">Enviar</button><button class="btn sm quiet" data-act="rep-pdf" data-id="${esc(r.id)}">PDF</button></div></td></tr>`).join('')}
+  </tbody></table></div>`);
+};
+
+/* --- gerente: actividades por persona --- */
+function repActsTab(){
+  if(mode==='sheet' && UI.users==null){ api('users.list',{}).then(j=>{ if(j.ok){ UI.users=j.users; render(); } }); return `<section class="panel"><p class="muted" style="margin:0">Cargando usuarios…</p></section>`; }
+  const users = mode==='sheet' ? (UI.users||[]).filter(u=>u.rol!=='gerente' && u.areas.includes('reportes')) : [];
+  const ru = repUsers();
+  return `<section class="panel" style="margin-bottom:18px"><h2 style="margin-top:0">Actividades que reporta cada persona</h2>
+    <p class="muted" style="font-size:14px;margin-top:0">Para crear un login nuevo ve a <b>Empresa → Usuarios</b>, pulsa <b>Nuevo usuario</b> y marca el área <b>Reportes</b>. Luego marca aquí sus actividades. Cada persona solo ve y crea sus propios reportes.</p>
+    ${users.length ? `<div class="tw"><table class="t"><thead><tr><th>Persona</th>${repCat().map(a=>`<th style="min-width:110px">${esc(a.nombre)}</th>`).join('')}</tr></thead><tbody>
+      ${users.map(u=>{ const acts = (ru[u.usuario]||{}).acts||[]; return `<tr><td><b>${esc(u.nombre)}</b><small>${esc(u.usuario)}</small></td>${repCat().map(a=>`<td><label class="check"><input type="checkbox" data-repu="${esc(u.usuario)}" data-repn="${esc(u.nombre)}" data-repa="${esc(a.id)}" ${acts.includes(a.id)?'checked':''}> Sí</label></td>`).join('')}</tr>`; }).join('')}
+    </tbody></table></div>` : `<p class="muted" style="margin:0">${mode==='sheet'?'Todavía no hay usuarios con el área Reportes.':'Los logins por persona funcionan cuando el panel está conectado a Google Sheets.'}</p>`}
+  </section>
+  <section class="panel"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><h2 style="margin:0">Catálogo de actividades</h2><button class="btn sm gold" data-act="rep-cat-new">Nueva actividad</button></div>
+    <div class="tw" style="margin-top:12px"><table class="t"><thead><tr><th>Actividad</th><th>Qué se registra</th><th></th></tr></thead><tbody>
+    ${repCat().map(a=>`<tr><td><b>${esc(a.nombre)}</b></td><td>${esc(REP_TIPO_L[a.tipo]||a.tipo)}${a.unidad?` <span class="muted">(${esc(a.unidad)})</span>`:''}</td><td><div class="rowacts"><button class="btn sm quiet" data-act="rep-cat-edit" data-id="${esc(a.id)}">Editar</button></div></td></tr>`).join('')}
+    </tbody></table></div></section>`;
+}
+async function setRepAct(usuario, nombre, actId, on){
+  const ru = clone(repUsers()); const u = ru[usuario] || {nombre, acts:[]};
+  u.nombre = nombre || u.nombre; u.acts = on ? [...new Set([...(u.acts||[]), actId])] : (u.acts||[]).filter(x=>x!==actId);
+  ru[usuario] = u; await putCfg({...S.cfg, repAct:ru}); toast(on?'Actividad asignada':'Actividad quitada');
+}
+function repCatForm(id){
+  const a = id ? repActOf(id) : {nombre:'', tipo:'cantidad', unidad:''};
+  openLayer(`<form class="modal small-modal" id="repCatForm" data-id="${esc(id||'')}" role="dialog" aria-modal="true" aria-labelledby="rcT" novalidate><h2 id="rcT">${id?'Editar actividad':'Nueva actividad'}</h2>
+    <div class="fg"><div class="f full" data-f="nombre"><label for="rc_n">Nombre de la actividad</label><input id="rc_n" name="nombre" value="${esc(a.nombre)}" placeholder="Ejemplo: Visitas a agencias"><div class="err"></div></div>
+    <div class="f full"><label for="rc_t">Qué se registra</label><select id="rc_t" name="tipo" ${id&&REP_CAT_DEF.some(x=>x.id===id)?'disabled':''}>${opts(Object.entries(REP_TIPO_L), a.tipo)}</select></div>
+    <div class="f full"><label for="rc_u">Unidad (solo para cantidad)</label><input id="rc_u" name="unidad" value="${esc(a.unidad||'')}" placeholder="Ejemplo: visitas, llamadas"></div></div>
+    <div class="acts" style="justify-content:flex-end;margin-top:16px">${id&&!REP_CAT_DEF.some(x=>x.id===id)?`<button type="button" class="btn bad quiet" data-act="rep-cat-del" data-id="${esc(id)}" style="margin-right:auto">Eliminar</button>`:''}<button type="button" class="btn" data-act="close">Cancelar</button><button class="btn gold" type="submit">Guardar</button></div></form>`, true);
+}
+async function submitRepCat(f){
+  const v = Object.fromEntries(new FormData(f).entries());
+  if(!(v.nombre||'').trim()){ markErrors(f, {nombre:'Escribe el nombre.'}); return; }
+  const cat = clone(repCat()); const id = f.dataset.id;
+  if(id){ const i = cat.findIndex(x=>x.id===id); cat[i] = {...cat[i], nombre:v.nombre.trim(), unidad:(v.unidad||'').trim(), ...(v.tipo?{tipo:v.tipo}:{})}; }
+  else cat.push({id:uid('ra'), nombre:v.nombre.trim(), tipo:v.tipo||'cantidad', unidad:(v.unidad||'').trim()});
+  closeLayer(); await putCfg({...S.cfg, repCat:cat}); render(); toast('Actividad guardada');
+}
+
+/* --- formulario del reporte diario --- */
+function repOpen(id, fecha){
+  const r0 = id ? S.rep[id] : null;
+  if(r0 && !repSeeAll() && r0.usuario!==meUser()) return;
+  const fe = r0 ? r0.fecha : (fecha || todayS());
+  if(!r0){ const ex = S.rep[repId(meUser(), fe)]; if(ex) return repOpen(ex.id); }
+  UI.repDraft = r0 ? clone(r0) : {id:repId(meUser(), fe), usuario:meUser(), nombre:meName(), fecha:fe, acts:{}, obs:''};
+  repDrawer();
+}
+function repDrawer(){
+  const d = UI.repDraft; const own = d.usuario===meUser();
+  const acts = own ? myActs() : Object.keys(d.acts).map(repActOf).filter(Boolean);
+  const isNew = !S.rep[d.id];
+  const ro = !own;
+  const sec = a => { const v = d.acts[a.id]; if(!v) return '';
+    if(a.tipo==='agencias'){ const l = v.agencias||[]; return `<div class="repsec"><div class="repsh"><b>${esc(a.nombre)}</b><span class="muted">${l.length} ${l.length===1?'agencia':'agencias'} · ${l.filter(x=>x.pago).length} pagaron $100</span></div>
+      ${l.map((x,i)=>`<div class="agrow"><div class="f"><label>Nombre de la agencia</label><input data-rk="${a.id}.${i}.nombre" value="${esc(x.nombre||'')}" ${ro?'readonly':''} placeholder="Nombre de la agencia"></div>
+        <div class="f"><label>Teléfono</label><input data-rk="${a.id}.${i}.telefono" value="${esc(x.telefono||'')}" ${ro?'readonly':''} inputmode="tel" placeholder="09…"></div>
+        <div class="f"><label>Fecha de registro</label><input type="date" data-rk="${a.id}.${i}.fecha" value="${esc(x.fecha||d.fecha)}" ${ro?'readonly':''}></div>
+        <div class="f"><label>¿Canceló los $100?</label><select data-rk="${a.id}.${i}.pago" ${ro?'disabled':''}><option value="1" ${x.pago?'selected':''}>Sí, pagó $100</option><option value="0" ${!x.pago?'selected':''}>No ha pagado</option></select></div>
+        ${ro?'':`<button type="button" class="x agx" data-act="rep-ag-rm" data-k="${a.id}" data-i="${i}" aria-label="Quitar agencia">×</button>`}</div>`).join('')}
+      ${ro?'':`<button type="button" class="btn sm" data-act="rep-ag-add" data-k="${a.id}">+ Agregar agencia</button>`}</div>`; }
+    if(a.tipo==='cantidad') return `<div class="repsec"><div class="repsh"><b>${esc(a.nombre)}</b></div><div class="fg"><div class="f"><label>Cantidad de ${esc(a.unidad||'unidades')}</label><input type="number" min="0" step="1" inputmode="numeric" data-rk="${a.id}.cantidad" value="${esc(v.cantidad??'')}" ${ro?'readonly':''}></div>
+      <div class="f full"><label>Detalle (opcional)</label><textarea data-rk="${a.id}.detalle" ${ro?'readonly':''} placeholder="${a.id==='boletos'?'A quién o en qué agencias se entregaron, números de boletos…':'Detalle'}">${esc(v.detalle||'')}</textarea></div></div></div>`;
+    const it = v.items && v.items.length ? v.items : [''];
+    return `<div class="repsec"><div class="repsh"><b>${esc(a.nombre)}</b></div>${it.map((t,i)=>`<div class="agrow one"><div class="f"><label>Actividad ${i+1}</label><textarea data-rk="${a.id}.items.${i}" ${ro?'readonly':''} placeholder="Describe lo que hiciste">${esc(t)}</textarea></div>${ro||it.length<2?'':`<button type="button" class="x agx" data-act="rep-it-rm" data-k="${a.id}" data-i="${i}" aria-label="Quitar">×</button>`}</div>`).join('')}
+      ${ro?'':`<button type="button" class="btn sm" data-act="rep-it-add" data-k="${a.id}">+ Agregar otra actividad</button>`}</div>`;
+  };
+  openLayer(`<form class="drawer wide" id="repForm" role="dialog" aria-modal="true" aria-labelledby="rpT" novalidate>
+    <div class="dh"><h2 id="rpT">${isNew?'Nuevo reporte':'Reporte del '+esc(fd(d.fecha))}${own?'':' · '+esc(d.nombre)}</h2><button type="button" class="x" data-act="close" aria-label="Cerrar">×</button></div>
+    <div class="db">
+      <div class="fg"><div class="f"><label for="rp_f">Fecha del reporte</label><input id="rp_f" type="date" value="${esc(d.fecha)}" max="${todayS()}" ${isNew&&own?'':'readonly'}><div class="hint">Un reporte por día.</div></div>
+      <div class="f"><label>Colaborador</label><input value="${esc(d.nombre)}" readonly></div></div>
+      <fieldset style="margin-top:16px"><legend>¿Qué actividades hiciste?</legend><div class="checks">${acts.map(a=>`<label class="check"><input type="checkbox" data-repact="${a.id}" ${d.acts[a.id]?'checked':''} ${ro?'disabled':''}> ${esc(a.nombre)}</label>`).join('')}</div></fieldset>
+      ${acts.map(sec).join('')}
+      <div class="f full" style="margin-top:16px"><label for="rp_o">Observaciones del día (opcional)</label><textarea id="rp_o" ${ro?'readonly':''} placeholder="Novedades, pendientes, problemas">${esc(d.obs||'')}</textarea></div>
+    </div>
+    <div class="df">${!isNew&&(own||repSeeAll())?`<button type="button" class="btn bad quiet" data-act="rep-del" style="margin-right:auto">Eliminar</button>`:''}<button type="button" class="btn" data-act="close">Cerrar</button>${ro?`<button type="button" class="btn gold" data-act="rep-pdf" data-id="${esc(d.id)}">Descargar PDF</button>`:`<button type="button" class="btn" data-act="rep-save">Guardar</button><button type="button" class="btn gold" data-act="rep-save-share">Guardar y enviar PDF</button>`}</div></form>`);
+}
+function repRead(){
+  const d = UI.repDraft; if(!d || !$('#repForm')) return;
+  const f = $('#rp_f'); if(f && !f.readOnly && f.value && f.value!==d.fecha){ d.fecha = f.value; d.id = repId(d.usuario, d.fecha); (Object.values(d.acts).forEach(v=>(v.agencias||[]).forEach(x=>{ if(!x.fechaTocada) x.fecha = d.fecha; })) ); }
+  const o = $('#rp_o'); if(o) d.obs = o.value;
+  document.querySelectorAll('#repForm [data-rk]').forEach(el=>{
+    const [k, a, b] = el.dataset.rk.split('.'); const v = d.acts[k]; if(!v) return;
+    if(a==='cantidad') v.cantidad = el.value===''?'':+el.value;
+    else if(a==='detalle') v.detalle = el.value;
+    else if(a==='items') v.items[+b] = el.value;
+    else { const x = v.agencias[+a]; if(!x) return; if(b==='pago') x.pago = el.value==='1'; else { if(b==='fecha' && el.value!==x.fecha) x.fechaTocada = true; x[b] = el.value; } }
+  });
+}
+function repRedraw(){ const sc = $('#repForm .db')?.scrollTop || 0; repDrawer(); const db = $('#repForm .db'); if(db) db.scrollTop = sc; }
+function repClean(d){
+  const out = clone(d); delete out.fechaTocada;
+  Object.entries(out.acts).forEach(([k,v])=>{ if(v.agencias){ v.agencias = v.agencias.filter(x=>(x.nombre||'').trim()||(x.telefono||'').trim()).map(x=>({nombre:(x.nombre||'').trim(), telefono:(x.telefono||'').trim(), fecha:x.fecha||out.fecha, pago:!!x.pago})); }
+    if(v.items) v.items = v.items.map(t=>(t||'').trim()).filter(Boolean);
+    if(typeof v.detalle==='string') v.detalle = v.detalle.trim(); });
+  out.obs = (out.obs||'').trim();
+  return out;
+}
+async function repSave(share){
+  repRead(); const d = repClean(UI.repDraft);
+  if(!Object.keys(d.acts).length){ toast('Marca al menos una actividad.', true); return; }
+  for(const [k,v] of Object.entries(d.acts)){ const a = repActOf(k); if(!a) continue;
+    if(a.tipo==='agencias' && !v.agencias.length){ toast(`En "${a.nombre}" escribe al menos una agencia, o desmarca la actividad.`, true); return; }
+    if(a.tipo==='cantidad' && !(+v.cantidad>0)){ toast(`En "${a.nombre}" escribe la cantidad, o desmarca la actividad.`, true); return; }
+    if(a.tipo==='texto' && !v.items.length){ toast(`En "${a.nombre}" describe la actividad, o desmarca la actividad.`, true); return; } }
+  if(d.fecha > todayS()){ toast('La fecha no puede ser futura.', true); return; }
+  if(!S.rep[d.id] && Object.values(S.rep).some(r=>r.usuario===d.usuario && r.fecha===d.fecha)){ toast('Ya tienes un reporte de ese día. Ábrelo para editarlo.', true); return; }
+  const now = new Date().toISOString();
+  const data = {...d, creado:(S.rep[d.id]||{}).creado||now, actualizado:now};
+  await put('rep', d.id, data);
+  closeLayer(); UI.repDraft = null; render();
+  toast('Reporte guardado. Gerencia ya lo ve en el panel.');
+  if(share) await repShare(d.id);
+}
+function repPdfName(r){ return `Reporte ${fileSafe(r.nombre||r.usuario)} ${r.fecha}.pdf`; }
+const fullDay = s => cap(new Intl.DateTimeFormat('es-EC',{weekday:'long', day:'numeric', month:'long', year:'numeric'}).format(pd(s)));
+async function pdfReporte(id){
+  const r = S.rep[id]; if(!r) return;
+  const st = repStats([r]);
+  const D = await pdfNew('REPORTE DIARIO DE ACTIVIDADES', `${r.nombre||r.usuario} · ${fd(r.fecha)}`, false);
+  const lk = (repUsers()[r.usuario]||{}).empId; const e = (lk && S.emp[lk]) || Object.values(S.emp).find(x=>x.nombre && r.nombre && x.nombre.toLowerCase()===String(r.nombre).toLowerCase());
+  kvGrid(D, [['Colaborador', e ? e.nombre : (r.nombre||r.usuario)], ['Cargo', e&&e.cargo||'-'], ['Fecha', fullDay(r.fecha)]], 3);
+  const agTot = sum(Object.values(st.ag));
+  const sts = [];
+  if(Object.keys(st.ag).length) sts.push(['Agencias registradas', String(agTot)], ['Pagaron $100', `${st.pag.cnt} (${pmoney(st.pag.cnt*100)})`]);
+  if(r.acts.boletos) sts.push(['Boletos entregados', NF0.format(st.bol)]);
+  if(r.acts.mensajes) sts.push(['Mensajes despachados', NF0.format(st.men)]);
+  if(sts.length) stats(D, sts.slice(0,4));
+  for(const [k,v] of Object.entries(r.acts||{})){
+    const a = repActOf(k) || {nombre:k, tipo:v.agencias?'agencias':v.items?'texto':'cantidad'};
+    section(D, a.nombre);
+    if(a.tipo==='agencias'){
+      const l = v.agencias||[];
+      await table(D, [{h:'N.º', w:34},{h:'Nombre de la agencia', bold:true},{h:'Teléfono', w:100},{h:'Fecha de registro', w:96},{h:'Pago de $100', w:96}],
+        l.map((x,i)=>({cells:[String(i+1), x.nombre, x.telefono||'-', fd(x.fecha||r.fecha), x.pago?'Sí, pagó':'No ha pagado'], colors:{4:x.pago?P.ok:P.bad}})),
+        {foot:['', `Total: ${l.length} ${l.length===1?'agencia':'agencias'}`, '', '', `${l.filter(x=>x.pago).length} pagaron (${pmoney(l.filter(x=>x.pago).length*100)})`]});
+    } else if(a.tipo==='cantidad'){
+      kvGrid(D, [[`Cantidad de ${a.unidad||'unidades'}`, NF0.format(+v.cantidad||0)]], 1);
+      if(v.detalle) paragraph(D, v.detalle, 9.5);
+    } else (v.items||[]).forEach((t,i)=>paragraph(D, `${i+1}. ${t}`, 9.5));
+  }
+  if(r.obs){ section(D, 'Observaciones'); paragraph(D, r.obs, 9.5); }
+  ensure(D, 120);
+  signatures(D, ['Elaborado por', e ? e.nombre : (r.nombre||r.usuario), e&&e.cargo||''], ['Revisado por', S.cfg.respNombre||'Gerencia', S.cfg.respCargo||'']);
+  await pdfSave(D, repPdfName(r));
+}
+async function repShare(id){
+  const r = S.rep[id]; if(!r) return;
+  PDF_COLLECT = []; let got;
+  try{ await pdfReporte(id); got = PDF_COLLECT; } finally { PDF_COLLECT = null; }
+  if(!got || !got.length) return;
+  const file = new File([got[0].bytes], repPdfName(r), {type:'application/pdf'});
+  if(navigator.canShare && navigator.canShare({files:[file]})){
+    try{ await navigator.share({files:[file], title:'Reporte diario', text:`Reporte diario de ${r.nombre||r.usuario} · ${fd(r.fecha)}`}); return; }catch(e){ if(e && e.name==='AbortError') return; }
+  }
+  await saveFile(file.name, file, 'application/pdf');
+  toast('PDF descargado. Envíalo al grupo desde tus archivos.');
+}
+Object.assign(ACT, {
+  'rep-tab':d=>{ UI.repTab=d.id; render(); },
+  'rep-month':d=>{ UI.repYm = +d.k===0 ? todayYM() : addMonth(UI.repYm||todayYM(), +d.k); render(); },
+  'rep-new':()=>repOpen(null, todayS()),
+  'rep-open':d=>repOpen(d.id),
+  'rep-pdf':(d,b)=>runPdf(b, ()=>pdfReporte(d.id)),
+  'rep-share':(d,b)=>runPdf(b, ()=>repShare(d.id)),
+  'rep-save':()=>repSave(false),
+  'rep-save-share':()=>repSave(true),
+  'rep-ag-add':d=>{ repRead(); const v = UI.repDraft.acts[d.k]; v.agencias = [...(v.agencias||[]), {nombre:'', telefono:'', fecha:UI.repDraft.fecha, pago:false}]; repRedraw(); const ins = document.querySelectorAll(`[data-rk^="${d.k}."][data-rk$=".nombre"]`); if(ins.length) ins[ins.length-1].focus(); },
+  'rep-ag-rm':d=>{ repRead(); UI.repDraft.acts[d.k].agencias.splice(+d.i,1); repRedraw(); },
+  'rep-it-add':d=>{ repRead(); UI.repDraft.acts[d.k].items.push(''); repRedraw(); },
+  'rep-it-rm':d=>{ repRead(); UI.repDraft.acts[d.k].items.splice(+d.i,1); repRedraw(); },
+  'rep-del':async ()=>{ const d = UI.repDraft; if(!(await ask('Eliminar reporte', `Se eliminará el reporte del ${fd(d.fecha)}.`, 'Eliminar', true))) return; await del('rep', d.id); closeLayer(); UI.repDraft=null; render(); toast('Reporte eliminado'); },
+  'rep-cat-new':()=>repCatForm(null),
+  'rep-cat-edit':d=>repCatForm(d.id),
+  'rep-cat-del':async d=>{ if(!(await ask('Eliminar actividad', 'Se quitará del catálogo. Los reportes anteriores la conservan.', 'Eliminar', true))) return; closeLayer(); await putCfg({...S.cfg, repCat:repCat().filter(x=>x.id!==d.id)}); render(); }
+});
+document.addEventListener('change', e=>{
+  const t = e.target;
+  if(t.dataset && t.dataset.repact && UI.repDraft){ repRead(); const a = repActOf(t.dataset.repact);
+    if(t.checked) UI.repDraft.acts[a.id] = a.tipo==='agencias' ? {agencias:[{nombre:'', telefono:'', fecha:UI.repDraft.fecha, pago:false}]} : a.tipo==='cantidad' ? {cantidad:'', detalle:''} : {items:['']};
+    else delete UI.repDraft.acts[a.id];
+    repRedraw(); }
+  if(t.id==='rp_f' && UI.repDraft){ const ex = Object.values(S.rep).find(r=>r.usuario===UI.repDraft.usuario && r.fecha===t.value); if(ex){ toast('Ya tienes un reporte de ese día; se abrió para editarlo.'); repOpen(ex.id); } else repRead(); }
+  if(t.id==='repP'){ UI.repP = t.value; render(); }
+  if(t.dataset && t.dataset.repu){ setRepAct(t.dataset.repu, t.dataset.repn, t.dataset.repa, t.checked); }
+});
+document.addEventListener('submit', e=>{ if(e.target.id==='repCatForm'){ e.preventDefault(); submitRepCat(e.target); } if(e.target.id==='repForm'){ e.preventDefault(); } });
 
 /* ================= inicio ================= */
 async function boot(){
