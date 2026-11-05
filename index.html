@@ -261,6 +261,7 @@ legend{font:600 15px var(--display);margin-bottom:12px;padding:0;color:var(--acc
 .repsec{margin-top:16px;border:1px solid var(--line);border-radius:12px;padding:14px;background:var(--surface-2)}.repsh{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:baseline;margin-bottom:10px}.repsh b{font-size:15px}.repsh span{font-size:13px}
 .agrow{display:grid;grid-template-columns:2fr 1.3fr 1.2fr 1.3fr 32px;gap:10px;align-items:end;padding:10px 0;border-bottom:1px dashed var(--line)}.agrow.one{grid-template-columns:1fr 32px}.agrow:last-of-type{border-bottom:0}.agrow .f label{font-size:12.5px}.agx{align-self:center;margin-top:18px}
 @media (max-width:700px){.agrow{grid-template-columns:1fr 1fr}.agrow .f:first-child{grid-column:1/-1}.agx{grid-column:1/-1;justify-self:end;margin-top:0}}
+.mvlist{display:flex;flex-direction:column;gap:8px;max-height:240px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:14px}
 .calcbox{background:var(--warn-bg);border-radius:8px;padding:10px 12px;font-size:14px}
 
 .modal{background:var(--surface);width:min(1000px,100%);border-radius:14px;box-shadow:var(--shadow);animation:fade .2s ease-out;border:1px solid var(--line)}
@@ -1937,12 +1938,15 @@ const LABELS = 1000;
 const invCode = s => { const m = String(s||'').trim().toUpperCase().replace(/\s/g,'').match(/^BDR-?(\d{1,4})$/); return m ? 'BDR-'+pad(+m[1],4) : null; };
 function nextInvCode(){ const used=new Set(Object.values(S.inv).map(i=>i.codigo)); for(let n=1;n<=9999;n++){ const c='BDR-'+pad(n,4); if(!used.has(c)) return c; } return ''; }
 const invOf = empId => Object.values(S.inv).filter(i=>i.responsable===empId && i.estado!=='baja').sort((a,b)=>a.codigo.localeCompare(b.codigo));
+const isBod = i => i && i.uso==='bodega';
+const histName = x => x==='bodega' ? 'Bodega (sin uso)' : x ? (S.emp[x]?.nombre||'Colaborador eliminado') : 'Sin asignar';
 const invPill = i => { const e=EST_INV[i.estado]||{label:i.estado,cls:''}; return `<span class="pill ${e.cls}">${esc(e.label)}</span>`; };
 
 VIEWS.inventario = function(){
   const all = Object.values(S.inv);
   const act = all.filter(i=>i.estado!=='baja');
-  const asign = act.filter(i=>i.responsable && S.emp[i.responsable]);
+  const asign = act.filter(i=>!isBod(i) && i.responsable && S.emp[i.responsable]);
+  const bod = act.filter(isBod).length;
   const usados = all.filter(i=>codeNumber(i.codigo)>=1 && codeNumber(i.codigo)<=LABELS).length;
   const head = `<header class="vh"><div><h1>Inventario</h1><p class="sub">Bienes de la empresa con su etiqueta BDR y la persona responsable de cada uno. Escanea la etiqueta con un lector de código de barras o escribe el código.</p></div>
     <div class="acts"><button class="btn" data-act="export-inv">Exportar CSV</button><button class="btn" data-act="inv-pdf-all">PDF del inventario</button><button class="btn" data-act="persona-pdf">PDF por persona</button><button class="btn gold" data-act="new-inv">Registrar bien</button></div></header>`;
@@ -1952,13 +1956,13 @@ VIEWS.inventario = function(){
   return head + `
   <section class="strip">
     <div><small>Bienes registrados</small><b class="num">${act.length}</b><em>${all.length-act.length} dados de baja</em></div>
-    <div class="hl"><small>Con responsable</small><b class="num">${asign.length}</b><em>${act.length-asign.length} sin asignar</em></div>
+    <div class="hl"><small>En uso con responsable</small><b class="num">${asign.length}</b><em>${act.length-asign.length-bod} sin asignar · ${bod} en bodega</em></div>
     <div><small>Valor de los bienes</small><b class="num">${money(sum(act.map(i=>i.valor)))}</b></div>
     <div><small>Etiquetas disponibles</small><b class="num">${LABELS-usados}</b><em>de ${LABELS} impresas (BDR-0001 a BDR-${pad(LABELS,4)})</em></div>
   </section>
   ${scan}${tabs}
-  ${UI.invTab==='resp' ? bienesPorPersona() : `<div class="toolbar"><div class="tabs">${[['all','Todos'],...INV_CATS.filter(c=>act.some(i=>i.categoria===c)).map(c=>[c,c])].map(([k,l])=>`<button class="tab ${UI.invCat===k?'on':''}" data-act="inv-cat" data-id="${esc(k)}">${esc(l)} <span>${k==='all'?all.length:all.filter(i=>i.categoria===k).length}</span></button>`).join('')}</div></div>
-  <div class="tw"><table class="t"><thead><tr><th style="width:56px">Foto</th><th>Código</th><th>Bien</th><th>Categoría</th><th>Responsable</th><th>Ubicación</th><th>Estado</th><th class="r">Valor</th></tr></thead><tbody id="itb"></tbody></table></div>`}`;
+  ${UI.invTab==='resp' ? bienesPorPersona() : `<div class="toolbar"><div class="tabs">${[['todos','Todos'],['uso','En uso'],['bodega','En bodega'],['baja','De baja']].map(([k,l])=>`<button class="tab ${(UI.invUso||'todos')===k?'on':''}" data-act="inv-uso" data-id="${k}">${l} <span>${all.filter(invUsoF(k)).length}</span></button>`).join('')}</div></div><div class="toolbar"><div class="tabs">${[['all','Todos'],...INV_CATS.filter(c=>act.some(i=>i.categoria===c)).map(c=>[c,c])].map(([k,l])=>`<button class="tab ${UI.invCat===k?'on':''}" data-act="inv-cat" data-id="${esc(k)}">${esc(l)} <span>${k==='all'?all.length:all.filter(i=>i.categoria===k).length}</span></button>`).join('')}</div></div>
+  <div class="tw"><table class="t"><thead><tr><th style="width:56px">Foto</th><th>Código</th><th>Bien</th><th>Categoría</th><th>Responsable</th><th>Ubicación</th><th>Estado</th><th class="r">Valor</th><th></th></tr></thead><tbody id="itb"></tbody></table></div>`}`;
 };
 const codeNumber = c => +(String(c||'').match(/^BDR-(\d{4})$/)||[0,0])[1];
 function fillInv(){
@@ -1969,22 +1973,25 @@ function fillInv(){
     <td><span class="tag num">${esc(i.codigo)}</span></td>
     <td><b>${esc(i.nombre)}</b><small>${esc([i.marca,i.modelo].filter(Boolean).join(' '))}${i.serie?` | Serie ${esc(i.serie)}`:''}</small></td>
     <td>${esc(i.categoria)}</td>
-    <td>${e?`${esc(shortName(e.nombre))}${e.dept?`<small>${esc(deptName(e.dept))}</small>`:''}`:'<span class="muted">Sin asignar</span>'}</td>
+    <td>${isBod(i)?'<span class="pill inactivo">En bodega</span>':e?`${esc(shortName(e.nombre))}${e.dept?`<small>${esc(deptName(e.dept))}</small>`:''}`:'<span class="muted">Sin asignar</span>'}</td>
     <td>${esc(i.ubicacion||'—')}</td>
     <td>${invPill(i)}</td>
-    <td class="r num">${+i.valor?money(i.valor):'—'}</td></tr>`; }).join('')
-    : `<tr><td colspan="8" class="muted" style="text-align:center;padding:28px">Ningún bien coincide. Si es un código nuevo, presiona Enter para registrarlo.</td></tr>`;
+    <td class="r num">${+i.valor?money(i.valor):'—'}</td>
+    <td>${i.estado!=='baja'?`<button class="btn sm quiet" data-act="inv-move" data-id="${i.id}">Mover</button>`:''}</td></tr>`; }).join('')
+    : `<tr><td colspan="9" class="muted" style="text-align:center;padding:28px">Ningún bien coincide. Si es un código nuevo, presiona Enter para registrarlo.</td></tr>`;
 }
 function bienesPorPersona(){
   const emps = Object.values(S.emp).map(e=>({e, items:invOf(e.id)})).filter(x=>x.items.length || x.e.activo!==false).sort((a,b)=>b.items.length-a.items.length || a.e.nombre.localeCompare(b.e.nombre));
-  const libres = Object.values(S.inv).filter(i=>i.estado!=='baja' && !(i.responsable && S.emp[i.responsable]));
+  const libres = Object.values(S.inv).filter(i=>i.estado!=='baja' && !isBod(i) && !(i.responsable && S.emp[i.responsable]));
+  const enBod = Object.values(S.inv).filter(i=>i.estado!=='baja' && isBod(i)).sort((a,b)=>a.codigo.localeCompare(b.codigo));
   const card = (title, sub, items, empId, warn) => `<div class="pcard">
     <div class="pc-h"><div><h3>${esc(title)}</h3><small class="muted">${sub}</small></div><b class="num">${items.length}</b></div>
     ${warn?`<div class="calcbox" style="margin-bottom:8px">${warn}</div>`:''}
     ${items.length?`<ul>${items.map(i=>`<li><button class="lrow" data-act="edit-inv" data-id="${i.id}">${i.mini?`<img class="ithumb sm" src="${esc(i.mini)}" alt="" loading="lazy">`:''}<span class="tag num">${esc(i.codigo)}</span><span>${esc(i.nombre)}</span>${i.estado==='danado'?invPill(i):''}</button></li>`).join('')}</ul>`:'<p class="muted" style="margin:6px 0 10px;font-size:14px">Sin bienes a su cargo.</p>'}
-    <div class="acts">${empId?`<button class="btn sm" data-act="new-inv" data-emp="${empId}">Asignar bien</button>${items.length?`<button class="btn sm quiet" data-act="acta" data-id="${empId}">Ver acta</button><button class="btn sm gold" data-act="acta-pdf" data-id="${empId}">Descargar PDF</button>`:''}`:''}</div></div>`;
+    <div class="acts">${items.length?`<button class="btn sm" data-act="inv-move-many" data-ids="${items.map(i=>i.id).join(',')}" data-from="${empId||(title==='Bodega'?'bodega':'')}">${title==='Bodega'?'Sacar de bodega':'Mover bienes'}</button>`:''}${empId?`<button class="btn sm quiet" data-act="new-inv" data-emp="${empId}">Asignar bien</button>${items.length?`<button class="btn sm quiet" data-act="acta" data-id="${empId}">Ver acta</button><button class="btn sm gold" data-act="acta-pdf" data-id="${empId}">Descargar PDF</button>`:''}`:''}</div></div>`;
   return `<div class="pcards">${emps.map(({e,items})=>card(e.nombre, `${esc(e.cargo||'Sin cargo')}, ${esc(deptName(e.dept))}${items.length?` · ${money(sum(items.map(i=>i.valor)))}`:''}`, items, e.id, e.activo===false&&items.length?'Colaborador inactivo con bienes a su cargo. Reasígnalos o regístralos como devueltos.':'')).join('')}
-    ${libres.length?card('Sin responsable', 'Bienes sin asignar', libres, null):''}</div>`;
+    ${libres.length?card('Sin responsable', 'Bienes sin asignar', libres, null):''}
+    ${enBod.length?card('Bodega', 'Guardados, sin uso', enBod, null):''}</div>`;
 }
 VIEWS.bienes = function(){
   return `<header class="vh"><div><h1>Bienes a cargo</h1><p class="sub">Lo que cada colaborador tiene bajo su responsabilidad. Descarga en PDF el reporte de cada persona para imprimirlo y firmarlo.</p></div><div class="acts"><button class="btn" data-act="nav" data-v="inventario">Ir a inventario</button><button class="btn" data-act="acta-pdf-todos">PDF de todo el personal</button><button class="btn gold" data-act="new-inv">Registrar bien</button></div></header>`
@@ -2158,7 +2165,7 @@ Object.assign(ACT, {
   acta:d=>openActa(d.id),
   'acta-dl':()=>{ const e=S.emp[ED.acta]; const html = `<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Acta de entrega ${esc(e.nombre)}</title><link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=Figtree:wght@400;600&display=swap" rel="stylesheet"><style>body{margin:0;padding:24px;background:#EFE8D8}${DOC_CSS}@media print{body{padding:0;background:#fff}.doc{border:0}}</style></head><body>${actaHTML(ED.acta)}</body></html>`; saveFile(`acta-entrega-${slug(e.nombre)}-${todayS()}.html`, html, 'text/html'); },
   'export-inv':()=>{ const out=[['Código','Bien','Categoría','Marca','Modelo','Serie','Responsable','Cédula','Departamento','Ubicación','Fecha de asignación','Estado','Fecha de compra','Valor','Proveedor','Observaciones']];
-    Object.values(S.inv).sort((a,b)=>a.codigo.localeCompare(b.codigo)).forEach(i=>{ const e=S.emp[i.responsable]; out.push([i.codigo,i.nombre,i.categoria,i.marca,i.modelo,i.serie,e?.nombre||'',e?.cedula||'',e?deptName(e.dept):'',i.ubicacion,fd(i.fechaAsignacion),EST_INV[i.estado]?.label||'',fd(i.fechaCompra),NF.format(+i.valor||0),i.proveedor,i.obs]); });
+    Object.values(S.inv).sort((a,b)=>a.codigo.localeCompare(b.codigo)).forEach(i=>{ const e=S.emp[i.responsable]; out.push([i.codigo,i.nombre,i.categoria,i.marca,i.modelo,i.serie,isBod(i)?'En bodega':(e?.nombre||''),e?.cedula||'',e?deptName(e.dept):'',i.ubicacion,fd(i.fechaAsignacion),EST_INV[i.estado]?.label||'',fd(i.fechaCompra),NF.format(+i.valor||0),i.proveedor,i.obs]); });
     saveFile(`inventario-benderam-${todayS()}.csv`, csv(out), 'text/csv'); },
   mmonth:d=>{ UI.mMonth = addMonth(UI.mMonth||todayYM(), +d.k); render(); },
   'open-multi':d=>openMulti(d.fecha, d.cuenta),
@@ -2511,7 +2518,7 @@ function invForm(id, preset){
         ${inp('serie','Número de serie','text','','full')}
       </div></fieldset>
       <fieldset><legend>Asignación</legend><div class="fg">
-        ${sel('responsable','Responsable',opts(emps.map(e=>[e.id,e.nombre]),i.responsable,'Sin asignar'),'full')}
+        ${sel('responsable','Responsable',opts([['bodega','En bodega (sin uso)'], ...emps.map(e=>[e.id,e.nombre])], isBod(i)?'bodega':i.responsable,'Sin asignar'),'full')}
         ${inp('ubicacion','Ubicación','text','placeholder="Oficina, agencia o ciudad"')}
         ${inp('fechaAsignacion','Fecha de asignación','date')}
         ${sel('estado','Estado',opts(INV_EST.map(e=>[e[0],e[1]]),i.estado))}
@@ -2522,7 +2529,7 @@ function invForm(id, preset){
         ${inp('proveedor','Proveedor o factura','text','','full')}
       </div></fieldset>
       <fieldset><legend>Observaciones</legend><div class="f"><textarea name="obs" aria-label="Observaciones" placeholder="Accesorios, daños, condiciones de uso">${esc(i.obs||'')}</textarea></div></fieldset>
-      ${id && (i.hist||[]).length ? `<fieldset><legend>Historial de responsables</legend><div class="oblig">${i.hist.slice().reverse().map(h=>`<div><div class="muted num" style="font-size:13px">${esc(fd(h.fecha))}</div><div style="font-size:14px">${h.de?esc(S.emp[h.de]?.nombre||'Colaborador eliminado'):'Sin asignar'} → <b>${h.a?esc(S.emp[h.a]?.nombre||'Colaborador eliminado'):'Sin asignar'}</b></div></div>`).join('')}</div></fieldset>`:''}
+      ${id && (i.hist||[]).length ? `<fieldset><legend>Historial de responsables</legend><div class="oblig">${i.hist.slice().reverse().map(h=>`<div><div class="muted num" style="font-size:13px">${esc(fd(h.fecha))}</div><div style="font-size:14px">${esc(histName(h.de))} → <b>${esc(histName(h.a))}</b>${h.motivo?`<small class="muted" style="display:block">${esc(h.motivo)}</small>`:''}</div></div>`).join('')}</div></fieldset>`:''}
     </div>
     <div class="df">${id?`<button type="button" class="btn bad quiet" data-act="del-inv" data-id="${id}" style="margin-right:auto">Eliminar</button><button type="button" class="btn" data-act="inv-pdf" data-id="${id}">Ficha PDF</button>${S.inv[id]&&S.emp[S.inv[id].responsable]&&can('personal')?`<button type="button" class="btn" data-act="inv-danio" data-id="${id}">Cobrar daño</button>`:''}`:''}<button type="button" class="btn" data-act="close">Cancelar</button><button type="submit" class="btn gold">${id?'Guardar cambios':'Registrar bien'}</button></div></form>`);
   ED = {inv:{id:id||null, foto:undefined}};
@@ -2546,8 +2553,10 @@ async function submitInv(form){
   if(markErrors(form, errs)) return;
   const pend = ED && ED.inv ? ED.inv.foto : undefined;
   const hist = (prev.hist||[]).slice();
-  if((prev.responsable||'') !== (v.responsable||'') && (form.dataset.id || v.responsable)) hist.push({fecha:todayS(), de:prev.responsable||'', a:v.responsable||''});
-  const data = {...prev, id, codigo:code, categoria:v.categoria, nombre:v.nombre, marca:v.marca, modelo:v.modelo, serie:v.serie, responsable:v.responsable, ubicacion:v.ubicacion, fechaAsignacion:v.fechaAsignacion, estado:v.estado, fechaCompra:v.fechaCompra, valor:r2(v.valor), proveedor:v.proveedor, obs:v.obs, hist, creado:prev.creado||new Date().toISOString(), actualizado:new Date().toISOString()};
+  const bodNew = v.responsable==='bodega'; const deK = isBod(prev) ? 'bodega' : (prev.responsable||'');
+  if(deK !== (v.responsable||'') && (form.dataset.id || v.responsable)) hist.push({fecha:todayS(), de:deK, a:v.responsable||''});
+  if(bodNew){ v.responsable = ''; if(!v.ubicacion || v.ubicacion==='Oficina principal') v.ubicacion = 'Bodega'; }
+  const data = {...prev, id, codigo:code, categoria:v.categoria, nombre:v.nombre, marca:v.marca, modelo:v.modelo, serie:v.serie, responsable:v.responsable, uso:bodNew?'bodega':'uso', ubicacion:v.ubicacion, fechaAsignacion:v.fechaAsignacion, estado:v.estado, fechaCompra:v.fechaCompra, valor:r2(v.valor), proveedor:v.proveedor, obs:v.obs, hist, creado:prev.creado||new Date().toISOString(), actualizado:new Date().toISOString()};
   if(pend===null){ data.foto=false; data.mini=''; }
   else if(pend){ data.foto=true; data.mini=pend.mini; }
   closeLayer(); await put('inv', id, data);
@@ -2689,7 +2698,7 @@ async function pdfSave(D, name){
 function invFiltered(){
   const q = UI.invQ.trim().toLowerCase().replace(/^bdr(\d)/,'bdr-$1');
   let list = Object.values(S.inv);
-  if(UI.invTab!=='resp') list = list.filter(i=>UI.invCat==='all'||i.categoria===UI.invCat);
+  if(UI.invTab!=='resp') list = list.filter(i=>(UI.invCat==='all'||i.categoria===UI.invCat) && invUsoF(UI.invUso||'todos')(i));
   if(q) list = list.filter(i=>[i.codigo,i.nombre,i.marca,i.modelo,i.serie,i.ubicacion,S.emp[i.responsable]?.nombre].join(' ').toLowerCase().includes(q));
   return list.sort((a,b)=>a.codigo.localeCompare(b.codigo));
 }
@@ -2703,7 +2712,7 @@ async function pdfInventario(){
   await table(D, [
     {h:'Foto', w:56, img:true}, {h:'Código', w:70, bold:true}, {h:'Bien', sub:true}, {h:'Categoría', w:100}, {h:'Responsable', w:140, sub:true}, {h:'Ubicación', w:100}, {h:'Estado', w:62}, {h:'Valor', w:66, align:'right'}
   ], list.map(i=>{ const e=S.emp[i.responsable]; return {key:i.id, img:i.mini, colors:{6:estadoColor(i.estado)},
-    cells:['', i.codigo, [i.nombre, [i.marca,i.modelo,i.serie&&'S/N '+i.serie].filter(Boolean).join(' · ')].filter(Boolean).join('\n'), i.categoria, e?[e.nombre, [e.cargo, e.dept&&deptName(e.dept)].filter(Boolean).join(' · ')].filter(Boolean).join('\n'):'Sin asignar', i.ubicacion||'-', EST_INV[i.estado]?.label||'', +i.valor?pmoney(i.valor):'-']}; }),
+    cells:['', i.codigo, [i.nombre, [i.marca,i.modelo,i.serie&&'S/N '+i.serie].filter(Boolean).join(' · ')].filter(Boolean).join('\n'), i.categoria, isBod(i)?'En bodega (sin uso)':e?[e.nombre, [e.cargo, e.dept&&deptName(e.dept)].filter(Boolean).join(' · ')].filter(Boolean).join('\n'):'Sin asignar', i.ubicacion||'-', EST_INV[i.estado]?.label||'', +i.valor?pmoney(i.valor):'-']}; }),
     {minH:50, foot:['', '', `Total: ${list.length} bienes`, '', '', '', '', pmoney(sum(list.map(i=>i.valor)))]});
   await pdfSave(D, `inventario-benderam-${todayS()}.pdf`);
 }
@@ -2725,9 +2734,9 @@ async function pdfFicha(id){
   const e = S.emp[i.responsable];
   section(D, 'Responsable');
   if(e) kvGrid(D, [['Nombre',e.nombre],['Cédula',e.cedula],['Cargo',e.cargo],['Departamento',deptName(e.dept)],['Fecha de asignación',fd(i.fechaAsignacion)],['Teléfono',e.telefono]], 3);
-  else paragraph(D, 'Este bien no tiene responsable asignado.');
+  else paragraph(D, isBod(i) ? 'Este bien está guardado en bodega, sin uso.' : 'Este bien no tiene responsable asignado.');
   if(i.obs){ section(D, 'Observaciones'); paragraph(D, i.obs); }
-  if((i.hist||[]).length){ section(D, 'Historial de responsables'); await table(D, [{h:'Fecha', w:90},{h:'Antes'},{h:'Después'}], i.hist.slice().reverse().map(h=>({cells:[fd(h.fecha), h.de?(S.emp[h.de]?.nombre||'Colaborador eliminado'):'Sin asignar', h.a?(S.emp[h.a]?.nombre||'Colaborador eliminado'):'Sin asignar']}))); }
+  if((i.hist||[]).length){ section(D, 'Historial de responsables'); await table(D, [{h:'Fecha', w:90},{h:'Antes'},{h:'Después'}], i.hist.slice().reverse().map(h=>({cells:[fd(h.fecha), histName(h.de), histName(h.a)+(h.motivo?'\n'+h.motivo:'')]}))); }
   signatures(D, ['Responsable del bien', e?e.nombre:'', e?'C.I. '+e.cedula:''], ['Entregado por', S.cfg.respNombre||'', S.cfg.respCargo||'']);
   await pdfSave(D, `ficha-${i.codigo}-${slug(i.nombre)}.pdf`);
 }
@@ -3797,6 +3806,44 @@ document.addEventListener('change', e=>{
   if(t.dataset && t.dataset.repu){ setRepAct(t.dataset.repu, t.dataset.repn, t.dataset.repa, t.checked); }
 });
 document.addEventListener('submit', e=>{ if(e.target.id==='repCatForm'){ e.preventDefault(); submitRepCat(e.target); } if(e.target.id==='repForm'){ e.preventDefault(); } });
+
+
+/* ================= v21: mover bienes y bodega ================= */
+const invUsoF = k => k==='uso' ? (i=>i.estado!=='baja' && !isBod(i)) : k==='bodega' ? (i=>i.estado!=='baja' && isBod(i)) : k==='baja' ? (i=>i.estado==='baja') : (()=>true);
+function moveForm(ids, from){
+  const items = ids.map(id=>S.inv[id]).filter(Boolean); if(!items.length) return;
+  const many = items.length>1 || from!==undefined;
+  const emps = activeEmps().filter(e=>e.id!==from);
+  const deTxt = from==='bodega' ? 'Bodega' : from && S.emp[from] ? S.emp[from].nombre : items.length===1 ? histName(isBod(items[0])?'bodega':items[0].responsable) : '';
+  openLayer(`<form class="modal" id="moveForm" role="dialog" aria-modal="true" aria-labelledby="mvT" novalidate><h2 id="mvT">${many?'Mover bienes':'Mover '+esc(items[0].codigo)}</h2>
+    <p>${deTxt?`Ahora ${items.length===1?'está':'están'} con: <b>${esc(deTxt)}</b>. `:''}Elige a quién pasan o si van a bodega. El cambio queda en el historial de cada bien.</p>
+    ${many?`<div class="mvlist">${items.map(i=>`<label class="check"><input type="checkbox" name="it" value="${i.id}" checked> <span class="tag num">${esc(i.codigo)}</span> ${esc(i.nombre)}</label>`).join('')}</div>`:`<p style="margin-top:-4px"><span class="tag num">${esc(items[0].codigo)}</span> ${esc(items[0].nombre)}<input type="hidden" name="it" value="${items[0].id}"></p>`}
+    <div class="fg"><div class="f full" data-f="to"><label for="mv_to">Pasa a</label><select id="mv_to" name="to"><option value="">Elige una persona o bodega</option>${from==='bodega'?'':'<option value="bodega">En bodega (sin uso)</option>'}${emps.map(e=>`<option value="${e.id}">${esc(e.nombre)}</option>`).join('')}</select><div class="err"></div></div>
+    <div class="f"><label for="mv_f">Fecha</label><input id="mv_f" name="fecha" type="date" value="${todayS()}"></div>
+    <div class="f"><label for="mv_u">Nueva ubicación (opcional)</label><input id="mv_u" name="ubicacion" placeholder="Se mantiene la actual"></div>
+    <div class="f full"><label for="mv_m">Motivo (opcional)</label><input id="mv_m" name="motivo" placeholder="Ejemplo: cambio de área, ya no lo usa"></div></div>
+    <div class="acts" style="justify-content:flex-end;margin-top:16px"><button type="button" class="btn" data-act="close">Cancelar</button><button class="btn gold" type="submit">Mover</button></div></form>`, true);
+}
+async function submitMove(f){
+  const fdata = new FormData(f); const ids = fdata.getAll('it'); const to = fdata.get('to'); const fecha = fdata.get('fecha') || todayS(); const motivo = (fdata.get('motivo')||'').trim(); const ub = (fdata.get('ubicacion')||'').trim();
+  if(!to){ markErrors(f, {to:'Elige a quién pasan o si van a bodega.'}); return; }
+  if(!ids.length){ toast('Marca al menos un bien.', true); return; }
+  closeLayer();
+  for(const id of ids){ const i = S.inv[id]; if(!i) continue;
+    const de = isBod(i) ? 'bodega' : (i.responsable||'');
+    if(de===to) continue;
+    const bod = to==='bodega';
+    await put('inv', id, {...i, responsable: bod ? '' : to, uso: bod ? 'bodega' : 'uso', ubicacion: ub || (bod ? 'Bodega' : (isBod(i) && i.ubicacion==='Bodega' ? 'Oficina principal' : i.ubicacion)), fechaAsignacion: bod ? i.fechaAsignacion : fecha, hist:[...(i.hist||[]), {fecha, de, a:to, motivo}], actualizado:new Date().toISOString()});
+  }
+  render();
+  toast(to==='bodega' ? `${ids.length} ${ids.length===1?'bien guardado en bodega. Sigue':'bienes guardados en bodega. Siguen'} en el inventario.` : `${ids.length} ${ids.length===1?'bien pasó':'bienes pasaron'} a ${shortName(S.emp[to].nombre)}. Su acta de bienes a cargo ya está actualizada.`);
+}
+Object.assign(ACT, {
+  'inv-uso':d=>{ UI.invUso=d.id; render(); },
+  'inv-move':d=>moveForm([d.id]),
+  'inv-move-many':d=>moveForm(d.ids.split(','), d.from||'')
+});
+document.addEventListener('submit', e=>{ if(e.target.id==='moveForm'){ e.preventDefault(); submitMove(e.target); } });
 
 /* ================= inicio ================= */
 async function boot(){
