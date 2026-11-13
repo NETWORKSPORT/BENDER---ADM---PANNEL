@@ -338,6 +338,7 @@ body.locked .main{padding:0}
 .lbox form{text-align:left;display:flex;flex-direction:column;gap:12px}
 .lbtn{justify-content:center;padding:12px;font-size:15px;margin-top:4px}
 .lerr{color:var(--danger);font-size:13.5px;min-height:18px}
+.rcframe{display:block;width:100%;height:calc(100vh - 120px);min-height:640px;border:1px solid var(--line);border-radius:14px;background:var(--bg)}
 .userbar{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px;margin:-8px 0 18px;padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
 .ub-who{display:flex;flex-direction:column;line-height:1.3;font-size:14px;min-width:0}
 .ub-who .muted{font-size:12.5px}
@@ -745,11 +746,12 @@ const ICON = {
   caja:'<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h3M16 3v3M8 3v3"/>',
   finanzas:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
   agencias:'<path d="M3 21V9l9-6 9 6v12"/><path d="M9 21v-6h6v6M3 21h18"/>',
-  empresa:'<path d="M4 21V5l8-2v18M12 8h8v13M8 8v.1M8 12v.1M8 16v.1M16 12v.1M16 16v.1M2 21h20"/>'
+  empresa:'<path d="M4 21V5l8-2v18M12 8h8v13M8 8v.1M8 12v.1M8 16v.1M16 12v.1M16 16v.1M2 21h20"/>',
+  recargas:'<path d="M12 3v18M17 7H9.5a3 3 0 0 0 0 6h5a3 3 0 0 1 0 6H6"/>'
 };
 const NAV = [
   ['General', [['resumen','Resumen'],['personal','Personal'],['reportes','Reportes']]],
-  ['Operación', [['caja','Cuadres de caja'],['finanzas','Finanzas'],['agencias','Agencias'],['inventario','Inventario']]],
+  ['Operación', [['recargas','Recargas'],['caja','Cuadres de caja'],['finanzas','Finanzas'],['agencias','Agencias'],['inventario','Inventario']]],
   ['Administración', [['empresa','Empresa']]]
 ];
 function badgeFor(k){
@@ -765,6 +767,10 @@ function renderSide(){
   $('#storeNote').textContent = mode==='sheet' ? 'Datos conectados a Google Sheets.' : mode==='db' ? 'Datos guardados en la nube del panel.' : 'Datos guardados solo en este navegador. Descarga un respaldo en Empresa.';
 }
 const VIEWS = {};
+VIEWS.recargas = function(){
+  if(mode!=='sheet') return `<header class="vh"><div><h1>Recargas</h1><p class="sub">Recargas, cuadres de operadores, contabilidad y extracciones.</p></div></header>` + emptyBlock('Conecta Google Sheets primero', 'Recargas trabaja con varios usuarios a la vez, por eso necesita el panel conectado a Google Sheets con usuario y contraseña.');
+  return `<iframe id="rcFrame" class="rcframe" src="recargas.html?v=1" title="Recargas"></iframe>`;
+};
 function migCalc2(){
   for(const r of Object.values(S.rol)){
     if(!r || r.calcV>=2 || r.estado!=='borrador' || r.custom) continue;
@@ -795,6 +801,7 @@ function render(){
   if(mode==='sheet' && !SES) return;
   if(!canView(UI.view)) UI.view = firstView();
   renderSide();
+  if(UI.view==='recargas' && $('#rcFrame')){ updSync(); return; }
   if(!UI.ready){ $('#main').innerHTML = `<div class="empty"><h2>Cargando el panel</h2><p>Conectando con los datos de la empresa.</p></div>`; return; }
   const pre = navKey(UI.view)==='personal' ? subTabs(PERSON_TABS) : navKey(UI.view)==='caja' ? subTabs(CAJA_TABS) : '';
   $('#main').innerHTML = userBar() + pre + VIEWS[UI.view]();
@@ -1797,7 +1804,7 @@ $('#importFile').addEventListener('change', async e=>{
 /* ================= acciones ================= */
 const ACT = {
   nav:d=>{ UI.view=d.v; render(); $('#main').focus({preventScroll:true}); window.scrollTo(0,0); },
-  theme:()=>{ const cur=document.documentElement.getAttribute('data-theme')==='light'?'dark':'light'; document.documentElement.setAttribute('data-theme',cur); try{localStorage.setItem('benderam-theme',cur);}catch(e){} render(); },
+  theme:()=>{ const cur=document.documentElement.getAttribute('data-theme')==='light'?'dark':'light'; document.documentElement.setAttribute('data-theme',cur); try{ const fr=document.getElementById('rcFrame'); if(fr) fr.contentDocument.documentElement.setAttribute('data-theme',cur); }catch(e){} try{localStorage.setItem('benderam-theme',cur);}catch(e){} render(); },
   'goto-month':d=>{ UI.view='roles'; UI.month=d.ym; render(); window.scrollTo(0,0); },
   'go-dept':d=>{ UI.view='personal'; UI.dept=d.id; render(); window.scrollTo(0,0); },
   'go-empresa':d=>{ if(!can('empresa')){ toast('Esta configuración la hace quien tiene acceso a Empresa. Pídesela al gerente general.', true); return; } UI.view='empresa'; UI.empTab=d.tab; render(); window.scrollTo(0,0); },
@@ -2209,12 +2216,13 @@ async function migrateV3(){
 const SHEETS_URL = (window.BENDERAM_SHEETS_URL || '').trim();
 const SKEY = 'benderam-sesion';
 let SES = null, inflight = 0, BATCH = [], btimer = null, QUEUE = Promise.resolve(), refreshTimer = null;
-const AREA_L = {personal:'Personal y nómina', caja:'Cuadres de caja y multiagencia', finanzas:'Finanzas', agencias:'Agencias', inventario:'Inventario', empresa:'Empresa y configuración', reportes:'Reportes de actividades (solo ve los suyos)'};
+const AREA_L = {personal:'Personal y nómina', caja:'Cuadres de caja y multiagencia', finanzas:'Finanzas', agencias:'Agencias', inventario:'Inventario', empresa:'Empresa y configuración', reportes:'Reportes de actividades (solo ve los suyos)', recargas:'Recargas: operador (registra recargas y cuadra su caja)', contabilidad:'Contabilidad de recargas y extracciones', extracciones:'Extracciones (solicita y paga)'};
 const AREA_OF = {resumen:'personal', personal:'personal', permisos:'personal', roles:'personal', deudas:'personal', multas:'personal', cumple:'personal', bienes:'personal', caja:'caja', multi:'caja', finanzas:'finanzas', agencias:'agencias', inventario:'inventario', empresa:'empresa', reportes:'reportes'};
 const isGerente = () => mode!=='sheet' || (SES && SES.rol==='gerente');
 const can = area => mode!=='sheet' || isGerente() || !!(SES && SES.areas && SES.areas.includes(area));
-const canView = v => can(AREA_OF[v]||v);
-const firstView = () => ['resumen','caja','finanzas','agencias','inventario','empresa','reportes'].find(canView) || 'resumen';
+const RC_AREAS = ['recargas','contabilidad','extracciones'];
+const canView = v => v==='recargas' ? RC_AREAS.some(can) : can(AREA_OF[v]||v);
+const firstView = () => ['resumen','recargas','caja','finanzas','agencias','inventario','empresa','reportes'].find(canView) || 'resumen';
 
 async function api(action, payload){
   let res;
