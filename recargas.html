@@ -675,6 +675,7 @@ async function registrar(){
   if(t.comp && !String(f.comprobante||'').trim()) return toast('Escribe el número de comprobante.', true);
   if(t.comp && !String(f.banco||'').trim()) return toast('Escribe el banco.', true);
   if(UI.tipo==='ajuste' && !String(f.nota||'').trim()) return toast('Escribe el motivo del ajuste.', true);
+  if(isAdm() && (UI.tipo==='carga' || UI.tipo==='ajuste')){ const dst = UI.tipo==='carga' ? lugarL(f.dest||'caja') : 'Caja de operador'; if(!(await ask(UI.tipo==='carga'?'Confirmar inyección de saldo':'Confirmar ajuste', UI.tipo==='carga' ? `¿Inyectar <b>${money(monto)}</b> a <b>${esc(opName(op))}</b>?<br><span class="muted">Va a: ${esc(dst)} · ${fd(UI.fecha)}</span>` : `¿Registrar un ajuste de <b>${f.signo==='-'||f.signo==-1?'−':'+'}${money(monto)}</b> en la caja de <b>${esc(opName(op))}</b>?<br><span class="muted">Motivo: ${esc(f.nota||'')}</span>`, {ok:'Sí, confirmar'}))) return; }
   if(t.comp && (duplicado(f.banco, f.comprobante) || duplicadoFlexible(f.comprobante))) return toast('Ese comprobante ya fue registrado.', true);
   const R = resumen(op, UI.fecha);
   if((UI.tipo==='recarga'||UI.tipo==='transfer') && monto > R.esperado + 0.005 && !(await ask('Caja insuficiente', `La caja tiene <b>${money(R.esperado)}</b> y la recarga es de <b>${money(monto)}</b>. La caja quedará en negativo. ¿Registrar igual?`, {ok:'Registrar igual'}))) return;
@@ -1537,17 +1538,33 @@ function sacarFotos(){
 /* ---- guardar: solo se envía lo que cambió ---- */
 const RC_AREA_L = {rmv:'Operadores: movimientos y recargas', rex:'Extracciones', rag:'Agentes', rcf:'Configuración de operadores', rcu:'Cuadres y saldos', rfo:'Fondeos de extracciones', rlg:'Bitácora de acciones'};
 const stageAdmin = () => LIVE && EMBED && SES && SES.rol==='ceo';
+LV.pk = {}; LV.ev = '';
+['input','change','keydown'].forEach(t=>document.addEventListener(t, e=>{ if(e.target && e.target.matches && e.target.matches('input,select,textarea')) LV.ev = 'campo'; }, true));
+document.addEventListener('click', e=>{ if(e.target.closest('button,[data-act]')) LV.ev = 'boton'; }, true);
+function guardarAccionAdmin(){
+  const fotos = sacarFotos(); const R = toRecords(S), puts = [], dels = [];
+  RCOLS.forEach(c=>{ const sn = LV.snap[c] = LV.snap[c]||{};
+    Object.entries(R[c]).forEach(([id,v])=>{ const js = JSON.stringify(v); if(sn[id]===js) return; if(sn[id]===undefined && vacio(c,id,v)) return; if(LV.pk[c+'|'+id]===js) return; sn[id] = js; delete LV.pk[c+'|'+id]; puts.push({col:c, id, data:v}); });
+    Object.keys(sn).forEach(id=>{ if(!(id in R[c]) && LV.pk[c+'|'+id]!=='__del'){ delete sn[id]; dels.push({col:c, id}); } }); });
+  fotos.forEach(f=>encolar(async ()=>{ const j = await rcApi('foto.put', {id:f.id, data:f.data, col:'rmv'}); if(!j.ok) toast('No se guardó una foto: '+j.error, true); }));
+  if(puts.length){ LV.batch = LV.batch.filter(b=>!puts.some(p=>p.col===b.col && p.id===b.id)).concat(puts); clearTimeout(LV.bt); LV.bt = setTimeout(enviarLote, 150); }
+  dels.forEach(d=>encolar(async ()=>{ const j = await rcApi('del', d); if(!j.ok) toast('No se borró en Google Sheets: '+j.error, true); }));
+}
 function rcDiff(){ const R = toRecords(S), out = [];
   RCOLS.forEach(c=>{ const sn = LV.snap[c]||{};
     Object.entries(R[c]).forEach(([id,v])=>{ const js = JSON.stringify(v); if(sn[id]===js) return; if(sn[id]===undefined && vacio(c,id,v)) return; out.push({t:'put', col:c, id, area:RC_AREA_L[c]||c}); });
     Object.keys(sn).forEach(id=>{ if(!(id in R[c])) out.push({t:'del', col:c, id, area:RC_AREA_L[c]||c}); }); });
   return out; }
 window.rcPendientes = () => { if(!LV.dirty) return []; if(!LV.dc) LV.dc = rcDiff(); if(!LV.dc.length) LV.dirty = false; return LV.dc; };
-window.rcGuardar = async () => { LV.forzar = true; try{ liveSave(); } finally { LV.forzar = false; } clearTimeout(LV.bt); enviarLote(); LV.dirty = false; LV.dc = null; syncPill(); await LV.q; };
-window.rcDescartar = () => { LV.dirty = false; LV.dc = null; LV.batch = []; liveCargar(false); };
+window.rcGuardar = async () => { LV.pk = {}; LV.forzar = true; try{ liveSave(); } finally { LV.forzar = false; } clearTimeout(LV.bt); enviarLote(); LV.dirty = false; LV.dc = null; syncPill(); await LV.q; };
+window.rcRecargar = () => liveCargar(false);
+window.rcDescartar = () => { LV.pk = {}; LV.dirty = false; LV.dc = null; LV.batch = []; liveCargar(false); };
 function liveSave(){
   if(!LV.ready) return;
-  if(stageAdmin() && !LV.forzar){ LV.dirty = true; LV.dc = null; syncPill(); try{ window.parent.rcAviso && window.parent.rcAviso(); }catch(e){} return; }
+  if(stageAdmin() && !LV.forzar){
+    if(LV.ev==='boton'){ guardarAccionAdmin(); }
+    else { rcDiff().forEach(x=>{ LV.pk[x.col+'|'+x.id] = x.t==='del' ? '__del' : JSON.stringify(toRecords(S)[x.col][x.id]); }); }
+    LV.dc = null; LV.dirty = rcDiff().length>0; syncPill(); try{ window.parent.rcAviso && window.parent.rcAviso(); }catch(e){} return; }
   const fotos = sacarFotos();
   const R = toRecords(S), puts = [], dels = [];
   RCOLS.forEach(c=>{ const sn = LV.snap[c] = LV.snap[c]||{};

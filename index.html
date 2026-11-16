@@ -2536,7 +2536,7 @@ Object.assign(ACT, {
   logout:async ()=>{ if(pendTotal() && !(await ask('Cambios sin guardar', 'Si cierras sesión se perderán los cambios que no guardaste.', 'Cerrar sesión igual', true))) return; PEND = []; doLogout(false); },
   'pend-guardar':()=>guardarPendientes(),
   'pend-descartar':()=>descartarPendientes(),
-  'sync-now':async ()=>{ flushBatch(); await QUEUE; await reload(); toast('Datos actualizados'); },
+  'sync-now':async ()=>{ flushBatch(); await QUEUE; await reload(); try{ const w = document.getElementById('rcFrame')?.contentWindow; if(w && w.rcRecargar) await w.rcRecargar(); }catch(e){} toast('Datos actualizados'); },
   'my-pass':()=>passForm(),
   'user-new':()=>userForm(),
   'user-tipo':d=>setUserTipo(d.k),
