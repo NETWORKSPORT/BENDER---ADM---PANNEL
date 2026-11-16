@@ -753,14 +753,16 @@ const ICON = {
   empresa:'<path d="M4 21V5l8-2v18M12 8h8v13M8 8v.1M8 12v.1M8 16v.1M16 12v.1M16 16v.1M2 21h20"/>',
   operadores:'<path d="M12 3v18M17 7H9.5a3 3 0 0 0 0 6h5a3 3 0 0 1 0 6H6"/>',
   extracciones:'<path d="M12 21V9M7 14l5-5 5 5M4 4h16"/>',
+  notificaciones:'<path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
   usuarios:'<path d="M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM2 21v-1a6 6 0 0 1 12 0v1M19 8v6M16 11h6"/>'
 };
 const NAV = [
   ['General', [['resumen','Resumen'],['personal','Personal'],['reportes','Reportes']]],
-  ['Operación', [['operadores','Operadores'],['extracciones','Extracciones'],['caja','Cuadres de caja'],['finanzas','Finanzas'],['agencias','Agencias'],['inventario','Inventario']]],
+  ['Operación', [['operadores','Operadores'],['extracciones','Extracciones'],['notificaciones','Notificaciones'],['caja','Cuadres de caja'],['finanzas','Finanzas'],['agencias','Agencias'],['inventario','Inventario']]],
   ['Administración', [['usuarios','Usuarios'],['empresa','Empresa']]]
 ];
 function badgeFor(k){
+  if(k==='notificaciones'){ const n = window._rcN||0; return n?`<span class="badge red">${n}</span>`:''; }
   if(k==='personal'){ const n=Object.values(S.mul).filter(m=>m.estado==='pendiente').length + bdays().filter(x=>x.b.days<=7).length + Object.values(S.per).filter(p=>p.estado==='solicitado').length; return n?`<span class="badge">${n}</span>`:''; }
   if(k==='caja'){ const t=todayS(); const n=S.cfg.cajas.filter(c=>!S.cua[`${t}_${c.id}`] || S.cua[`${t}_${c.id}`].estado==='abierto').length; return n&&UI.ready&&Object.keys(S.emp).length?`<span class="badge red">${n}</span>`:''; }
   if(k==='agencias'){ const n=Object.values(S.age).filter(a=>['prospecto','documentacion','revision'].includes(a.estado)).length; return n?`<span class="badge">${n}</span>`:''; }
@@ -775,10 +777,13 @@ function renderSide(){
 const VIEWS = {};
 function rcFrame(v, titulo, sub){
   if(mode!=='sheet') return `<header class="vh"><div><h1>${titulo}</h1><p class="sub">${sub}</p></div></header>` + emptyBlock('Conecta Google Sheets primero', 'Esta sección trabaja con varios usuarios a la vez, por eso necesita el panel conectado a Google Sheets con usuario y contraseña.');
-  return `<iframe id="rcFrame" data-v="${v}" class="rcframe" src="recargas.html?m=${v==='extracciones'?'ext':'op'}&v=${Date.now()}" title="${titulo}"></iframe>`;
+  return `<iframe id="rcFrame" data-v="${v}" class="rcframe" src="recargas.html?m=${v==='extracciones'?'ext':v==='notificaciones'?'notif':'op'}&v=${Date.now()}" title="${titulo}"></iframe>`;
 }
 VIEWS.operadores = () => rcFrame('operadores', 'Operadores', 'Recargas de los operadores, sus cajas, bancos y cuadres.');
 VIEWS.extracciones = () => rcFrame('extracciones', 'Extracciones', 'Solicitudes, ejecución por el operador, pagos y cuadres de las cuentas.');
+VIEWS.notificaciones = () => rcFrame('notificaciones', 'Notificaciones', 'Avisos de traspasos de saldo, cierres y pendientes.');
+window.rcNotif = n => { if(window._rcN===n) return; window._rcN = n; try{ renderSide(); }catch(e){} };
+window.irVista = v => { if(!canView(v)) return; UI.view = v; render(); };
 VIEWS.usuarios = function(){
   if(mode==='sheet' && isGerente() && UI.users==null && !UI.usersLoading){ UI.usersLoading = true; api('users.list').then(j=>{ UI.usersLoading = false; UI.users = j.ok ? j.users : []; if(!j.ok) toast(j.error, true); if(UI.view==='usuarios') render(); }); }
   return `<header class="vh"><div><h1>Usuarios</h1><p class="sub">Crea un usuario por persona y elige qué hace: operador, extracciones, contabilidad, caja o administrador.</p></div></header>` + usersTab();
@@ -2233,7 +2238,7 @@ const AREA_OF = {resumen:'personal', personal:'personal', permisos:'personal', r
 const isGerente = () => mode!=='sheet' || (SES && SES.rol==='gerente');
 const can = area => mode!=='sheet' || isGerente() || !!(SES && SES.areas && SES.areas.includes(area));
 const RC_AREAS = ['recargas','contabilidad','extracciones'];
-const canView = v => v==='operadores' ? ['recargas','contabilidad'].some(can) : v==='extracciones' ? RC_AREAS.some(can) : v==='usuarios' ? isGerente() : can(AREA_OF[v]||v);
+const canView = v => v==='notificaciones' ? RC_AREAS.some(can) : v==='operadores' ? ['recargas','contabilidad'].some(can) : v==='extracciones' ? RC_AREAS.some(can) : v==='usuarios' ? isGerente() : can(AREA_OF[v]||v);
 const firstView = () => ['resumen','operadores','extracciones','caja','finanzas','agencias','inventario','empresa','reportes'].find(canView) || 'resumen';
 
 async function api(action, payload){
