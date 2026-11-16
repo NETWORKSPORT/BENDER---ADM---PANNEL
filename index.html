@@ -339,6 +339,7 @@ body.locked .main{padding:0}
 .lbtn{justify-content:center;padding:12px;font-size:15px;margin-top:4px}
 .lerr{color:var(--danger);font-size:13.5px;min-height:18px}
 .rcframe{display:block;width:100%;height:calc(100vh - 120px);min-height:640px;border:1px solid var(--line);border-radius:14px;background:var(--bg)}
+.utipos{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px}.utipo{display:flex;flex-direction:column;gap:3px;text-align:left;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:transparent;color:inherit;font:inherit;cursor:pointer}.utipo b{font-size:14px}.utipo span{font-size:12px;color:var(--muted);line-height:1.35}.utipo.on{border-color:var(--gold);box-shadow:0 0 0 2px var(--glow, rgba(245,197,24,.25))}
 .userbar{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px;margin:-8px 0 18px;padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
 .ub-who{display:flex;flex-direction:column;line-height:1.3;font-size:14px;min-width:0}
 .ub-who .muted{font-size:12.5px}
@@ -747,12 +748,14 @@ const ICON = {
   finanzas:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
   agencias:'<path d="M3 21V9l9-6 9 6v12"/><path d="M9 21v-6h6v6M3 21h18"/>',
   empresa:'<path d="M4 21V5l8-2v18M12 8h8v13M8 8v.1M8 12v.1M8 16v.1M16 12v.1M16 16v.1M2 21h20"/>',
-  recargas:'<path d="M12 3v18M17 7H9.5a3 3 0 0 0 0 6h5a3 3 0 0 1 0 6H6"/>'
+  operadores:'<path d="M12 3v18M17 7H9.5a3 3 0 0 0 0 6h5a3 3 0 0 1 0 6H6"/>',
+  extracciones:'<path d="M12 21V9M7 14l5-5 5 5M4 4h16"/>',
+  usuarios:'<path d="M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM2 21v-1a6 6 0 0 1 12 0v1M19 8v6M16 11h6"/>'
 };
 const NAV = [
   ['General', [['resumen','Resumen'],['personal','Personal'],['reportes','Reportes']]],
-  ['Operación', [['recargas','Recargas'],['caja','Cuadres de caja'],['finanzas','Finanzas'],['agencias','Agencias'],['inventario','Inventario']]],
-  ['Administración', [['empresa','Empresa']]]
+  ['Operación', [['operadores','Operadores'],['extracciones','Extracciones'],['caja','Cuadres de caja'],['finanzas','Finanzas'],['agencias','Agencias'],['inventario','Inventario']]],
+  ['Administración', [['usuarios','Usuarios'],['empresa','Empresa']]]
 ];
 function badgeFor(k){
   if(k==='personal'){ const n=Object.values(S.mul).filter(m=>m.estado==='pendiente').length + bdays().filter(x=>x.b.days<=7).length + Object.values(S.per).filter(p=>p.estado==='solicitado').length; return n?`<span class="badge">${n}</span>`:''; }
@@ -767,9 +770,15 @@ function renderSide(){
   $('#storeNote').textContent = mode==='sheet' ? 'Datos conectados a Google Sheets.' : mode==='db' ? 'Datos guardados en la nube del panel.' : 'Datos guardados solo en este navegador. Descarga un respaldo en Empresa.';
 }
 const VIEWS = {};
-VIEWS.recargas = function(){
-  if(mode!=='sheet') return `<header class="vh"><div><h1>Recargas</h1><p class="sub">Recargas, cuadres de operadores, contabilidad y extracciones.</p></div></header>` + emptyBlock('Conecta Google Sheets primero', 'Recargas trabaja con varios usuarios a la vez, por eso necesita el panel conectado a Google Sheets con usuario y contraseña.');
-  return `<iframe id="rcFrame" class="rcframe" src="recargas.html?v=1" title="Recargas"></iframe>`;
+function rcFrame(v, titulo, sub){
+  if(mode!=='sheet') return `<header class="vh"><div><h1>${titulo}</h1><p class="sub">${sub}</p></div></header>` + emptyBlock('Conecta Google Sheets primero', 'Esta sección trabaja con varios usuarios a la vez, por eso necesita el panel conectado a Google Sheets con usuario y contraseña.');
+  return `<iframe id="rcFrame" data-v="${v}" class="rcframe" src="recargas.html?m=${v==='extracciones'?'ext':'op'}&v=2" title="${titulo}"></iframe>`;
+}
+VIEWS.operadores = () => rcFrame('operadores', 'Operadores', 'Recargas de los operadores, sus cajas, bancos y cuadres.');
+VIEWS.extracciones = () => rcFrame('extracciones', 'Extracciones', 'Solicitudes, ejecución por el operador, pagos y cuadres de las cuentas.');
+VIEWS.usuarios = function(){
+  if(mode==='sheet' && isGerente() && UI.users==null && !UI.usersLoading){ UI.usersLoading = true; api('users.list').then(j=>{ UI.usersLoading = false; UI.users = j.ok ? j.users : []; if(!j.ok) toast(j.error, true); if(UI.view==='usuarios') render(); }); }
+  return `<header class="vh"><div><h1>Usuarios</h1><p class="sub">Crea un usuario por persona y elige qué hace: operador, extracciones, contabilidad, caja o administrador.</p></div></header>` + usersTab();
 };
 function migCalc2(){
   for(const r of Object.values(S.rol)){
@@ -801,7 +810,7 @@ function render(){
   if(mode==='sheet' && !SES) return;
   if(!canView(UI.view)) UI.view = firstView();
   renderSide();
-  if(UI.view==='recargas' && $('#rcFrame')){ updSync(); return; }
+  { const fr = $('#rcFrame'); if(fr && fr.dataset.v===UI.view){ updSync(); return; } }
   if(!UI.ready){ $('#main').innerHTML = `<div class="empty"><h2>Cargando el panel</h2><p>Conectando con los datos de la empresa.</p></div>`; return; }
   const pre = navKey(UI.view)==='personal' ? subTabs(PERSON_TABS) : navKey(UI.view)==='caja' ? subTabs(CAJA_TABS) : '';
   $('#main').innerHTML = userBar() + pre + VIEWS[UI.view]();
@@ -1146,7 +1155,7 @@ function obligaciones(){
 VIEWS.empresa = function(){
   const c = S.cfg; const tab = UI.empTab;
   const f = (k,l,t='text',extra='') => `<div class="f"><label for="c_${k}">${l}</label><input id="c_${k}" name="${k}" type="${t}" value="${esc(c[k])}" ${extra}></div>`;
-  const T = [['datos','Datos y firma'],['reglamento','Reglamento de multas'],['cajas','Cajas y cuentas'],['obligaciones','Obligaciones'],['respaldo','Respaldo de datos'],...(isGerente()?[['usuarios','Usuarios y accesos']]:[]),['recos','Recomendaciones']];
+  const T = [['datos','Datos y firma'],['reglamento','Reglamento de multas'],['cajas','Cajas y cuentas'],['obligaciones','Obligaciones'],['respaldo','Respaldo de datos'],...(false?[['usuarios','Usuarios y accesos']]:[]),['recos','Recomendaciones']];
   let body='';
   if(tab==='datos') body = `<form id="cfgForm" class="panel" style="max-width:860px">
     <fieldset><legend>Identificación</legend><div class="fg">
@@ -2216,13 +2225,13 @@ async function migrateV3(){
 const SHEETS_URL = (window.BENDERAM_SHEETS_URL || '').trim();
 const SKEY = 'benderam-sesion';
 let SES = null, inflight = 0, BATCH = [], btimer = null, QUEUE = Promise.resolve(), refreshTimer = null;
-const AREA_L = {personal:'Personal y nómina', caja:'Cuadres de caja y multiagencia', finanzas:'Finanzas', agencias:'Agencias', inventario:'Inventario', empresa:'Empresa y configuración', reportes:'Reportes de actividades (solo ve los suyos)', recargas:'Recargas: operador (registra recargas y cuadra su caja)', contabilidad:'Contabilidad de recargas y extracciones', extracciones:'Extracciones (solicita y paga)'};
+const AREA_L = {personal:'Personal y nómina', caja:'Cuadres de caja y multiagencia', finanzas:'Finanzas', agencias:'Agencias', inventario:'Inventario', empresa:'Empresa y configuración', reportes:'Reportes de actividades (solo ve los suyos)', recargas:'Operador (recargas, su caja y extracciones que ejecuta)', extracciones:'Extracciones (solicita y paga)', contabilidad:'Contabilidad de operadores y extracciones'};
 const AREA_OF = {resumen:'personal', personal:'personal', permisos:'personal', roles:'personal', deudas:'personal', multas:'personal', cumple:'personal', bienes:'personal', caja:'caja', multi:'caja', finanzas:'finanzas', agencias:'agencias', inventario:'inventario', empresa:'empresa', reportes:'reportes'};
 const isGerente = () => mode!=='sheet' || (SES && SES.rol==='gerente');
 const can = area => mode!=='sheet' || isGerente() || !!(SES && SES.areas && SES.areas.includes(area));
 const RC_AREAS = ['recargas','contabilidad','extracciones'];
-const canView = v => v==='recargas' ? RC_AREAS.some(can) : can(AREA_OF[v]||v);
-const firstView = () => ['resumen','recargas','caja','finanzas','agencias','inventario','empresa','reportes'].find(canView) || 'resumen';
+const canView = v => v==='operadores' ? ['recargas','contabilidad'].some(can) : v==='extracciones' ? RC_AREAS.some(can) : v==='usuarios' ? isGerente() : can(AREA_OF[v]||v);
+const firstView = () => ['resumen','operadores','extracciones','caja','finanzas','agencias','inventario','empresa','reportes'].find(canView) || 'resumen';
 
 async function api(action, payload){
   let res;
@@ -2333,7 +2342,7 @@ async function loadUsers(){
   UI.users = null; render();
   const j = await api('users.list');
   if(!j.ok){ toast(j.error, true); UI.users = []; } else UI.users = j.users;
-  if(UI.view==='empresa' && UI.empTab==='usuarios') render();
+  if(UI.view==='usuarios' || (UI.view==='empresa' && UI.empTab==='usuarios')) render();
 }
 function usersTab(){
   if(mode!=='sheet') return `<section class="panel" style="max-width:760px"><h2>Usuarios y accesos</h2><p class="muted">Los usuarios con contraseña funcionan cuando el panel está conectado a Google Sheets. Sigue la guía de conexión y vuelve aquí para crear los accesos de cada área.</p></section>`;
@@ -2347,19 +2356,44 @@ function usersTab(){
     <td><div class="rowacts"><button class="btn sm quiet" data-act="user-edit" data-id="${esc(u.usuario)}">Editar</button></div></td></tr>`).join('')}
   </tbody></table></div>`;
 }
+const USER_TIPOS = [
+  ['operador','Operador','Registra recargas, cuadra su caja y ejecuta extracciones'],
+  ['extracciones','Extracciones','Pide y paga extracciones, cuadra sus cuentas'],
+  ['contabilidad','Contabilidad','Verifica comprobantes y pagos'],
+  ['caja','Caja','Cuadres de caja y multiagencia'],
+  ['gerente','Administrador','Ve todo y administra usuarios'],
+  ['otro','Personalizado','Marca tú las áreas']];
+const TIPO_AREAS = {operador:['recargas'], extracciones:['extracciones'], contabilidad:['contabilidad'], caja:['caja']};
+function userTipo(u){ if(u.rol==='gerente') return 'gerente'; const a = u.areas||[]; if(!a.length) return ''; const k = Object.keys(TIPO_AREAS).find(k=>TIPO_AREAS[k].every(x=>a.includes(x)) && a.every(x=>TIPO_AREAS[k].includes(x)||x==='reportes')); return k || 'otro'; }
+function setUserTipo(k){
+  const f = $('#userForm'); if(!f) return;
+  f.querySelectorAll('.utipo').forEach(b=>b.classList.toggle('on', b.dataset.k===k));
+  f.querySelector(`[name=rol][value=${k==='gerente'?'gerente':'area'}]`).checked = true;
+  if(TIPO_AREAS[k]) Object.keys(AREA_L).forEach(a=>{ const c = f.querySelector(`[name=area_${a}]`); if(c) c.checked = TIPO_AREAS[k].includes(a) || (a==='reportes' && c.checked); });
+  f.dispatchEvent(new Event('change'));
+}
+async function asegurarOperador(usuario, nombre){
+  const j = await api('load', {cols:['rcf']}); if(!j.ok) return false;
+  const main = (j.data.rcf||{}).main || {operadores:[], cuentas:[], ctasOp:[], ctasExt:[]};
+  main.operadores = main.operadores || [];
+  if(main.operadores.some(o=>String(o.usuario||'')===usuario)) return true;
+  main.operadores.push({id:'op'+Date.now().toString(36)+Math.random().toString(36).slice(2,6), nombre, usuario});
+  const r = await api('bulk', {items:[{col:'rcf', id:'main', data:main}]});
+  return !!r.ok;
+}
 function userForm(usuario){
   const u = usuario ? UI.users.find(x=>x.usuario===usuario) : {rol:'area', areas:[], activo:true};
   openLayer(`<form class="drawer" id="userForm" data-id="${esc(usuario||'')}" role="dialog" aria-modal="true" aria-labelledby="uT" novalidate>
     <div class="dh"><h2 id="uT">${usuario?esc(u.nombre):'Nuevo usuario'}</h2><button type="button" class="x" data-act="close" aria-label="Cerrar">×</button></div>
     <div class="db">
       <fieldset><legend>Datos de acceso</legend><div class="fg">
-        <div class="f full" data-f="nombre"><label for="u_nombre">Nombre o área</label><input id="u_nombre" name="nombre" value="${esc(u.nombre||'')}" placeholder="Ejemplo: Departamento contable"><div class="err"></div></div>
-        <div class="f" data-f="usuario"><label for="u_user">Usuario</label><input id="u_user" name="usuario" value="${esc(u.usuario||'')}" ${usuario?'readonly':''} autocapitalize="none" spellcheck="false" placeholder="contabilidad"><div class="hint">Minúsculas, sin espacios.</div><div class="err"></div></div>
+        <div class="f full" data-f="nombre"><label for="u_nombre">Nombre de la persona</label><input id="u_nombre" name="nombre" value="${esc(u.nombre||'')}" placeholder="Ejemplo: Pedro Gómez"><div class="err"></div></div>
+        <div class="f" data-f="usuario"><label for="u_user">Usuario</label><input id="u_user" name="usuario" value="${esc(u.usuario||'')}" ${usuario?'readonly':''} autocapitalize="none" spellcheck="false" placeholder="pedro"><div class="hint">Minúsculas, sin espacios.</div><div class="err"></div></div>
         <div class="f" data-f="clave"><label for="u_pass">${usuario?'Nueva contraseña':'Contraseña'}</label><input id="u_pass" name="clave" type="text" autocomplete="off" placeholder="${usuario?'Déjala vacía para no cambiarla':'Mínimo 8 caracteres'}"><div class="err"></div></div>
       </div></fieldset>
-      <fieldset><legend>Tipo de acceso</legend>
-        <label class="check" style="margin-bottom:8px"><input type="radio" name="rol" value="gerente" ${u.rol==='gerente'?'checked':''}> Gerente general: ve todo y administra usuarios</label>
-        <label class="check"><input type="radio" name="rol" value="area" ${u.rol!=='gerente'?'checked':''}> Solo las áreas que marque</label>
+      <fieldset><legend>¿Qué hace este usuario?</legend><div class="utipos">${USER_TIPOS.map(([k,l,d])=>`<button type="button" class="utipo ${userTipo(u)===k?'on':''}" data-act="user-tipo" data-k="${k}"><b>${l}</b><span>${d}</span></button>`).join('')}</div>
+        <div class="hint" style="margin-top:8px">Elige uno y se marcan solas sus áreas. Si necesita más, marca otras áreas abajo.</div>
+        <div style="display:none"><input type="radio" name="rol" value="gerente" ${u.rol==='gerente'?'checked':''}><input type="radio" name="rol" value="area" ${u.rol!=='gerente'?'checked':''}></div>
       </fieldset>
       <fieldset id="areasBox"><legend>Áreas permitidas</legend><div class="checks">${Object.entries(AREA_L).map(([k,l])=>`<label class="check"><input type="checkbox" name="area_${k}" ${u.areas.includes(k)?'checked':''}> ${l}</label>`).join('')}</div><div class="err" id="areasErr" style="color:var(--danger);font-size:12.5px;margin-top:6px"></div></fieldset>
       <fieldset id="repBox"><legend>Actividades que reporta</legend><div class="checks">${repCat().map(a=>`<label class="check"><input type="checkbox" name="rep_${a.id}" ${((repUsers()[u.usuario]||{}).acts||[]).includes(a.id)?'checked':''}> ${esc(a.nombre)}</label>`).join('')}</div><div class="hint">Solo lo que esta persona hace. Podrás cambiarlo luego en Reportes → Actividades por persona.</div>
@@ -2388,8 +2422,9 @@ async function submitUser(form){
   const racts = areas.includes('reportes') && v.rol!=='gerente' ? repCat().filter(a=>fdata.has('rep_'+a.id)).map(a=>a.id) : [];
   const prevR = (repUsers()[usuario]||{});
   if(racts.length || (prevR.acts||[]).length){ const ru = clone(repUsers()); if(racts.length) ru[usuario] = {nombre:v.nombre.trim(), acts:racts, empId:v.repEmp||''}; else delete ru[usuario]; await putCfg({...S.cfg, repAct:ru}); }
+  let opOk = null; if(v.rol!=='gerente' && areas.includes('recargas')) opOk = await asegurarOperador(usuario, v.nombre.trim());
   UI.users = j.users; closeLayer(); render();
-  toast(form.dataset.id ? 'Usuario actualizado' : `Usuario ${usuario} creado. Comparte la contraseña en privado.`);
+  toast((form.dataset.id ? 'Usuario actualizado.' : `Usuario ${usuario} creado. Comparte la contraseña en privado.`) + (opOk===true ? ' Ya aparece como operador en Operadores.' : opOk===false ? ' No se pudo crear su operador: hazlo en Operadores → Configuración.' : ''));
 }
 function passForm(){
   openLayer(`<form class="modal small-modal" id="passForm" role="dialog" aria-modal="true" aria-labelledby="pT" novalidate><h2 id="pT">Cambiar mi contraseña</h2>
@@ -2429,6 +2464,7 @@ Object.assign(ACT, {
   'sync-now':async ()=>{ flushBatch(); await QUEUE; await reload(); toast('Datos actualizados'); },
   'my-pass':()=>passForm(),
   'user-new':()=>userForm(),
+  'user-tipo':d=>setUserTipo(d.k),
   'user-edit':d=>userForm(d.id),
   'user-del':async d=>{ if(!(await ask('Eliminar usuario', `El usuario ${d.id} ya no podrá ingresar. Esta acción no se puede deshacer.`, 'Eliminar', true))) return; const j=await api('users.del',{usuario:d.id}); if(!j.ok){ toast(j.error,true); return; } UI.users=j.users; closeLayer(); render(); toast('Usuario eliminado'); },
   'upload-local':()=>uploadLocal()
