@@ -337,7 +337,7 @@ const LIVE = 'live'==='live';
 const RCM = LIVE ? ((new URLSearchParams(location.search).get('m')==='ext') ? 'ext' : 'op') : '';
 function tabsList(ceo, conta, extr){
   if(RCM==='ext'){ if(conta) return [['conta','Contabilidad']]; if(ceo) return [['extr','Extracciones'],['conta','Contabilidad'],['reportes','Reportes de cierre de caja'],['config','Cuentas de extracciones']]; if(extr) return [['extr','Extracciones'],['cierre','Cierre de caja']]; return [['extr','Extracciones']]; }
-  if(RCM==='op'){ if(conta) return [['conta','Contabilidad']]; if(ceo) return [['caja','Caja del operador'],['cuadres','Cuadres'],['reportes','Reportes de cierre de caja'],['resumen','Resumen'],['conta','Contabilidad'],['agentes','Agentes'],['config','Configuración']]; return [['caja','Caja del operador'],['cuadres','Cuadres'],['cierre','Cierre de caja']]; }
+  if(RCM==='op'){ if(conta) return [['conta','Contabilidad']]; if(ceo) return [['caja','Caja del operador'],['historial','Historial'],['reportes','Reportes de cierre de caja'],['resumen','Resumen'],['conta','Contabilidad'],['agentes','Agentes'],['config','Configuración']]; return [['caja','Caja del operador'],['historial','Historial'],['cierre','Cierre de caja']]; }
   return null;
 }
 let S; if(LIVE) S = emptyS(); else { try{ S = JSON.parse(localStorage.getItem(LS_KEY)||'null'); }catch(e){ S = null; } }
@@ -559,7 +559,7 @@ function render(){
   const conta = SES.rol==='conta', extr = SES.rol==='extr';
   if(conta) UI.tab = 'conta';
   else if(extr && !['extr','cierre'].includes(UI.tab)) UI.tab = 'extr';
-  else if(!ceo && !extr && !['extr','cuadres','cierre'].includes(UI.tab)) UI.tab = 'caja';
+  else if(!ceo && !extr && !['extr','historial','cierre'].includes(UI.tab)) UI.tab = 'caja';
   if(RCM){ const ok = tabsList(ceo, conta, extr).map(x=>x[0]); if(!ok.includes(UI.tab)) UI.tab = ok[0]; }
   const pend = S.movs.filter(m=>m.tipo==='recarga' && !m.anulado && !m.rev).length;
   const NAVS = [['General',[['Resumen','M4 4h7v7H4zM13 4h7v4h-7zM13 10h7v10h-7zM4 13h7v7H4z'],['Personal','M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM2 21v-1a6 6 0 0 1 12 0v1M16 3.5a4 4 0 0 1 0 7M22 21v-1a6 6 0 0 0-4-5.6'],['Reportes','M9 4h6l1 2h3v15H5V6h3zM9 11h6M9 15h4']]],
@@ -572,12 +572,12 @@ function render(){
     ${NAV.map(([g,items])=>`<div class="navg">${g}</div><nav class="nav">${items.map(([l,d,on,go])=>`<button class="${on?'on':''}" ${on?'aria-current="page"':typeof go==='string'?(go.startsWith('jt:')?`data-act="jt" data-k="${go.slice(3)}"`:`data-act="tab" data-k="${go}"`)+' style="cursor:pointer"':'disabled title="Otras secciones del panel"'}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>${l}</button>`).join('')}</nav>`).join('')}
     <div class="sfoot"><div class="ucard"><span class="av">${esc(SES.nombre.slice(0,1))}</span><div><b>${esc(SES.nombre)}</b><small>${esc(SES.usuario)}</small></div></div><span class="rolp">${ROLE_L[0]}</span><p>${ROLE_L[1]}. Entra con el mismo login del panel.</p></div></aside>
     <div class="mainc"><header class="top"><div class="brand mob"><img src="${LOGO}" alt=""><div><b>BENDERAM</b><span>Recargas</span></div></div>
-    <h1 class="ttl">${UI.tab==='cierre'?'Cierre de caja':UI.tab==='reportes'&&ceo?'Reportes de cierre':RCM==='op'?(conta?'Contabilidad de operadores':ceo?'Operadores':UI.tab==='cuadres'?'Mis cuadres':'Mi caja'):RCM==='ext'?(conta?'Contabilidad de extracciones':ceo||extr?'Extracciones':'Mis extracciones'):conta?'Contabilidad':extr?'Extracciones':ceo?'Administración':UI.tab==='extr'?'Mis extracciones':UI.tab==='cuadres'?'Mis cuadres':'Mi caja de recargas'}</h1>
+    <h1 class="ttl">${UI.tab==='historial'?'Historial':UI.tab==='cierre'?'Cierre de caja':UI.tab==='reportes'&&ceo?'Reportes de cierre':RCM==='op'?(conta?'Contabilidad de operadores':ceo?'Operadores':UI.tab==='cuadres'?'Mis cuadres':'Mi caja'):RCM==='ext'?(conta?'Contabilidad de extracciones':ceo||extr?'Extracciones':'Mis extracciones'):conta?'Contabilidad':extr?'Extracciones':ceo?'Administración':UI.tab==='extr'?'Mis extracciones':UI.tab==='cuadres'?'Mis cuadres':'Mi caja de recargas'}</h1>
     <nav class="tabs" aria-label="Secciones">${(tabsList(ceo,conta,extr)||(conta?[['conta','Contabilidad']]:extr?[['extr','Extracciones']]:[['caja','Caja del operador'], ...(!ceo?[['extr','Extracciones'],['cuadres','Cuadres']]:[['cuadres','Cuadres']]), ...(ceo?[['resumen','Resumen CEO'],['extr','Extracciones'],['conta','Contabilidad'],['agentes','Agentes'],['config','Configuración']]:[])])).map(([k,l])=>{ const n = k==='conta'?(RCM==='op'?pend:RCM==='ext'?extPendConta():pend+extPendConta()):k==='extr'&&!ceo&&!extr?extPendOp(SES.op):k==='extr'?extPorPagar():0; return `<button class="tab ${UI.tab===k?'on':''}" data-act="tab" data-k="${k}">${l}${n?` <span class="bdg">${n}</span>`:''}</button>`; }).join('')}</nav>
     <div class="sp"></div>
     ${LIVE?`<span id="rcSync" class="pill ${LV.dirty?'warn':'ok'}">${LV.dirty?'Sin guardar · usa Guardar cambios arriba':'Guardado ✓'}</span>`:''}${rolSwitch()}<span class="rolp top">${ROLE_L[0]}</span>
     <button class="btn sm quiet" data-act="theme">Tema</button></header>
-    <main class="wrap" id="main">${RCM==='op'&&ceo?opsSobrantesHTML():''}${UI.tab==='cierre'&&!ceo&&!conta ? cierreHTML() : UI.tab==='reportes'&&ceo ? reportesAdmHTML() : UI.tab==='extr'&&(ceo||extr) ? extrHTML() : UI.tab==='extr' ? extrOpHTML() : UI.tab==='conta'&&(ceo||conta) ? contaHTML() : UI.tab==='resumen'&&ceo ? resumenHTML() : UI.tab==='agentes'&&ceo ? agentesHTML() : UI.tab==='config'&&ceo ? configHTML() : UI.tab==='cuadres' ? cuadresOpHTML() : cajaHTML()}</main></div></div>`;
+    <main class="wrap" id="main">${RCM==='op'&&ceo?opsSobrantesHTML():''}${UI.tab==='cierre'&&!ceo&&!conta ? cierreHTML() : UI.tab==='reportes'&&ceo ? reportesAdmHTML() : UI.tab==='extr'&&(ceo||extr) ? extrHTML() : UI.tab==='extr' ? extrOpHTML() : UI.tab==='conta'&&(ceo||conta) ? contaHTML() : UI.tab==='resumen'&&ceo ? resumenHTML() : UI.tab==='agentes'&&ceo ? agentesHTML() : UI.tab==='config'&&ceo ? configHTML() : UI.tab==='historial' ? historialOpHTML() : cajaHTML()}</main></div></div>`;
   if(UI.tab==='caja') renderForm();
 }
 function loginHTML(){
@@ -621,7 +621,7 @@ function cajaHTML(){
     <div class="kpi"><small>Verificado por contabilidad</small><b class="num">${ms.filter(m=>!m.anulado&&m.tipo==='recarga'&&m.rev==='ok').length} de ${R.nRec}</b><em>${ms.filter(m=>!m.anulado&&m.rev==='bad').length?`<span class="neg">${ms.filter(m=>!m.anulado&&m.rev==='bad').length} con problema</span>`:'Comprobantes revisados'}</em></div>
   </section>`; })()}
   <section class="card noprint" id="formCard"></section>
-  <p class="muted noprint" style="font-size:13px;margin:12px 2px 0">Los movimientos registrados y el saldo de cada día están en <button class="lnk" data-act="irHist">Cuadres → Historial</button>.</p>`;
+  <p class="muted noprint" style="font-size:13px;margin:12px 2px 0">Los movimientos registrados y el saldo de cada día están en <button class="lnk" data-act="irHist">Historial</button>.</p>`;
 }
 const difHTML = R => R.dif==null ? `<small>Diferencia</small><b>—</b><span style="font-size:13px">Escribe el saldo real para cuadrar</span>` : Math.abs(R.dif)<0.005 ? `<small>Diferencia</small><b>$0,00</b><span style="font-size:13px">Caja cuadrada ✓</span>` : `<small>${R.dif<0?'Faltante':'Sobrante'}</small><b class="num">${money(Math.abs(R.dif))}</b><span style="font-size:13px">${R.dif<0?'Falta dinero en la caja':'Hay más dinero del esperado'}. Revisa los comprobantes.</span>`;
 
@@ -811,7 +811,7 @@ document.addEventListener('click', async e=>{
   else if(a==='reabrir'){ const c = caja(op,UI.fecha); c.cerrada = false; c.aprobada = false; logAcc('Reabrió caja', `${opName(op)} · ${fd(UI.fecha)}`); save(); render(); toast('Caja reabierta.'); }
   else if(a==='csv') csvOut();
   else if(a==='print') window.print();
-  else if(a==='irCaja'){ UI.op = b.dataset.id; UI.tab = 'cuadres'; render(); }
+  else if(a==='irCaja'){ UI.op = b.dataset.id; UI.tab = 'caja'; render(); }
   else if(a==='addAg'){ S.agentes.push({id:uid('a'), nombre:'Nuevo agente', codigo:'', cuenta:'', op:S.operadores[0].id, titulares:''}); save(); render(); }
   else if(a==='delAg'){ if(await ask('Quitar agente', '¿Quitar este agente?', {ok:'Quitar', danger:true})){ S.agentes.splice(+b.dataset.i,1); save(); render(); } }
   else if(a==='addCta'){ S.cuentas.push({banco:'', numero:'', titular:'BENDERAM S.A.S.'}); save(); render(); }
@@ -1445,7 +1445,7 @@ function historialOpHTML(){
     <div class="kpi"><small>Diferencia acumulada</small><b class="num ${Math.abs(difTot)<0.005?'pos':'neg'}">${Math.abs(difTot)<0.005?'$0,00':(difTot<0?'−':'+')+money(Math.abs(difTot))}</b><em>${Math.abs(difTot)<0.005?'Sin faltantes ni sobrantes':difTot<0?'Faltante en el período':'Sobrante en el período'}</em></div>
   </section>
   <section class="card" style="margin-top:14px"><h2>Movimientos del período</h2>${barrasHTML(L)}</section>
-  <div class="sech"><h2>Cuadre por día</h2><span class="muted" style="font-size:13px">Toca un día para abrir su cuadre completo.</span></div>
+  <div class="sech"><h2>Cuadre por día</h2><span class="muted" style="font-size:13px">${isAdm()?'Toca un día para ver su caja.':'Toca un día para hacer su cierre de caja.'}</span></div>
   <div class="tw"><table class="t" style="min-width:1050px"><thead><tr><th>Fecha</th><th class="r">Saldo al iniciar</th><th class="r">Recargas</th><th class="r">Extracciones</th><th class="r">Gerencia</th><th class="r">Traspasos</th><th class="r">Caja debe tener</th><th class="r">Caja real</th><th class="r">Diferencia</th><th class="r">Bancos</th><th class="r">Total</th><th>Estado</th></tr></thead><tbody>
     ${filas.length?filas.map(({d:x,Q})=>{ const R = Q.R, g = r2(R.car-R.carQ), tr = r2(R.tin-R.tout+R.mIn-R.mOut);
       return `<tr class="click" data-act="cqDia" data-f="${x}"><td class="num"><b>${fd(x)}</b>${x===hoy?'<small>Hoy</small>':''}</td><td class="r num">${money(R.ini)}</td><td class="r num neg">${R.rec?'−'+money(R.rec):'—'}<small>${R.nRec||''} ${R.nRec?'comp.':''}</small></td><td class="r num pos">${R.ext?'+'+money(R.ext):'—'}</td><td class="r num ${g<0?'neg':g>0?'pos':''}">${g?(g>0?'+':'−')+money(Math.abs(g)):'—'}</td><td class="r num">${tr?(tr>0?'+':'−')+money(Math.abs(tr)):'—'}</td><td class="r num"><b>${money(R.esperado)}</b></td><td class="r num">${R.real==null?'—':money(R.real)}</td><td class="r num ${R.dif==null?'':Math.abs(R.dif)<0.005?'pos':'neg'}">${R.dif==null?'—':Math.abs(R.dif)<0.005?'Cuadra ✓':money(R.dif)}</td><td class="r num">${money(Q.totB)}</td><td class="r num"><b>${money(Q.total)}</b></td><td>${est(R)}</td></tr>`; }).join(''):'<tr><td colspan="12" class="empty">Sin actividad en estas fechas.</td></tr>'}
@@ -1456,10 +1456,10 @@ function historialOpHTML(){
       return `<tr class="${m.anulado?'anul':''}"><td class="num">${fd(m.fecha)}<small>${hm(m.ts)}</small></td><td><span class="pill ${m.tipo==='recarga'?'info':m.tipo==='carga'&&(m.signo||1)<0?'bad':m.tipo==='carga'||m.tipo==='extraccion'?'ok':'warn'}">${esc(tl)}</span>${m.anulado?'<small class="neg">Anulado</small>':''}</td><td>${esc(movTxt(m, op))}</td><td class="num">${esc(m.comprobante||'—')}${m.banco?`<small>${esc(m.banco)}</small>`:''}</td><td class="r num ${e.caja<0?'neg':e.caja>0?'pos':''}">${e.caja?(e.caja<0?'−':'+')+money(Math.abs(e.caja)):'—'}</td><td>${b.length&&!m.anulado?b.map(x=>`${esc(lugarCorto(x.cta))} <span class="num ${x.v<0?'neg':'pos'}">${x.v<0?'−':'+'}${money(Math.abs(x.v))}</span>`).join('<br>'):'—'}</td><td>${m.tipo==='recarga'?(m.rev==='ok'?'<span class="pill ok">Llegó</span>':m.rev==='bad'?'<span class="pill bad">No llegó</span>':'<span class="pill warn">Por verificar</span>'):'—'}</td><td>${m.img?`<img class="thumb" src="${imgSrc(m.img)}" alt="Comprobante" data-act="ver" data-id="${m.id}">`:'—'}</td>${m.tipo==='recarga'?'':''}<td>${esc(m.usuario||'')}</td>${isAdm()?`<td class="noprint"><div class="acts" style="flex-wrap:nowrap">${m.anulado?`<button class="btn sm quiet" data-act="reactivar" data-id="${m.id}">Reactivar</button>`:`<button class="btn sm" data-act="editar" data-id="${m.id}">Editar</button><button class="btn sm quiet bad" data-act="anular" data-id="${m.id}">Anular</button>`}<button class="btn sm quiet bad" data-act="eliminar" data-id="${m.id}" aria-label="Eliminar">🗑</button></div></td>`:''}</tr>`; }).join('') : '<tr><td colspan="10" class="empty">Nada en este filtro.</td></tr>'}
   </tbody></table></div>${msF.length>500?'<p class="muted" style="font-size:13px">Se muestran los 500 más recientes. Acorta las fechas para ver el resto.</p>':''}`;
 }
-document.addEventListener('click', e=>{ if(e.target.closest('[data-act="irHist"]')){ UI.tab = 'cuadres'; UI.cq = 'historial'; UI.hR = UI.hR||'hoy'; render(); } });
+document.addEventListener('click', e=>{ if(e.target.closest('[data-act="irHist"]')){ UI.tab = 'historial'; UI.hR = UI.hR||'hoy'; render(); } });
 document.addEventListener('click', e=>{ const b = e.target.closest('[data-act="hR"],[data-act="hT"]'); if(!b) return; if(b.dataset.act==='hR'){ UI.hR = b.dataset.k; if(b.dataset.k==='custom'){ const [d,h] = rangoHist(); UI.hD = UI.hD||d; UI.hH = UI.hH||h; } } else UI.hT = b.dataset.k; render(); });
 document.addEventListener('change', e=>{ if(e.target.id!=='hD' && e.target.id!=='hH') return; const [d,h] = rangoHist(); UI.hR = 'custom'; UI.hD = e.target.id==='hD' ? (e.target.value||d) : d; UI.hH = e.target.id==='hH' ? (e.target.value||h) : h; if(UI.hD>UI.hH) [UI.hD, UI.hH] = [UI.hH, UI.hD]; render(); });
-document.addEventListener('click', e=>{ const b = e.target.closest('[data-act="cqTab"],[data-act="cqDia"]'); if(!b) return; if(b.dataset.act==='cqTab') UI.cq = b.dataset.k; else { UI.fecha = b.dataset.f; UI.cq = 'hoy'; } render(); });
+document.addEventListener('click', e=>{ const b = e.target.closest('[data-act="cqTab"],[data-act="cqDia"]'); if(!b) return; if(b.dataset.act==='cqTab') UI.cq = b.dataset.k; else { const f = b.dataset.f; UI.fecha = f; if(isAdm()) UI.tab = 'caja'; else { UI.tab = 'cierre'; UI.ciF = f; UI.ciPrev = null; } } render(); });
 function cuadreDiaHTML(){
   const op = opActual(), f = UI.fecha, ceo = isAdm(); S.cuadOp = S.cuadOp||{};
   const c = caja(op, f), Q = saldosOp(op, f), R = Q.R, cerrada = R.cerrada;
@@ -1577,7 +1577,7 @@ document.addEventListener('input', e=>{ const t = e.target; if(!t.dataset.ok) re
   const [id,f] = t.dataset.ok.split('|'); const d = ctaOpDia(id, f); const el = document.querySelector(`[data-od="${t.dataset.ok}"]`); if(el){ el.className = 'dif '+(d.dif==null?'na':Math.abs(d.dif)<0.005?'ok':'bad'); el.innerHTML = difMini(d.dif); } heroRefresh(); });
 document.addEventListener('input', e=>{ if(e.target.id==='realIn' && UI.tab==='cuadres') heroRefresh(); });
 function heroRefresh(){ clearTimeout(window._hrT); window._hrT = setTimeout(()=>{ if(UI.tab!=='cuadres') return; const a = document.activeElement, id = a && (a.id || a.dataset.ok), p = a && a.selectionStart; render(); const n = id && (document.getElementById(id) || document.querySelector(`[data-ok="${id}"]`)); if(n){ n.focus(); try{ n.setSelectionRange(p,p); }catch(_){} } }, 700); }
-document.addEventListener('click', e=>{ const b = e.target.closest('[data-act="irMover"]'); if(b){ UI.tab = 'caja'; UI.tipo = 'mover'; UI.form = {}; render(); } const g = e.target.closest('[data-act="irCuadres"]'); if(g){ UI.tab = 'cuadres'; render(); } });
+document.addEventListener('click', e=>{ const b = e.target.closest('[data-act="irMover"]'); if(b){ UI.tab = 'caja'; UI.tipo = 'mover'; UI.form = {}; render(); } const g = e.target.closest('[data-act="irCuadres"]'); if(g){ UI.tab = 'cierre'; render(); } });
 function misSaldosCard(op, f){
   const Q = saldosOp(op, f), R = Q.R;
   return `<section class="card">
@@ -1933,13 +1933,28 @@ function listaReportesHTML(L, adm){
       <td><div class="acts" style="flex-wrap:nowrap"><button class="btn sm" data-act="repVer" data-id="${esc(r.id)}">Ver</button><button class="btn sm gold" data-act="repPdf" data-id="${esc(r.id)}">Descargar PDF</button></div></td></tr>`).join(''):`<tr><td colspan="7" class="empty">Todavía no hay reportes de cierre.</td></tr>`}
   </tbody></table></div>`;
 }
+function realesHTML(op, f){
+  const Q = saldosOp(op, f), R = Q.R, c = caja(op, f), cerrada = R.cerrada;
+  if(cerrada) return `<section class="card" style="margin-top:16px"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h2>Saldos reales del ${fd(f)}</h2>${R.aprobada?'<span class="pill ok">Aprobado por gerencia</span>':'<span class="pill info">Caja cerrada · gerencia revisa</span>'}</div>
+    <div class="tw" style="margin:10px 0 0"><table class="t" style="min-width:520px"><thead><tr><th>Cuenta</th><th class="r">Debe tener</th><th class="r">Real</th><th class="r">Diferencia</th></tr></thead><tbody>
+    <tr><td><b>Caja de operador</b></td><td class="r num">${money(R.esperado)}</td><td class="r num">${R.real==null?'—':money(R.real)}</td><td class="r num ${R.dif==null?'':Math.abs(R.dif)<0.005?'pos':'neg'}">${difTxt(R.dif)}</td></tr>
+    ${Q.bk.map(d=>`<tr><td><b>${esc(d.c.banco)} ····${esc(String(d.c.numero).slice(-4))}</b></td><td class="r num">${money(d.esperado)}</td><td class="r num">${d.real==null?'—':money(d.real)}</td><td class="r num ${d.dif==null?'':Math.abs(d.dif)<0.005?'pos':'neg'}">${difTxt(d.dif)}</td></tr>`).join('')}</tbody></table></div></section>`;
+  return `<section class="card" style="margin-top:16px"><h2>1. Escribe tus saldos reales</h2><p class="muted" style="font-size:13px;margin:4px 0 12px">Lo que muestra la plataforma y la app de tu banco al terminar el día. Al generar el reporte, la caja de ese día se cierra.</p>
+    <div class="qreal"><div class="f"><label for="realIn">Caja de operador · debe tener ${money(R.esperado)}</label><input id="realIn" type="number" step="0.01" inputmode="decimal" value="${esc(c.real??'')}" placeholder="Saldo en la plataforma"></div>
+      <div class="dif ${R.dif==null?'na':Math.abs(R.dif)<0.005?'ok':'bad'}" id="difBox">${difMini(R.dif)}</div></div>
+    ${Q.bk.map(d=>`<div class="qreal" style="margin-top:10px"><div class="f"><label>${esc(d.c.banco)} ····${esc(String(d.c.numero).slice(-4))} · debe tener ${money(d.esperado)}</label><input type="number" step="0.01" inputmode="decimal" data-ok="${d.k}" value="${esc(d.q.real??'')}" placeholder="Saldo en la app del banco"></div>
+      <div class="dif ${d.dif==null?'na':Math.abs(d.dif)<0.005?'ok':'bad'}" data-od="${d.k}">${difMini(d.dif)}</div></div>`).join('')}
+  </section>`;
+}
 function cierreHTML(){
-  const op = REP_TIPO()==='op' ? opActual() : '', f = UI.ciF || todayS(); const tipo = REP_TIPO();
+  const op = REP_TIPO()==='op' ? opActual() : '', f = UI.ciF || todayS(); const tipo = REP_TIPO(); if(tipo==='op') UI.fecha = f;
   const prev = UI.ciPrev && UI.ciPrev.fecha===f && (tipo==='ext' || UI.ciPrev.op===op) ? UI.ciPrev : null;
   const ya = (S.reportes||{})[`${tipo}|${op||'ext'}|${f}`];
   const sel = UI.repSel && (S.reportes||{})[UI.repSel];
   return `<section class="card"><h2>Cierre de caja</h2><p class="muted" style="font-size:13px;margin:4px 0 14px">Elige el día que trabajaste y pulsa <b>Ver reporte</b>. Revísalo y, si está bien, pulsa <b>Generar reporte</b>: queda guardado en tu historial y en el de gerencia, y se puede descargar en PDF.</p>
-    <div class="bar" style="margin:0"><div class="f"><label for="ciF">Día trabajado</label><input id="ciF" type="date" value="${f}" max="${todayS()}"></div><div class="acts"><button class="btn gold" data-act="ciVer">Ver reporte</button></div></div>
+    <div class="bar" style="margin:0"><div class="f"><label for="ciF">Día trabajado</label><input id="ciF" type="date" value="${f}" max="${todayS()}"></div>${tipo==='op'?'':'<div class="acts"><button class="btn gold" data-act="ciVer">Ver reporte</button></div>'}</div>
+    ${tipo==='op'?realesHTML(op, f):''}
+    ${tipo==='op'?`<section class="card" style="margin-top:16px"><h2>2. Revisa y genera el reporte</h2><p class="muted" style="font-size:13px;margin:4px 0 12px">Pulsa Ver reporte para revisarlo antes de generarlo.</p><div class="acts"><button class="btn gold" data-act="ciVer">Ver reporte</button></div></section>`:''}
     ${ya?`<div class="alert info" style="margin:12px 0 0"><b>i</b><div>Ya generaste el cierre de este día el ${fd(dOf(ya.ts))} a las ${hm(ya.ts)}. Si lo generas otra vez, se reemplaza por el nuevo.</div></div>`:''}</section>
     ${prev?`<div style="margin-top:16px">${reporteHTML(prev, `<div class="acts rep-a"><button class="btn quiet" data-act="ciCerrar">Cerrar vista</button><button class="btn gold" data-act="ciGenerar">Generar reporte</button></div>`)}</div>`:''}
     ${sel && !prev?`<div style="margin-top:16px">${reporteHTML(sel, `<div class="acts rep-a"><button class="btn quiet" data-act="repCerrar">Cerrar</button><button class="btn gold" data-act="repPdf" data-id="${esc(sel.id)}">Descargar PDF</button></div>`)}</div>`:''}
@@ -1953,24 +1968,37 @@ function reportesAdmHTML(){
   return `<div class="bar noprint">${tipo==='op'?`<div class="f"><label for="repOp">Operador</label><select id="repOp"><option value="">Todos</option>${S.operadores.map(o=>`<option value="${o.id}" ${fo===o.id?'selected':''}>${esc(o.nombre)}${o.responsable?' · '+esc(o.responsable):''}</option>`).join('')}</select></div>`:''}
       <div class="f"><label for="repD">Desde</label><input id="repD" type="date" value="${d}" max="${todayS()}"></div><div class="f"><label for="repH">Hasta</label><input id="repH" type="date" value="${h}" max="${todayS()}"></div>
       <div style="flex:1"></div><span class="muted" style="font-size:13px">${L.length} ${L.length===1?'reporte':'reportes'}</span></div>
-    ${sel?`<div style="margin-bottom:16px">${reporteHTML(sel, `<div class="acts rep-a"><button class="btn quiet" data-act="repCerrar">Cerrar</button><button class="btn gold" data-act="repPdf" data-id="${esc(sel.id)}">Descargar PDF</button></div>`)}</div>`:''}
+    ${sel?`<div style="margin-bottom:16px">${reporteHTML(sel, `<div class="acts rep-a"><button class="btn quiet" data-act="repCerrar">Cerrar</button>${sel.tipo==='op'?(sel.estado==='Aprobado'?'<button class="btn" data-act="repReabrir" data-id="'+esc(sel.id)+'">Reabrir caja</button>':'<button class="btn" data-act="repReabrir" data-id="'+esc(sel.id)+'">Reabrir caja</button><button class="btn gold" data-act="repAprobar" data-id="'+esc(sel.id)+'">Aprobar cierre</button>'):''}<button class="btn gold" data-act="repPdf" data-id="${esc(sel.id)}">Descargar PDF</button></div>`)}</div>`:''}
     ${listaReportesHTML(L, true)}`;
 }
 document.addEventListener('change', e=>{ const t = e.target;
-  if(t.id==='ciF'){ UI.ciF = t.value || todayS(); UI.ciPrev = null; render(); }
+  if(UI.tab==='cierre' && UI.ciPrev && (t.id==='realIn' || t.dataset.ok)){ clearTimeout(window._ciT); window._ciT = setTimeout(()=>{ if(UI.tab==='cierre' && UI.ciPrev && !liveOcupado()){ UI.ciPrev = construirReporte(UI.ciPrev.fecha, UI.ciPrev.op); render(); } }, 600); }
+  if(t.id==='ciF'){ UI.ciF = t.value || todayS(); if(REP_TIPO()==='op') UI.fecha = UI.ciF; UI.ciPrev = null; render(); }
   if(t.id==='repOp'){ UI.repOp = t.value; render(); } if(t.id==='repD'){ UI.repD = t.value; render(); } if(t.id==='repH'){ UI.repH = t.value; render(); } });
 document.addEventListener('click', async e=>{ const b = e.target.closest('[data-act]'); if(!b) return; const a = b.dataset.act;
   if(a==='ciVer'){ const f = UI.ciF || todayS(); const op = REP_TIPO()==='op' ? opActual() : ''; UI.ciPrev = construirReporte(f, op); UI.repSel = null; render(); setTimeout(()=>document.querySelector('.rep')?.scrollIntoView({behavior:'smooth', block:'start'}), 50); }
   else if(a==='ciCerrar'){ UI.ciPrev = null; render(); }
   else if(a==='repCerrar'){ UI.repSel = null; render(); }
   else if(a==='repVer'){ UI.repSel = b.dataset.id; UI.ciPrev = null; render(); setTimeout(()=>document.querySelector('.rep')?.scrollIntoView({behavior:'smooth', block:'start'}), 50); }
-  else if(a==='ciGenerar'){ const r = UI.ciPrev; if(!r) return;
+  else if(a==='ciGenerar'){ let r = UI.ciPrev; if(!r) return; let cerrar = null;
+    if(r.tipo==='op'){ const op = r.op, f = r.fecha, R = resumen(op, f);
+      if(!R.cerrada){ if(R.real==null) return toast('Escribe el saldo real de la caja de operador (paso 1).', true);
+        const bkF = ctasDeOp(op).map(c=>ctaOpDia(c.id, f)); if(bkF.some(d=>d.real==null)) return toast('Escribe el saldo real de cada cuenta de banco (paso 1).', true);
+        const malos = [['Caja de operador', R.dif], ...bkF.map(d=>[`${d.c.banco} ····${String(d.c.numero).slice(-4)}`, d.dif])].filter(x=>Math.abs(x[1])>=0.005);
+        if(malos.length && !(await ask('Hay diferencias', `No cuadra:<br>${malos.map(([l,d])=>`• ${esc(l)}: <b>${d<0?'faltante':'sobrante'} de ${money(Math.abs(d))}</b>`).join('<br>')}<br>¿Generar el cierre igual? Gerencia lo verá.`, {ok:'Generar igual', danger:true}))) return;
+        cerrar = {op, f}; }
+      r = construirReporteOp(op, f); if(cerrar) r.estado = 'Cerrado'; }
     if(!(await ask('Generar reporte de cierre', `¿Generar el cierre de caja de <b>${esc(r.nombre)}</b> del <b>${fd(r.fecha)}</b>?<br><span class="muted">Dinero total: ${money(r.total)} · Diferencia: ${difTxt(r.totDif)}</span>`, {ok:'Sí, generar'}))) return;
+    if(cerrar){ const c = caja(cerrar.op, cerrar.f); c.cerrada = true; c.cerradaPor = SES.nombre; c.cerradaEn = Date.now(); logAcc('Cerró caja', `${opName(cerrar.op)} · ${fd(cerrar.f)}`); r = construirReporteOp(cerrar.op, cerrar.f); }
     const id = `${r.tipo}|${r.op||'ext'}|${r.fecha}`; S.reportes = S.reportes||{};
     S.reportes[id] = {...r, id, ts:Date.now(), por:SES.nombre||SES.usuario, usuario:SES.usuario};
     logAcc('Cierre de caja generado', `${r.nombre} · ${fd(r.fecha)} · ${money(r.total)}`);
     LV.ev = 'boton'; save(); UI.ciPrev = null; UI.repSel = id; render(); toast('Reporte generado. Ya está en tu historial y en el de gerencia.');
     tgSend(`🧾 <b>Cierre de caja</b>\n${esc(r.nombre)}${r.responsable?' · '+esc(r.responsable):''} · ${fd(r.fecha)}\nTotal: ${money(r.total)} · ${difTxt(r.totDif)}`, 'alertas'); }
+  else if((a==='repAprobar' || a==='repReabrir') && isAdm()){ const r = (S.reportes||{})[b.dataset.id]; if(!r) return; const c = caja(r.op, r.fecha);
+    if(a==='repAprobar'){ if(!(await ask('Aprobar cierre', `¿Aprobar el cierre de <b>${esc(r.nombre)}</b> del <b>${fd(r.fecha)}</b>?<br><span class="muted">Diferencia: ${difTxt(r.totDif)}</span>`, {ok:'Aprobar'}))) return; c.cerrada = true; c.aprobada = true; c.aprobadaPor = SES.nombre; c.aprobadaEn = Date.now(); r.estado = 'Aprobado'; logAcc('Aprobó cierre', `${r.nombre} · ${fd(r.fecha)}`); toast('Cierre aprobado.'); }
+    else { if(!(await ask('Reabrir caja', `¿Reabrir la caja de <b>${esc(r.nombre)}</b> del <b>${fd(r.fecha)}</b>? El operador podrá corregir y generar el cierre otra vez.`, {ok:'Reabrir'}))) return; c.cerrada = false; c.aprobada = false; r.estado = 'Reabierto'; logAcc('Reabrió caja', `${r.nombre} · ${fd(r.fecha)}`); toast('Caja reabierta.'); }
+    LV.ev = 'boton'; save(); render(); }
   else if(a==='repPdf'){ const r = (S.reportes||{})[b.dataset.id]; if(r) descargarPDF(r); } });
 async function descargarPDF(r){
   try{
