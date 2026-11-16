@@ -190,7 +190,10 @@ table.t{width:100%;border-collapse:collapse;font-size:14px;min-width:860px}
 .opcard{margin-top:14px}.opcard-h{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;gap:12px;align-items:end}.opcard-c{margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}.opcard-ct{display:flex;justify-content:space-between;gap:10px;margin-bottom:8px}.opcard-ct span{font-size:12.5px}
 .opcta{display:grid;grid-template-columns:1.2fr 1.2fr 1.4fr .9fr auto auto;gap:10px;align-items:end;padding:10px 0;border-bottom:1px dashed var(--line)}.opcta-s small{display:block;font-size:11.5px;color:var(--muted)}.opcta-s b{font-size:15px;white-space:nowrap}
 @media (max-width:900px){.opcard-h,.opcta{grid-template-columns:1fr 1fr}}
-.cq-tabs{margin:0 0 16px}.cq-dl{margin:12px 0 0;display:grid;gap:0}.cq-dl>div{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}.cq-dl dt{color:var(--muted);font-size:13.5px}.cq-dl dd{margin:0;text-align:right}
+.cq-tabs{margin:0 0 16px}.hfil{display:flex;flex-direction:column;gap:12px}.hfil-f{display:flex;gap:12px;align-items:end;flex-wrap:wrap}.hfil-f .f{min-width:170px}
+.sbar{display:flex;flex-direction:column;gap:10px;margin-top:12px}.sbar-r{display:grid;grid-template-columns:minmax(170px,240px) 1fr minmax(110px,auto);gap:12px;align-items:center}.sbar-l{font-size:14px}.sbar-l small{display:block;font-size:12px;color:var(--muted)}.sbar-t{height:12px;background:var(--surface-3,rgba(255,255,255,.06));border-radius:99px;overflow:hidden}.sbar-t i{display:block;height:100%;border-radius:99px}.sbar-t i.p{background:var(--ok)}.sbar-t i.n{background:var(--danger)}.sbar-t i.z{background:var(--info,#7aa7ff)}.sbar-r b{text-align:right;font-size:15px}
+.sbar-tot{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-top:14px;padding-top:12px;border-top:1px solid var(--line);font-size:14px}.sbar-tot b{font-size:15px}
+@media (max-width:640px){.sbar-r{grid-template-columns:1fr auto}.sbar-t{grid-column:1/-1;grid-row:2}}.cq-dl{margin:12px 0 0;display:grid;gap:0}.cq-dl>div{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}.cq-dl dt{color:var(--muted);font-size:13.5px}.cq-dl dd{margin:0;text-align:right}
 .gs-prev{margin-top:12px;padding:10px 14px;border:1px dashed var(--line);border-radius:10px;font-size:14px}.gs-prev b{font-size:16px}
 .embed .shell{grid-template-columns:1fr}.embed .side{display:none}.embed .top .mob{display:none!important}.embed .ttl{display:block!important}.embed [data-act=theme]{display:none}
 @media (max-width:900px){.shell{grid-template-columns:1fr}.side{display:none}.top .mob{display:flex!important}.ttl{display:none}}
@@ -235,8 +238,8 @@ table.t{width:100%;border-collapse:collapse;font-size:14px;min-width:860px}
 .grid1{display:block}
 .qcards{display:grid;grid-template-columns:repeat(auto-fit,minmax(460px,1fr));gap:16px}
 .qcard{display:flex;flex-direction:column;gap:14px}
-.qgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
-.qbox{border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--bg-2)}.qbox small{display:block;font-size:12px;color:var(--muted);font-weight:600}.qbox b{display:block;font:700 18px/1.3 var(--display);margin-top:2px}.qbox em{font-style:normal;font-size:11.5px;color:var(--muted)}
+.qgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.qbox{border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--bg-2)}.qbox small{display:block;font-size:12px;color:var(--muted);font-weight:600}.qbox b{display:block;font:700 clamp(15px,1.5vw,18px)/1.3 var(--display);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.qbox em{font-style:normal;font-size:11.5px;color:var(--muted)}
 .qbox.in b{color:var(--ok)}.qbox.out b{color:var(--danger)}.qbox.hl{border-color:var(--gold);background:var(--warn-bg)}.qbox.hl b{color:var(--accent-text)}
 .qreal{display:grid;grid-template-columns:minmax(0,1fr) 200px;gap:12px;align-items:end}.qreal .dif{margin:0;padding:8px}.qreal .dif b{font-size:20px}
 .qmov summary{cursor:pointer;font-weight:600;font-size:14px}.qmov table{margin-top:8px;font-size:13px}.qmov .t td,.qmov .t th{padding:7px 8px}
@@ -1374,8 +1377,9 @@ function heroTotal(titulo, sub, items, extra){
 }
 function cuadresOpHTML(){
   const v = UI.cq||'hoy';
-  const tabs = `<div class="segf cq-tabs" role="tablist">${[['hoy','Cuadre del día'],['cuentas','Cuentas designadas'],['historial','Historial']].map(([k,l])=>`<button class="tab ${v===k?'on':''}" data-act="cqTab" data-k="${k}" role="tab" aria-selected="${v===k}">${l}</button>`).join('')}</div>`;
-  return tabs + (v==='cuentas' ? cuentasOpHTML() : v==='historial' ? historialOpHTML() : cuadreDiaHTML());
+  const tabs = `<div class="segf cq-tabs" role="tablist">${[['hoy','Cuadre del día'],...(isAdm()?[['cuentas','Cuentas designadas']]:[]),['historial','Historial']].map(([k,l])=>`<button class="tab ${v===k?'on':''}" data-act="cqTab" data-k="${k}" role="tab" aria-selected="${v===k}">${l}</button>`).join('')}</div>`;
+  if(v==='cuentas' && !isAdm()) UI.cq = 'hoy';
+  return tabs + (v==='cuentas' && isAdm() ? cuentasOpHTML() : v==='historial' ? historialOpHTML() : cuadreDiaHTML());
 }
 function opSelBar(extra){ const op = opActual(); return isAdm() || extra ? `<div class="bar noprint">${isAdm()?`<div class="f"><label for="opSel">Operador</label><select id="opSel">${S.operadores.map(o=>`<option value="${o.id}" ${o.id===op?'selected':''}>${esc(o.nombre)}</option>`).join('')}</select></div>`:''}${extra||''}</div>` : ''; }
 function cuentasOpHTML(){
@@ -1389,16 +1393,68 @@ function cuentasOpHTML(){
     ${cs.length?'':`<section class="card qcard"><div class="alert warn" style="margin:0"><b>!</b><div>Todavía no hay cuenta de banco designada. ${isAdm()?'Agrégala en Configuración, dentro del operador.':'Pide a gerencia que te asigne una; sin ella no puedes registrar recargas.'}</div></div></section>`}
   </div>`;
 }
-function historialOpHTML(){
-  const op = opActual(), hoy = todayS();
-  const fs = new Set([hoy]); S.movs.forEach(m=>{ if(m.op===op||m.opDest===op) fs.add(m.fecha); }); Object.keys(S.cajas).forEach(k=>{ if(k.startsWith(op+'|')) fs.add(k.slice(op.length+1)); });
-  const dias = [...fs].filter(Boolean).sort().reverse().slice(0,60);
-  const est = R => R.aprobada ? '<span class="pill ok">Aprobado</span>' : R.cerrada ? '<span class="pill info">Cerrado</span>' : '<span class="pill warn">Abierto</span>';
-  return `${opSelBar()}<div class="tw"><table class="t" style="min-width:900px"><thead><tr><th>Fecha</th><th class="r">Saldo al iniciar</th><th class="r">Entró</th><th class="r">Salió</th><th class="r">Caja debe tener</th><th class="r">Caja real</th><th class="r">Diferencia</th><th class="r">Bancos</th><th class="r">Total</th><th>Estado</th></tr></thead><tbody>
-    ${dias.map(d=>{ const Q = saldosOp(op, d), R = Q.R; const ent = R.ext+R.car+R.tin+R.mIn+Math.max(0,R.aj), sal = R.rec+R.tout+R.mOut+R.carQ+Math.max(0,-R.aj);
-      return `<tr class="click" data-act="cqDia" data-f="${d}"><td class="num"><b>${fd(d)}</b>${d===hoy?'<small>Hoy</small>':''}</td><td class="r num">${money(R.ini)}</td><td class="r num pos">+${money(ent)}</td><td class="r num neg">−${money(sal)}</td><td class="r num"><b>${money(R.esperado)}</b></td><td class="r num">${R.real==null?'—':money(R.real)}</td><td class="r num ${R.dif==null?'':Math.abs(R.dif)<0.005?'pos':'neg'}">${R.dif==null?'—':Math.abs(R.dif)<0.005?'Cuadra ✓':money(R.dif)}</td><td class="r num">${money(Q.totB)}</td><td class="r num"><b>${money(Q.total)}</b></td><td>${est(R)}</td></tr>`; }).join('')}
-  </tbody></table></div><p class="muted" style="font-size:13px">Toca un día para ver su cuadre completo.</p>`;
+function statsMovs(ms, op){
+  const g = {rec:{l:'Recargas a agentes', n:0, v:0, s:-1}, ext:{l:'Extracciones de agentes', n:0, v:0, s:1}, gmas:{l:'Saldo aumentado por gerencia', n:0, v:0, s:1}, gmen:{l:'Saldo quitado por gerencia', n:0, v:0, s:-1}, tin:{l:'Recibido de otros operadores', n:0, v:0, s:1}, tout:{l:'Pasado a otros operadores', n:0, v:0, s:-1}, mov:{l:'Movido entre caja y bancos', n:0, v:0, s:0}, aj:{l:'Ajustes antiguos', n:0, v:0, s:0}};
+  ms.filter(m=>!m.anulado).forEach(m=>{ const k = m.tipo==='recarga'?'rec':m.tipo==='extraccion'?'ext':m.tipo==='carga'?((m.signo||1)<0?'gmen':'gmas'):m.tipo==='transfer'?(m.opDest===op?'tin':'tout'):m.tipo==='mover'?'mov':m.tipo==='ajuste'?'aj':null; if(!k) return; g[k].n++; g[k].v = r2(g[k].v + (+m.monto||0)); });
+  return Object.values(g).filter(x=>x.n);
 }
+function barrasHTML(L){
+  const mx = Math.max(1, ...L.map(x=>x.v));
+  return L.length ? `<div class="sbar">${L.map(x=>`<div class="sbar-r"><span class="sbar-l">${esc(x.l)}<small>${x.n} ${x.n===1?'movimiento':'movimientos'}</small></span><span class="sbar-t"><i class="${x.s>0?'p':x.s<0?'n':'z'}" style="width:${Math.max(2,(x.v/mx*100)).toFixed(1)}%"></i></span><b class="num ${x.s>0?'pos':x.s<0?'neg':''}">${x.s>0?'+':x.s<0?'−':''}${money(x.v)}</b></div>`).join('')}</div>` : '<p class="muted" style="margin:6px 0 0;font-size:13.5px">Sin movimientos en este período.</p>';
+}
+function resumenDiaHTML(op, f){
+  const ms = movsDe(op, f); const L = statsMovs(ms, op); const R = resumen(op, f);
+  return `<section class="card" style="margin-top:16px"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap"><h2>Resumen del movimiento del día</h2><span class="muted" style="font-size:13px">${ms.filter(m=>!m.anulado).length} movimientos · ${fd(f)}</span></div>
+    ${barrasHTML(L)}
+    <div class="sbar-tot"><span>Saldo al iniciar <b class="num">${money(R.ini)}</b></span><span>→</span><span>Caja debe tener <b class="num">${money(R.esperado)}</b></span>${R.real!=null?`<span>Real <b class="num">${money(R.real)}</b></span><span class="${Math.abs(R.dif)<0.005?'pos':'neg'}">${Math.abs(R.dif)<0.005?'Cuadra ✓':(R.dif<0?'Faltan ':'Sobran ')+money(Math.abs(R.dif))}</span>`:''}</div>
+  </section>`;
+}
+function rangoHist(){
+  const hoy = todayS(), r = UI.hR || '7';
+  const menos = n => { const d = new Date(hoy+'T12:00:00'); d.setDate(d.getDate()-n); return d.toISOString().slice(0,10); };
+  if(r==='hoy') return [hoy, hoy]; if(r==='ayer') return [menos(1), menos(1)]; if(r==='7') return [menos(6), hoy]; if(r==='30') return [menos(29), hoy];
+  if(r==='mes') return [hoy.slice(0,8)+'01', hoy]; if(r==='todo') return ['2000-01-01', hoy];
+  return [UI.hD||menos(6), UI.hH||hoy];
+}
+function historialOpHTML(){
+  const op = opActual(), hoy = todayS(), [d, h] = rangoHist(), tipoF = UI.hT||'todos';
+  const fs = new Set(); if(hoy>=d && hoy<=h) fs.add(hoy);
+  S.movs.forEach(m=>{ if((m.op===op||m.opDest===op) && m.fecha>=d && m.fecha<=h) fs.add(m.fecha); });
+  Object.keys(S.cajas).forEach(k=>{ if(k.startsWith(op+'|')){ const x = k.slice(op.length+1); if(x>=d && x<=h) fs.add(x); } });
+  const dias = [...fs].filter(Boolean).sort().reverse();
+  const filas = dias.map(x=>({d:x, Q:saldosOp(op, x)}));
+  const ms = S.movs.filter(m=>(m.op===op||m.opDest===op) && m.fecha>=d && m.fecha<=h).sort((a,b)=>b.ts-a.ts);
+  const L = statsMovs(ms, op);
+  const tot = k => r2(filas.reduce((a,x)=>a+(x.Q.R[k]||0),0));
+  const conReal = filas.filter(x=>x.Q.R.dif!=null), cuadrados = conReal.filter(x=>Math.abs(x.Q.R.dif)<0.005).length, difTot = r2(conReal.reduce((a,x)=>a+x.Q.R.dif,0));
+  const est = R => R.aprobada ? '<span class="pill ok">Aprobado</span>' : R.cerrada ? '<span class="pill info">Cerrado</span>' : '<span class="pill warn">Abierto</span>';
+  const TF = [['todos','Todos'],['recarga','Recargas'],['extraccion','Extracciones'],['carga','Gestión de saldo'],['transfer','Traspasos'],['mover','Entre mis cuentas']];
+  const msF = ms.filter(m=>tipoF==='todos'||m.tipo===tipoF);
+  const RG = [['hoy','Hoy'],['ayer','Ayer'],['7','Últimos 7 días'],['30','Últimos 30 días'],['mes','Este mes'],['todo','Todo'],['custom','Elegir fechas']];
+  return `${opSelBar()}
+  <div class="card hfil"><div class="segf">${RG.map(([k,l])=>`<button class="tab ${(UI.hR||'7')===k?'on':''}" data-act="hR" data-k="${k}">${l}</button>`).join('')}</div>
+    <div class="hfil-f"><div class="f"><label for="hD">Desde</label><input id="hD" type="date" value="${d==='2000-01-01'?'':d}" max="${hoy}"></div><div class="f"><label for="hH">Hasta</label><input id="hH" type="date" value="${h}" max="${hoy}"></div><span class="muted" style="font-size:13px">${dias.length} ${dias.length===1?'día':'días'} con actividad</span></div></div>
+  <section class="kpis" style="margin-top:14px">
+    <div class="kpi hl"><small>Recargas a agentes</small><b class="num">${money(tot('rec'))}</b><em>${filas.reduce((a,x)=>a+x.Q.R.nRec,0)} comprobantes</em></div>
+    <div class="kpi"><small>Extracciones</small><b class="num pos">${money(tot('ext'))}</b><em>Entraron a la caja</em></div>
+    <div class="kpi"><small>Gestión de saldo</small><b class="num">${tot('car')-tot('carQ')>=0?'+':'−'}${money(Math.abs(tot('car')-tot('carQ')))}</b><em>+${money(tot('car'))} · −${money(tot('carQ'))}</em></div>
+    <div class="kpi"><small>Días cuadrados</small><b class="num">${cuadrados} de ${conReal.length}</b><em>${conReal.length<filas.length?`${filas.length-conReal.length} sin saldo real`:'Todos con saldo real'}</em></div>
+    <div class="kpi"><small>Diferencia acumulada</small><b class="num ${Math.abs(difTot)<0.005?'pos':'neg'}">${Math.abs(difTot)<0.005?'$0,00':(difTot<0?'−':'+')+money(Math.abs(difTot))}</b><em>${Math.abs(difTot)<0.005?'Sin faltantes ni sobrantes':difTot<0?'Faltante en el período':'Sobrante en el período'}</em></div>
+  </section>
+  <section class="card" style="margin-top:14px"><h2>Movimientos del período</h2>${barrasHTML(L)}</section>
+  <div class="sech"><h2>Cuadre por día</h2><span class="muted" style="font-size:13px">Toca un día para abrir su cuadre completo.</span></div>
+  <div class="tw"><table class="t" style="min-width:1050px"><thead><tr><th>Fecha</th><th class="r">Saldo al iniciar</th><th class="r">Recargas</th><th class="r">Extracciones</th><th class="r">Gerencia</th><th class="r">Traspasos</th><th class="r">Caja debe tener</th><th class="r">Caja real</th><th class="r">Diferencia</th><th class="r">Bancos</th><th class="r">Total</th><th>Estado</th></tr></thead><tbody>
+    ${filas.length?filas.map(({d:x,Q})=>{ const R = Q.R, g = r2(R.car-R.carQ), tr = r2(R.tin-R.tout+R.mIn-R.mOut);
+      return `<tr class="click" data-act="cqDia" data-f="${x}"><td class="num"><b>${fd(x)}</b>${x===hoy?'<small>Hoy</small>':''}</td><td class="r num">${money(R.ini)}</td><td class="r num neg">${R.rec?'−'+money(R.rec):'—'}<small>${R.nRec||''} ${R.nRec?'comp.':''}</small></td><td class="r num pos">${R.ext?'+'+money(R.ext):'—'}</td><td class="r num ${g<0?'neg':g>0?'pos':''}">${g?(g>0?'+':'−')+money(Math.abs(g)):'—'}</td><td class="r num">${tr?(tr>0?'+':'−')+money(Math.abs(tr)):'—'}</td><td class="r num"><b>${money(R.esperado)}</b></td><td class="r num">${R.real==null?'—':money(R.real)}</td><td class="r num ${R.dif==null?'':Math.abs(R.dif)<0.005?'pos':'neg'}">${R.dif==null?'—':Math.abs(R.dif)<0.005?'Cuadra ✓':money(R.dif)}</td><td class="r num">${money(Q.totB)}</td><td class="r num"><b>${money(Q.total)}</b></td><td>${est(R)}</td></tr>`; }).join(''):'<tr><td colspan="12" class="empty">Sin actividad en estas fechas.</td></tr>'}
+  </tbody></table></div>
+  <div class="sech"><h2>Detalle de movimientos</h2><div class="segf">${TF.map(([k,l])=>`<button class="tab ${tipoF===k?'on':''}" data-act="hT" data-k="${k}">${l} <span class="muted">${k==='todos'?ms.length:ms.filter(m=>m.tipo===k).length}</span></button>`).join('')}</div></div>
+  <div class="tw"><table class="t" style="min-width:980px"><thead><tr><th>Fecha y hora</th><th>Tipo</th><th>Detalle</th><th>Comprobante</th><th class="r">Caja</th><th>Banco</th><th>Contabilidad</th><th>Registró</th></tr></thead><tbody>
+    ${msF.length?msF.slice(0,500).map(m=>{ const e = efecto(m, op), b = bankEf(m), tl = m.tipo==='carga' ? ((m.signo||1)<0?'Saldo quitado':'Saldo aumentado') : m.tipo==='transfer' ? (m.opDest===op?'Recibido':'Pasado') : m.tipo==='mover' ? 'Entre mis cuentas' : (TIPOS[m.tipo]?.label||m.tipo);
+      return `<tr class="${m.anulado?'anul':''}"><td class="num">${fd(m.fecha)}<small>${hm(m.ts)}</small></td><td><span class="pill ${m.tipo==='recarga'?'info':m.tipo==='carga'&&(m.signo||1)<0?'bad':m.tipo==='carga'||m.tipo==='extraccion'?'ok':'warn'}">${esc(tl)}</span>${m.anulado?'<small class="neg">Anulado</small>':''}</td><td>${esc(movTxt(m, op))}</td><td class="num">${esc(m.comprobante||'—')}${m.banco?`<small>${esc(m.banco)}</small>`:''}</td><td class="r num ${e.caja<0?'neg':e.caja>0?'pos':''}">${e.caja?(e.caja<0?'−':'+')+money(Math.abs(e.caja)):'—'}</td><td>${b.length&&!m.anulado?b.map(x=>`${esc(lugarCorto(x.cta))} <span class="num ${x.v<0?'neg':'pos'}">${x.v<0?'−':'+'}${money(Math.abs(x.v))}</span>`).join('<br>'):'—'}</td><td>${m.tipo==='recarga'?(m.rev==='ok'?'<span class="pill ok">Llegó</span>':m.rev==='bad'?'<span class="pill bad">No llegó</span>':'<span class="pill warn">Por verificar</span>'):'—'}</td><td>${esc(m.usuario||'')}</td></tr>`; }).join('') : '<tr><td colspan="8" class="empty">Nada en este filtro.</td></tr>'}
+  </tbody></table></div>${msF.length>500?'<p class="muted" style="font-size:13px">Se muestran los 500 más recientes. Acorta las fechas para ver el resto.</p>':''}`;
+}
+document.addEventListener('click', e=>{ const b = e.target.closest('[data-act="hR"],[data-act="hT"]'); if(!b) return; if(b.dataset.act==='hR'){ UI.hR = b.dataset.k; if(b.dataset.k==='custom'){ const [d,h] = rangoHist(); UI.hD = UI.hD||d; UI.hH = UI.hH||h; } } else UI.hT = b.dataset.k; render(); });
+document.addEventListener('change', e=>{ if(e.target.id!=='hD' && e.target.id!=='hH') return; const [d,h] = rangoHist(); UI.hR = 'custom'; UI.hD = e.target.id==='hD' ? (e.target.value||d) : d; UI.hH = e.target.id==='hH' ? (e.target.value||h) : h; if(UI.hD>UI.hH) [UI.hD, UI.hH] = [UI.hH, UI.hD]; render(); });
 document.addEventListener('click', e=>{ const b = e.target.closest('[data-act="cqTab"],[data-act="cqDia"]'); if(!b) return; if(b.dataset.act==='cqTab') UI.cq = b.dataset.k; else { UI.fecha = b.dataset.f; UI.cq = 'hoy'; } render(); });
 function cuadreDiaHTML(){
   const op = opActual(), f = UI.fecha, ceo = isAdm(); S.cuadOp = S.cuadOp||{};
@@ -1460,6 +1516,7 @@ function cuadreDiaHTML(){
     ${heroTotal('Dinero total de '+esc(opName(op)), `Caja de operador + ${Q.bk.length} ${Q.bk.length===1?'cuenta':'cuentas'} de banco · ${fd(f)}`, items, extra)}
     ${ajenas.length?`<div class="alert warn" style="margin:0 0 14px"><b>!</b><div>${ajenas.length} ${ajenas.length===1?'recarga llegó':'recargas llegaron'} a una cuenta que no es de ${esc(opName(op))} (${money(ajenas.reduce((a,m)=>a+m.monto,0))}). Salen de la caja pero no suman a sus bancos.</div></div>`:''}
     <div class="qcards">${cajaCard}${Q.bk.map(bankCard).join('')}</div>
+    ${resumenDiaHTML(op, f)}
     <div class="card" style="margin-top:16px"><div class="xf" style="border:0;padding:0"><div><b>Cierre del día</b><p class="muted" style="font-size:13px;margin:2px 0 0">${ceo?'Revisa que la caja y cada banco cuadren antes de aprobar.':'Escribe el saldo real de la caja y de cada banco, y cierra. No se puede editar después.'}</p></div><div class="acts">${pie}</div></div></div>`;
 }
 function movTxt(m, op){
