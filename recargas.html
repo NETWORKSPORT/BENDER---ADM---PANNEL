@@ -1760,6 +1760,7 @@ async function liveCargar(silencioso){
   if(!j.ok){ if(!silencioso){ LV.err = j.error || 'No se pudieron cargar los datos.'; render(); } return; }
   if(liveBusy() || (silencioso && liveOcupado())) return;
   const N = fromRecords(j.data||{}); Object.keys(N).forEach(k=>S[k] = N[k]); LV.snap = snapDe(S); LV.ready = true; LV.err = null; liveOp();
+  if(SES && SES.rol==='ceo' && opsSobrantes().length){ const L = opsSobrantes(); L.forEach(borrarOperador); LV.ev = 'boton'; liveSave(); setTimeout(()=>toast(`Se eliminó ${L.map(o=>o.nombre).join(', ')}: no tenía usuario. Quedan solo los operadores creados desde Usuarios.`), 300); }
   render();
 }
 async function liveInit(){
