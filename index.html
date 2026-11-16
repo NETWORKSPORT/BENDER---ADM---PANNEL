@@ -2428,8 +2428,10 @@ function setUserTipo(k){
   f.querySelectorAll('.utipo').forEach(b=>b.classList.toggle('on', b.dataset.k===k));
   f.querySelector(`[name=rol][value=${k==='gerente'?'gerente':'area'}]`).checked = true;
   if(TIPO_AREAS[k]) Object.keys(AREA_L).forEach(a=>{ const c = f.querySelector(`[name=area_${a}]`); if(c) c.checked = TIPO_AREAS[k].includes(a) || (a==='reportes' && c.checked); });
+  const ob = $('#u_opbox'); if(ob) ob.style.display = k==='operador' ? '' : (k==='otro' ? ob.style.display : 'none');
   f.dispatchEvent(new Event('change'));
 }
+document.addEventListener('change', e=>{ if(e.target.name!=='area_recargas') return; const ob = $('#u_opbox'); if(ob) ob.style.display = e.target.checked ? '' : 'none'; });
 function sugerirUsuario(nombre){
   const w = String(nombre).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9 ]/g,' ').split(/\s+/).filter(Boolean);
   if(!w.length) return ''; let base = (w[0] + (w.length>=4 ? w[2][0] : w[1] ? w[1][0] : '')).slice(0,30); if(base.length<3) base = (base+'usr').slice(0,3);
@@ -2440,12 +2442,15 @@ document.addEventListener('change', e=>{ if(e.target.id!=='u_persona') return; c
   else { inp.style.display = 'none'; inp.value = sel.value; }
   if(uu && !uu.readOnly && !uu.dataset.tocado && inp.value) uu.value = sugerirUsuario(inp.value); });
 document.addEventListener('input', e=>{ if(e.target.id==='u_user') e.target.dataset.tocado = '1'; if(e.target.id==='u_nombre'){ const uu = $('#u_user'); if(uu && !uu.readOnly && !uu.dataset.tocado) uu.value = sugerirUsuario(e.target.value); } });
-async function asegurarOperador(usuario, nombre){
+window.rcPersonal = () => activeEmps().map(e=>({nombre:e.nombre, cargo:e.cargo||''}));
+async function asegurarOperador(usuario, opNombre, responsable){
   const j = await api('load', {cols:['rcf']}); if(!j.ok) return false;
   const main = (j.data.rcf||{}).main || {operadores:[], cuentas:[], ctasOp:[], ctasExt:[]};
   main.operadores = main.operadores || [];
-  if(main.operadores.some(o=>String(o.usuario||'')===usuario)) return true;
-  main.operadores.push({id:'op'+Date.now().toString(36)+Math.random().toString(36).slice(2,6), nombre, usuario});
+  const ex = main.operadores.find(o=>String(o.usuario||'')===usuario);
+  const nom = String(opNombre||'').trim() || (usuario.charAt(0).toUpperCase()+usuario.slice(1));
+  if(ex){ if(String(opNombre||'').trim()) ex.nombre = nom; ex.responsable = responsable; }
+  else main.operadores.push({id:'op'+Date.now().toString(36)+Math.random().toString(36).slice(2,6), nombre:nom, responsable, usuario});
   const r = await api('bulk', {items:[{col:'rcf', id:'main', data:main}]});
   return !!r.ok;
 }
@@ -2466,6 +2471,7 @@ function userForm(usuario){
       </div></fieldset>
       <fieldset><legend>¿Qué hace este usuario?</legend><div class="utipos">${USER_TIPOS.map(([k,l,d])=>`<button type="button" class="utipo ${userTipo(u)===k?'on':''}" data-act="user-tipo" data-k="${k}"><b>${l}</b><span>${d}</span></button>`).join('')}</div>
         <div class="hint" style="margin-top:8px">Elige uno y se marcan solas sus áreas. Si necesita más, marca otras áreas abajo.</div>
+        <div class="f" id="u_opbox" style="margin-top:12px;${(u.areas||[]).includes('recargas')&&u.rol!=='gerente'?'':'display:none'}"><label for="u_opn">Nombre del operador</label><input id="u_opn" name="opnombre" placeholder="Ejemplo: Techis" autocomplete="off"><div class="hint">Así se verá en Operadores. La persona elegida arriba queda como <b>responsable</b>. ${usuario?'Déjalo vacío para no cambiarlo.':'Si lo dejas vacío se usa el usuario.'}</div></div>
         <div style="display:none"><input type="radio" name="rol" value="gerente" ${u.rol==='gerente'?'checked':''}><input type="radio" name="rol" value="area" ${u.rol!=='gerente'?'checked':''}></div>
       </fieldset>
       <fieldset id="areasBox"><legend>Áreas permitidas</legend><div class="checks">${Object.entries(AREA_L).map(([k,l])=>`<label class="check"><input type="checkbox" name="area_${k}" ${u.areas.includes(k)?'checked':''}> ${l}</label>`).join('')}</div><div class="err" id="areasErr" style="color:var(--danger);font-size:12.5px;margin-top:6px"></div></fieldset>
@@ -2495,7 +2501,7 @@ async function submitUser(form){
   const racts = areas.includes('reportes') && v.rol!=='gerente' ? repCat().filter(a=>fdata.has('rep_'+a.id)).map(a=>a.id) : [];
   const prevR = (repUsers()[usuario]||{});
   if(racts.length || (prevR.acts||[]).length){ const ru = clone(repUsers()); if(racts.length) ru[usuario] = {nombre:v.nombre.trim(), acts:racts, empId:v.repEmp||''}; else delete ru[usuario]; await putCfg({...S.cfg, repAct:ru}); }
-  let opOk = null; if(v.rol!=='gerente' && areas.includes('recargas')) opOk = await asegurarOperador(usuario, v.nombre.trim());
+  let opOk = null; if(v.rol!=='gerente' && areas.includes('recargas')) opOk = await asegurarOperador(usuario, v.opnombre, v.nombre.trim());
   UI.users = j.users; closeLayer(); render();
   toast((form.dataset.id ? 'Usuario actualizado.' : `Usuario ${usuario} creado. Comparte la contraseña en privado.`) + (opOk===true ? ' Ya aparece como operador en Operadores.' : opOk===false ? ' No se pudo crear su operador: hazlo en Operadores → Configuración.' : ''));
 }

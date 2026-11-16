@@ -187,7 +187,7 @@ table.t{width:100%;border-collapse:collapse;font-size:14px;min-width:860px}
 .rv-box{margin-top:14px;border:1px solid var(--line);border-radius:12px;overflow:hidden}.rv-h{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:12px 14px;background:var(--surface-2,rgba(255,255,255,.03));border-bottom:1px solid var(--line)}.rv-h span{font-size:13px;color:var(--muted)}
 .rv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr))}.rv{padding:10px 14px;border-bottom:1px solid var(--line);border-right:1px solid var(--line);position:relative}.rv span{display:block;font-size:12px;color:var(--muted)}.rv b{display:block;font-size:15px;margin-top:2px}.rv b small{font-weight:400;color:var(--muted);margin-left:4px}.rv i{position:absolute;top:8px;right:10px;font-style:normal;font-size:11px;color:var(--ok)}.rv.falta b{color:var(--danger);font-weight:500;font-size:13.5px}.rv span.rv-big{display:inline;font-size:24px;color:var(--gold);font-weight:700}
 .rv-ag{padding:12px 14px;border-bottom:1px solid var(--line)}.rv-caja{padding:10px 14px;font-size:14px}
-.opcard{margin-top:14px}.opcard-h{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;gap:12px;align-items:end}.opcard-c{margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}.opcard-ct{display:flex;justify-content:space-between;gap:10px;margin-bottom:8px}.opcard-ct span{font-size:12.5px}
+.opcard{margin-top:14px}.opcard-h{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr) minmax(0,1fr) auto;gap:12px;align-items:end}.opcard-c{margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}.opcard-ct{display:flex;justify-content:space-between;gap:10px;margin-bottom:8px}.opcard-ct span{font-size:12.5px}
 .opcta{display:grid;grid-template-columns:1.2fr 1.2fr 1.4fr .9fr auto auto;gap:10px;align-items:end;padding:10px 0;border-bottom:1px dashed var(--line)}.opcta-s small{display:block;font-size:11.5px;color:var(--muted)}.opcta-s b{font-size:15px;white-space:nowrap}
 @media (max-width:900px){.opcard-h,.opcta{grid-template-columns:1fr 1fr}}
 .cq-tabs{margin:0 0 16px}.hfil{display:flex;flex-direction:column;gap:12px}.hfil-f{display:flex;gap:12px;align-items:end;flex-wrap:wrap}.hfil-f .f{min-width:170px}
@@ -307,6 +307,8 @@ const TIPOS = {
 const isAdm = () => SES && SES.rol==='ceo';
 const tiposDe = () => Object.entries(TIPOS).filter(([k,v])=> isAdm() ? v.quien==='adm' : v.quien==='op');
 const opName = id => S.operadores.find(o=>o.id===id)?.nombre || '—';
+const opResp = id => S.operadores.find(o=>o.id===id)?.responsable || '';
+const opLabel = o => o.nombre + (o.responsable ? ' — Responsable: ' + o.responsable : '');
 function logAcc(accion, detalle){ (S.log = S.log||[]).push({ts:Date.now(), usuario:SES.usuario, nombre:SES.nombre, accion, detalle}); }
 function seed(){
   return {
@@ -599,7 +601,7 @@ function cajaHTML(){
       ${ceo?`<td class="noprint"><div class="acts" style="flex-wrap:nowrap">${m.anulado?`<button class="btn sm quiet" data-act="reactivar" data-id="${m.id}">Reactivar</button>`:`<button class="btn sm" data-act="editar" data-id="${m.id}">Editar</button><button class="btn sm quiet bad" data-act="anular" data-id="${m.id}">Anular</button>`}<button class="btn sm quiet bad" data-act="eliminar" data-id="${m.id}" aria-label="Eliminar">🗑</button></div></td>`:''}</tr>`; }).join('');
   return `
   <div class="bar noprint">
-    ${ceo?`<div class="f"><label for="opSel">Operador</label><select id="opSel">${S.operadores.map(o=>`<option value="${o.id}" ${o.id===op?'selected':''}>${esc(o.nombre)}</option>`).join('')}</select></div>`:''}
+    ${ceo?`<div class="f"><label for="opSel">Operador</label><select id="opSel">${S.operadores.map(o=>`<option value="${o.id}" ${o.id===op?'selected':''}>${esc(opLabel(o))}</option>`).join('')}</select></div>`:''}
     <div class="f"><label for="fSel">Fecha del turno</label><input id="fSel" type="date" value="${f}" max="${todayS()}"></div>
     <div class="f"><label for="iniIn">Saldo inicial de caja</label>${ceo?`<input id="iniIn" type="number" step="0.01" inputmode="decimal" value="${esc(c.inicial)}" placeholder="${NF.format(R.ini)}">`:`<input id="iniIn" value="${money(R.ini)}" disabled>`}<small class="muted" style="display:block;font-size:12px;margin-top:3px">${R.iniOrigen.origen==='anterior'?`Viene del cierre del ${fd(R.iniOrigen.fecha)}`:R.iniOrigen.origen==='fijo'?'Fijado por gerencia':'Sin saldo anterior'}</small></div>
     <div class="sp" style="flex:1"></div>
@@ -734,7 +736,7 @@ function resumenHTML(){
   </section>
   ${alertas.length?`<div class="card" style="margin-bottom:18px;border-color:var(--danger)"><h2 class="neg">Revisar</h2><ul style="margin:8px 0 0;padding-left:18px">${alertas.map(a=>`<li>${a}</li>`).join('')}</ul></div>`:''}
   <div class="tw" style="margin-top:0"><table class="t"><thead><tr><th>Operador</th><th class="r">Inicial</th><th class="r">Recargas</th><th class="r">Extracciones</th><th class="r">Inyecciones</th><th class="r">Traspasos</th><th class="r">Caja esperada</th><th class="r">Real</th><th class="r">Diferencia</th><th class="r">Bancos</th><th class="r">Total</th><th>Estado</th><th></th></tr></thead><tbody>
-  ${rs.map(({o,R})=>`<tr><td><b>${esc(o.nombre)}</b><small>${R.n} movimientos</small></td><td class="r num">${money(R.ini)}</td><td class="r num">${money(R.rec)}</td><td class="r num">${money(R.ext)}</td><td class="r num">${R.carQ?`${money(R.car-R.carQ)}<small>+${money(R.car)} / −${money(R.carQ)}</small>`:money(R.car)}</td><td class="r num ${R.tin-R.tout<0?'neg':R.tin-R.tout>0?'pos':''}">${R.tin||R.tout?(R.tin-R.tout>0?'+':'')+money(R.tin-R.tout):'—'}</td><td class="r num"><b>${money(R.esperado)}</b></td><td class="r num">${R.real==null?'—':money(R.real)}</td><td class="r num ${R.dif==null?'':Math.abs(R.dif)<0.005?'pos':'neg'}">${R.dif==null?'—':money(R.dif)}</td><td class="r num">${money(saldosOp(o.id,f).totB)}</td><td class="r num"><b>${money(saldosOp(o.id,f).total)}</b></td><td>${R.aprobada?'<span class="pill ok">Aprobada</span>':R.cerrada?'<span class="pill info">Por aprobar</span>':'<span class="pill warn">Abierta</span>'}</td><td><button class="btn sm" data-act="irCaja" data-id="${o.id}">Ver cuadre</button></td></tr>`).join('')}
+  ${rs.map(({o,R})=>`<tr><td><b>${esc(o.nombre)}</b><small>${o.responsable?'Responsable: '+esc(o.responsable)+' · ':''}${R.n} movimientos</small></td><td class="r num">${money(R.ini)}</td><td class="r num">${money(R.rec)}</td><td class="r num">${money(R.ext)}</td><td class="r num">${R.carQ?`${money(R.car-R.carQ)}<small>+${money(R.car)} / −${money(R.carQ)}</small>`:money(R.car)}</td><td class="r num ${R.tin-R.tout<0?'neg':R.tin-R.tout>0?'pos':''}">${R.tin||R.tout?(R.tin-R.tout>0?'+':'')+money(R.tin-R.tout):'—'}</td><td class="r num"><b>${money(R.esperado)}</b></td><td class="r num">${R.real==null?'—':money(R.real)}</td><td class="r num ${R.dif==null?'':Math.abs(R.dif)<0.005?'pos':'neg'}">${R.dif==null?'—':money(R.dif)}</td><td class="r num">${money(saldosOp(o.id,f).totB)}</td><td class="r num"><b>${money(saldosOp(o.id,f).total)}</b></td><td>${R.aprobada?'<span class="pill ok">Aprobada</span>':R.cerrada?'<span class="pill info">Por aprobar</span>':'<span class="pill warn">Abierta</span>'}</td><td><button class="btn sm" data-act="irCaja" data-id="${o.id}">Ver cuadre</button></td></tr>`).join('')}
   </tbody></table></div>
   <div class="sech"><h2>Recargas por agente</h2></div>
   <div class="tw"><table class="t" style="min-width:520px"><thead><tr><th>Agente</th><th>Cuenta</th><th>Operador</th><th class="r">Recargado hoy</th></tr></thead><tbody>
@@ -752,7 +754,7 @@ function agentesHTML(){
       <div class="f"><label>Agente</label><input data-ag="${i}" data-k="nombre" value="${esc(a.nombre)}"></div>
       <div class="f"><label>Código</label><input data-ag="${i}" data-k="codigo" value="${esc(a.codigo)}"></div>
       <div class="f"><label>Cuenta en plataforma</label><input data-ag="${i}" data-k="cuenta" value="${esc(a.cuenta)}"></div>
-      <div class="f"><label>Operador</label><select data-ag="${i}" data-k="op">${S.operadores.map(o=>`<option value="${o.id}" ${a.op===o.id?'selected':''}>${esc(o.nombre)}</option>`).join('')}</select></div>
+      <div class="f"><label>Operador</label><select data-ag="${i}" data-k="op">${S.operadores.map(o=>`<option value="${o.id}" ${a.op===o.id?'selected':''}>${esc(opLabel(o))}</option>`).join('')}</select></div>
       <button class="btn sm quiet bad" data-act="delAg" data-i="${i}" aria-label="Quitar agente">×</button>
       <div class="f full" style="grid-column:1/-1"><label>Titulares que transfieren</label><input data-ag="${i}" data-k="titulares" value="${esc(a.titulares||'')}" placeholder="Nombres separados por coma"></div></div>`).join('<hr style="border:0;border-top:1px solid var(--line);margin:4px 0">')}</div></div>
   <div class="card" style="margin-top:18px"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h2>Cuentas bancarias de la empresa</h2><button class="btn sm gold" data-act="addCta">Agregar cuenta</button></div>
@@ -882,7 +884,7 @@ function transferForm(el, op){
     ${tipoBtns()}
     <div class="alert info" style="margin-top:0"><b>i</b><div>Úsalo cuando le prestas o pasas saldo a otro operador. Sale de tu caja y entra en la suya en el mismo momento. Tu saldo ahora: <b>${money(R.esperado)}</b>.</div></div>
     <div class="fg" style="margin-top:14px">
-      <div class="f"><label for="fOd">Pasar saldo a</label><select id="fOd" data-k="opDest"><option value="">Elige el operador</option>${otros.map(o=>`<option value="${o.id}" ${f.opDest===o.id?'selected':''}>${esc(o.nombre)}</option>`).join('')}</select></div>
+      <div class="f"><label for="fOd">Pasar saldo a</label><select id="fOd" data-k="opDest"><option value="">Elige el operador</option>${otros.map(o=>`<option value="${o.id}" ${f.opDest===o.id?'selected':''}>${esc(opLabel(o))}</option>`).join('')}</select></div>
       <div class="f"><label for="fMo">Monto (USD)</label><input id="fMo" data-k="monto" type="number" step="0.01" min="0" inputmode="decimal" value="${esc(f.monto??'')}" placeholder="0,00"></div>
       <div class="f full"><label for="fNt">Motivo (opcional)</label><input id="fNt" data-k="nota" value="${esc(f.nota||'')}" placeholder="Ejemplo: préstamo de saldo, se devuelve mañana"></div>
     </div>
@@ -896,7 +898,7 @@ function editarMov(id){
     <p class="muted" style="font-size:13px;margin:-6px 0 12px">${esc(opName(m.op))} · ${fd(m.fecha)} ${hm(m.ts)} · registrado por ${esc(m.usuario||'')}</p>
     <div class="fg">
       ${m.tipo==='recarga'?`<div class="f"><label>Agente</label><select name="agente">${ags.map(a=>`<option value="${a.id}" ${m.agente===a.id?'selected':''}>${esc(a.nombre)}</option>`).join('')}</select></div>`:''}
-      ${m.tipo==='transfer'?`<div class="f"><label>Pasado a</label><select name="opDest">${S.operadores.filter(o=>o.id!==m.op).map(o=>`<option value="${o.id}" ${m.opDest===o.id?'selected':''}>${esc(o.nombre)}</option>`).join('')}</select></div>`:''}
+      ${m.tipo==='transfer'?`<div class="f"><label>Pasado a</label><select name="opDest">${S.operadores.filter(o=>o.id!==m.op).map(o=>`<option value="${o.id}" ${m.opDest===o.id?'selected':''}>${esc(opLabel(o))}</option>`).join('')}</select></div>`:''}
       ${m.tipo==='ajuste'?`<div class="f"><label>Efecto</label><select name="signo"><option value="1" ${m.signo!=-1?'selected':''}>Suma (+)</option><option value="-1" ${m.signo==-1?'selected':''}>Resta (−)</option></select></div>`:''}
       <div class="f"><label>Monto (USD)</label><input name="monto" type="number" step="0.01" min="0" value="${m.monto}"></div>
       ${m.tipo==='recarga'?`<div class="f"><label>Banco</label><input name="banco" list="bancosL3" value="${esc(m.banco)}"><datalist id="bancosL3">${BANCOS.map(b=>`<option value="${b[0]}">`).join('')}</datalist></div>
@@ -1120,7 +1122,7 @@ function agenteModal(idPlat, op, agId, onSave){
       <div class="f full" style="margin-top:4px"><b style="font-size:13.5px">Cuenta bancaria del agente (para pagarle extracciones)</b></div>
       <div class="f"><label>Banco</label><input name="banco" list="bancosA" value="${esc(a.banco||'')}"><datalist id="bancosA">${BANCOS.map(b=>`<option value="${b[0]}">`).join('')}</datalist></div>
       ${F('cuentaBanco','Número de cuenta','')}${F('titularBanco','Titular de la cuenta','',true)}
-      <div class="f"><label>Operador</label><select name="op" ${adm?'':'disabled'}>${S.operadores.map(o=>`<option value="${o.id}" ${a.op===o.id?'selected':''}>${esc(o.nombre)}</option>`).join('')}</select></div>
+      <div class="f"><label>Operador</label><select name="op" ${adm?'':'disabled'}>${S.operadores.map(o=>`<option value="${o.id}" ${a.op===o.id?'selected':''}>${esc(opLabel(o))}</option>`).join('')}</select></div>
       ${adm?`<div class="f"><label>¿Apto para extracción?</label><select name="apto"><option value="" ${!a.apto?'selected':''}>Pendiente de revisión</option><option value="si" ${a.apto==='si'?'selected':''}>Sí, apto</option><option value="no" ${a.apto==='no'?'selected':''}>No apto (alerta)</option></select></div>${F('aptoNota','Motivo o nota de gerencia','Ejemplo: extracciones sospechosas',true)}`:'<div class="f"><label>¿Apto para extracción?</label><input value="Lo decide gerencia" disabled></div>'}
     </div>
     <div class="err" id="agErr"></div>
@@ -1381,7 +1383,7 @@ function cuadresOpHTML(){
   if(v==='cuentas' && !isAdm()) UI.cq = 'hoy';
   return tabs + (v==='cuentas' && isAdm() ? cuentasOpHTML() : v==='historial' ? historialOpHTML() : cuadreDiaHTML());
 }
-function opSelBar(extra){ const op = opActual(); return isAdm() || extra ? `<div class="bar noprint">${isAdm()?`<div class="f"><label for="opSel">Operador</label><select id="opSel">${S.operadores.map(o=>`<option value="${o.id}" ${o.id===op?'selected':''}>${esc(o.nombre)}</option>`).join('')}</select></div>`:''}${extra||''}</div>` : ''; }
+function opSelBar(extra){ const op = opActual(); return isAdm() || extra ? `<div class="bar noprint">${isAdm()?`<div class="f"><label for="opSel">Operador</label><select id="opSel">${S.operadores.map(o=>`<option value="${o.id}" ${o.id===op?'selected':''}>${esc(opLabel(o))}</option>`).join('')}</select></div>`:''}${extra||''}</div>` : ''; }
 function cuentasOpHTML(){
   const op = opActual(), f = UI.fecha, R = resumen(op, f), cs = ctasDeOp(op);
   return `${opSelBar()}<div class="qcards">
@@ -1509,11 +1511,11 @@ function cuadreDiaHTML(){
     : cerrada ? (ceo?'<button class="btn" data-act="reabrir">Reabrir</button><button class="btn gold" data-act="aprobar">Aprobar cuadre</button>':'<span class="muted" style="font-size:13px">Cerrado. Gerencia revisa y aprueba.</span>')
     : (ceo?'<span class="muted" style="font-size:13px">El operador cierra el cuadre al terminar el turno.</span>':'<button class="btn gold" data-act="cerrar">Cerrar cuadre del día</button>');
   return `<div class="bar noprint">
-      ${ceo?`<div class="f"><label for="opSel">Operador</label><select id="opSel">${S.operadores.map(o=>`<option value="${o.id}" ${o.id===op?'selected':''}>${esc(o.nombre)}</option>`).join('')}</select></div>`:''}
+      ${ceo?`<div class="f"><label for="opSel">Operador</label><select id="opSel">${S.operadores.map(o=>`<option value="${o.id}" ${o.id===op?'selected':''}>${esc(opLabel(o))}</option>`).join('')}</select></div>`:''}
       <div class="f"><label for="fSel">Fecha</label><input id="fSel" type="date" value="${f}" max="${todayS()}"></div>
       <div style="flex:1"></div>
       <div class="acts">${estado}${!ceo&&!cerrada?'<button class="btn" data-act="irMover">Mover dinero entre mis cuentas</button>':''}</div></div>
-    ${heroTotal('Dinero total de '+esc(opName(op)), `Caja de operador + ${Q.bk.length} ${Q.bk.length===1?'cuenta':'cuentas'} de banco · ${fd(f)}`, items, extra)}
+    ${heroTotal('Dinero total de '+esc(opName(op)), `${opResp(op)?'Responsable: '+esc(opResp(op))+' · ':''}Caja de operador + ${Q.bk.length} ${Q.bk.length===1?'cuenta':'cuentas'} de banco · ${fd(f)}`, items, extra)}
     ${ajenas.length?`<div class="alert warn" style="margin:0 0 14px"><b>!</b><div>${ajenas.length} ${ajenas.length===1?'recarga llegó':'recargas llegaron'} a una cuenta que no es de ${esc(opName(op))} (${money(ajenas.reduce((a,m)=>a+m.monto,0))}). Salen de la caja pero no suman a sus bancos.</div></div>`:''}
     <div class="qcards">${cajaCard}${Q.bk.map(bankCard).join('')}</div>
     ${resumenDiaHTML(op, f)}
@@ -1592,7 +1594,7 @@ function ctasOpAdmHTML(){
   return `<div class="card" style="margin-top:18px"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h2>Cuentas de banco de los operadores</h2><button class="btn sm gold" data-act="addCtaOp">Agregar cuenta</button></div>
     <p class="muted" style="font-size:13px;margin:4px 0 12px">Cada operador tiene su <b>caja de operador</b> y una o más cuentas de banco. Las recargas que llegan a estas cuentas suman a su banco; el cuadre del operador muestra el total y cada cuenta por separado.</p>
     <div class="tw" style="margin:0"><table class="t" style="min-width:760px"><thead><tr><th>Operador</th><th>Banco</th><th>N.º de cuenta</th><th>Titular</th><th class="r">Saldo inicial</th><th class="r">Saldo hoy</th><th></th></tr></thead><tbody>
-    ${S.ctasOp.map((c,i)=>`<tr><td><select data-cop="${i}" data-k="op">${S.operadores.map(o=>`<option value="${o.id}" ${o.id===c.op?'selected':''}>${esc(o.nombre)}</option>`).join('')}</select></td><td><input data-cop="${i}" data-k="banco" value="${esc(c.banco)}"></td><td><input data-cop="${i}" data-k="numero" value="${esc(c.numero)}" inputmode="numeric"></td><td><input data-cop="${i}" data-k="titular" value="${esc(c.titular||'')}"></td><td class="r"><input data-cop="${i}" data-k="inicial" type="number" step="0.01" value="${esc(c.inicial)}" style="max-width:110px;text-align:right"></td><td class="r num"><b>${money(ctaOpDia(c.id, UI.fecha).esperado)}</b></td><td><button class="btn sm quiet bad" data-act="delCtaOp" data-i="${i}" aria-label="Quitar">🗑</button></td></tr>`).join('')||'<tr><td colspan="7" class="empty">Sin cuentas.</td></tr>'}
+    ${S.ctasOp.map((c,i)=>`<tr><td><select data-cop="${i}" data-k="op">${S.operadores.map(o=>`<option value="${o.id}" ${o.id===c.op?'selected':''}>${esc(opLabel(o))}</option>`).join('')}</select></td><td><input data-cop="${i}" data-k="banco" value="${esc(c.banco)}"></td><td><input data-cop="${i}" data-k="numero" value="${esc(c.numero)}" inputmode="numeric"></td><td><input data-cop="${i}" data-k="titular" value="${esc(c.titular||'')}"></td><td class="r"><input data-cop="${i}" data-k="inicial" type="number" step="0.01" value="${esc(c.inicial)}" style="max-width:110px;text-align:right"></td><td class="r num"><b>${money(ctaOpDia(c.id, UI.fecha).esperado)}</b></td><td><button class="btn sm quiet bad" data-act="delCtaOp" data-i="${i}" aria-label="Quitar">🗑</button></td></tr>`).join('')||'<tr><td colspan="7" class="empty">Sin cuentas.</td></tr>'}
     </tbody></table></div></div>`;
 }
 document.addEventListener('input', e=>{ const t = e.target; if(t.dataset.cop==null || !isAdm()) return; S.ctasOp[+t.dataset.cop][t.dataset.k] = t.dataset.k==='inicial' ? +t.value||0 : t.value; save(); });
@@ -1761,6 +1763,8 @@ async function liveCargar(silencioso){
   if(liveBusy() || (silencioso && liveOcupado())) return;
   const N = fromRecords(j.data||{}); Object.keys(N).forEach(k=>S[k] = N[k]); LV.snap = snapDe(S); LV.ready = true; LV.err = null; liveOp();
   if(SES && SES.rol==='ceo' && USERS_PANEL===null){ USERS_PANEL = []; const ju = await rcApi('users.list'); USERS_PANEL = ju.ok ? ju.users : []; }
+  if(SES && SES.rol==='ceo'){ const mig = S.operadores.filter(o=>!o.responsable && String(o.usuario||'').trim() && String(o.nombre||'').trim().split(/\s+/).length>=2 && !/^operador\s*\d+$/i.test(o.nombre));
+    if(mig.length){ mig.forEach(o=>{ o.responsable = o.nombre; o.nombre = nombreOp(o.usuario); }); LV.ev = 'boton'; liveSave(); } }
   if(SES && SES.rol==='ceo' && opsSobrantes().length){ const L = opsSobrantes(); L.forEach(borrarOperador); LV.ev = 'boton'; liveSave(); setTimeout(()=>toast(`Se eliminó ${L.map(o=>o.nombre).join(', ')}: no tenía usuario. Quedan solo los operadores creados desde Usuarios.`), 300); }
   render();
 }
@@ -1810,6 +1814,7 @@ document.addEventListener('change', async e=>{ const t = e.target; if(t.id!=='in
   guardarRegistro('rcu', 'caja|'+op+'|'+f); if(LIVE){ const lg = S.log[S.log.length-1]; if(lg){ toRecords(S); guardarRegistro('rlg', lg.id); } }
   render(); toast('Saldo inicial guardado.'); });
 /* ---- operadores que no se crearon desde Usuarios ---- */
+const nombreOp = u => { u = String(u||'').trim(); return u ? u.charAt(0).toUpperCase() + u.slice(1).toLowerCase() : 'Operador'; };
 const opsSobrantes = () => { if(!LIVE) return [];
   const us = USERS_PANEL && USERS_PANEL.length ? new Set(USERS_PANEL.filter(u=>u.activo!==false).map(u=>u.usuario)) : null;
   const porDefecto = o => /^operador\s*\d+$/i.test(String(o.nombre||'').trim());
@@ -1841,6 +1846,8 @@ function configHTML(){
   if(LIVE && USERS_PANEL===null){ USERS_PANEL = []; cargarUsuariosPanel(); }
   const usrOps = (USERS_PANEL||[]).filter(u=>u.activo!==false && (u.rol==='gerente' || (u.areas||[]).includes('recargas')));
   const sel = (o, i) => `<select data-opu="${i}"><option value="">Sin usuario</option>${usrOps.map(u=>`<option value="${esc(u.usuario)}" ${String(o.usuario||'')===u.usuario?'selected':''}>${esc(u.nombre)} (${esc(u.usuario)})</option>`).join('')}${o.usuario && !usrOps.some(u=>u.usuario===o.usuario)?`<option value="${esc(o.usuario)}" selected>${esc(o.usuario)}</option>`:''}</select>`;
+  const pers = (()=>{ try{ return (window.parent && window.parent.rcPersonal) ? window.parent.rcPersonal() : []; }catch(e){ return []; } })();
+  const respSel = (o, i) => { const ls = pers.map(p=>p.nombre); const cur = o.responsable||''; return `<select data-opr="${i}"><option value="">Elige del personal</option>${pers.map(p=>`<option value="${esc(p.nombre)}" ${cur===p.nombre?'selected':''}>${esc(p.nombre)}${p.cargo?' · '+esc(p.cargo):''}</option>`).join('')}${cur && !ls.includes(cur)?`<option value="${esc(cur)}" selected>${esc(cur)}</option>`:''}</select>`; };
   const ctaFila = c => { const i = S.ctasOp.indexOf(c); return `<div class="opcta">
       <div class="f"><label>Banco</label><input data-cop="${i}" data-k="banco" list="bancosL3" value="${esc(c.banco)}"></div>
       <div class="f"><label>N.º de cuenta</label><input data-cop="${i}" data-k="numero" value="${esc(c.numero)}" inputmode="numeric" placeholder="2201234567"></div>
@@ -1852,7 +1859,7 @@ function configHTML(){
   <div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h2>Operadores y sus cuentas de banco</h2>${LIVE?'<span class="muted" style="font-size:13px">Para agregar un operador, créalo en <b>Usuarios</b> con el tipo Operador.</span>':'<button class="btn sm gold" data-act="addOp">Agregar operador</button>'}</div>
     <p class="muted" style="font-size:13px;margin:4px 0 0">Cada operador tiene su caja y su cuenta de banco. <b>Los comprobantes de recarga de cada operador deben estar a nombre de su cuenta</b>; si no, el panel los rechaza.</p></div>
   ${S.operadores.map((o,i)=>{ const cs = ctasDeOp(o.id); const nm = S.movs.filter(m=>m.op===o.id||m.opDest===o.id).length; return `<div class="card opcard">
-    <div class="opcard-h"><div class="f"><label>Nombre del operador</label><input data-opi="${i}" value="${esc(o.nombre)}"></div><div class="f"><label>Usuario que entra</label>${sel(o,i)}</div>
+    <div class="opcard-h"><div class="f"><label>Nombre del operador</label><input data-opi="${i}" value="${esc(o.nombre)}" placeholder="Ejemplo: Techis"></div><div class="f"><label>Responsable</label>${respSel(o,i)}</div><div class="f"><label>Usuario que entra</label>${sel(o,i)}</div>
       <button class="btn sm quiet bad" data-act="delOp" data-i="${i}" title="Eliminar operador">Eliminar operador</button></div>
     <div class="opcard-c"><div class="opcard-ct"><b>Cuenta de banco</b><span class="muted">${nm} movimientos registrados</span></div>
       ${cs.length?cs.map(ctaFila).join(''):`<div class="alert warn" style="margin:0"><b>!</b><div>Sin cuenta de banco: <b>${esc(o.nombre)}</b> no podrá registrar recargas hasta que le pongas una.</div></div>`}
@@ -1862,6 +1869,7 @@ function configHTML(){
 }
 document.addEventListener('change', e=>{ const t = e.target; if(!isAdm()) return;
   if(t.dataset.opu!=null){ S.operadores[+t.dataset.opu].usuario = t.value; save(); render(); }
+  if(t.dataset.opr!=null){ S.operadores[+t.dataset.opr].responsable = t.value; save(); render(); }
   if(t.dataset.opini!=null){ const o = S.operadores[+t.dataset.opini]; o.inicial = t.value; const f = todayS(); const c = caja(o.id, f); if(c.inicial===''||c.inicial==null) c.inicial = t.value; save(); }
   if(t.dataset.cex!=null){ const c = S.ctasExt[+t.dataset.cex]; c[t.dataset.k] = t.dataset.k==='inicial' ? (+t.value||0) : t.value; save(); } });
 document.addEventListener('input', e=>{ const t = e.target; if(!isAdm()) return; if(t.dataset.cex!=null){ const c = S.ctasExt[+t.dataset.cex]; c[t.dataset.k] = t.dataset.k==='inicial' ? (+t.value||0) : t.value; save(); } });
