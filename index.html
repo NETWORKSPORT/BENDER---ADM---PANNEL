@@ -2372,6 +2372,16 @@ function setUserTipo(k){
   if(TIPO_AREAS[k]) Object.keys(AREA_L).forEach(a=>{ const c = f.querySelector(`[name=area_${a}]`); if(c) c.checked = TIPO_AREAS[k].includes(a) || (a==='reportes' && c.checked); });
   f.dispatchEvent(new Event('change'));
 }
+function sugerirUsuario(nombre){
+  const w = String(nombre).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9 ]/g,' ').split(/\s+/).filter(Boolean);
+  if(!w.length) return ''; let base = (w[0] + (w.length>=4 ? w[2][0] : w[1] ? w[1][0] : '')).slice(0,30); if(base.length<3) base = (base+'usr').slice(0,3);
+  const usados = new Set((UI.users||[]).map(x=>x.usuario)); let u = base, i = 2; while(usados.has(u)) u = base + (i++); return u;
+}
+document.addEventListener('change', e=>{ if(e.target.id!=='u_persona') return; const sel = e.target, inp = $('#u_nombre'), uu = $('#u_user'); if(!inp) return;
+  if(sel.value==='__otra'){ inp.style.display = ''; inp.value = ''; inp.focus(); }
+  else { inp.style.display = 'none'; inp.value = sel.value; }
+  if(uu && !uu.readOnly && !uu.dataset.tocado && inp.value) uu.value = sugerirUsuario(inp.value); });
+document.addEventListener('input', e=>{ if(e.target.id==='u_user') e.target.dataset.tocado = '1'; if(e.target.id==='u_nombre'){ const uu = $('#u_user'); if(uu && !uu.readOnly && !uu.dataset.tocado) uu.value = sugerirUsuario(e.target.value); } });
 async function asegurarOperador(usuario, nombre){
   const j = await api('load', {cols:['rcf']}); if(!j.ok) return false;
   const main = (j.data.rcf||{}).main || {operadores:[], cuentas:[], ctasOp:[], ctasExt:[]};
@@ -2383,11 +2393,15 @@ async function asegurarOperador(usuario, nombre){
 }
 function userForm(usuario){
   const u = usuario ? UI.users.find(x=>x.usuario===usuario) : {rol:'area', areas:[], activo:true};
+  const PERS = activeEmps(), PSEL = (PERS.find(e=>e.nombre===u.nombre)||{}).nombre || '', POTRA = !!u.nombre && !PSEL;
   openLayer(`<form class="drawer" id="userForm" data-id="${esc(usuario||'')}" role="dialog" aria-modal="true" aria-labelledby="uT" novalidate>
     <div class="dh"><h2 id="uT">${usuario?esc(u.nombre):'Nuevo usuario'}</h2><button type="button" class="x" data-act="close" aria-label="Cerrar">×</button></div>
     <div class="db">
       <fieldset><legend>Datos de acceso</legend><div class="fg">
-        <div class="f full" data-f="nombre"><label for="u_nombre">Nombre de la persona</label><input id="u_nombre" name="nombre" value="${esc(u.nombre||'')}" placeholder="Ejemplo: Pedro Gómez"><div class="err"></div></div>
+        <div class="f full" data-f="nombre"><label for="u_persona">Seleccionar persona</label>
+          <select id="u_persona"><option value="">Elige de la lista del personal</option>${PERS.map(e=>`<option value="${esc(e.nombre)}" ${PSEL===e.nombre?'selected':''}>${esc(e.nombre)}${e.cargo?' · '+esc(e.cargo):''}${(UI.users||[]).some(x=>x.nombre===e.nombre && x.usuario!==usuario)?' (ya tiene usuario)':''}</option>`).join('')}<option value="__otra" ${POTRA?'selected':''}>Otra persona (no está en Personal)</option></select>
+          <input id="u_nombre" name="nombre" value="${esc(u.nombre||'')}" placeholder="Escribe el nombre completo" style="margin-top:8px;${POTRA?'':'display:none'}">
+          ${PERS.length?'':'<div class="hint">Todavía no hay personal registrado en Personal. Elige "Otra persona" y escribe el nombre.</div>'}<div class="err"></div></div>
         <div class="f" data-f="usuario"><label for="u_user">Usuario</label><input id="u_user" name="usuario" value="${esc(u.usuario||'')}" ${usuario?'readonly':''} autocapitalize="none" spellcheck="false" placeholder="pedro"><div class="hint">Minúsculas, sin espacios.</div><div class="err"></div></div>
         <div class="f" data-f="clave"><label for="u_pass">${usuario?'Nueva contraseña':'Contraseña'}</label><input id="u_pass" name="clave" type="text" autocomplete="off" placeholder="${usuario?'Déjala vacía para no cambiarla':'Mínimo 8 caracteres'}"><div class="err"></div></div>
       </div></fieldset>
@@ -2409,7 +2423,7 @@ async function submitUser(form){
   const usuario = (form.dataset.id || v.usuario || '').trim().toLowerCase();
   const areas = Object.keys(AREA_L).filter(k=>fdata.has('area_'+k));
   const errs = {};
-  if(!(v.nombre||'').trim()) errs.nombre='Escribe un nombre.';
+  if(!(v.nombre||'').trim()) errs.nombre = $('#u_persona') && $('#u_persona').value==='__otra' ? 'Escribe el nombre de la persona.' : 'Elige a la persona de la lista.';
   if(!/^[a-z0-9._-]{3,30}$/.test(usuario)) errs.usuario='Usa de 3 a 30 letras minúsculas o números, sin espacios.';
   if(!form.dataset.id && (v.clave||'').length<8) errs.clave='La contraseña debe tener al menos 8 caracteres.';
   if(form.dataset.id && v.clave && v.clave.length<8) errs.clave='La contraseña debe tener al menos 8 caracteres.';
