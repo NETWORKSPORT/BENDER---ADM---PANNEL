@@ -183,6 +183,10 @@ table.t{width:100%;border-collapse:collapse;font-size:14px;min-width:860px}
 .mainc{min-width:0}
 .top .mob{display:none;gap:10px;align-items:center}.ttl{font-size:22px;margin-right:6px}
 .asw{width:auto}.asw label{font-size:11.5px;margin-bottom:2px}.asw select{padding:6px 10px;font-size:13.5px;min-width:220px}
+.pasos-op{display:flex;gap:6px;margin:0 0 12px;flex-wrap:wrap}.pasos-op span{font-size:12.5px;padding:5px 10px;border-radius:99px;border:1px solid var(--line);color:var(--muted)}.pasos-op span.on{border-color:var(--gold);color:var(--gold);font-weight:600}.pasos-op span.ok{border-color:var(--ok);color:var(--ok)}
+.rv-box{margin-top:14px;border:1px solid var(--line);border-radius:12px;overflow:hidden}.rv-h{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:12px 14px;background:var(--surface-2,rgba(255,255,255,.03));border-bottom:1px solid var(--line)}.rv-h span{font-size:13px;color:var(--muted)}
+.rv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr))}.rv{padding:10px 14px;border-bottom:1px solid var(--line);border-right:1px solid var(--line);position:relative}.rv span{display:block;font-size:12px;color:var(--muted)}.rv b{display:block;font-size:15px;margin-top:2px}.rv b small{font-weight:400;color:var(--muted);margin-left:4px}.rv i{position:absolute;top:8px;right:10px;font-style:normal;font-size:11px;color:var(--ok)}.rv.falta b{color:var(--danger);font-weight:500;font-size:13.5px}.rv span.rv-big{display:inline;font-size:24px;color:var(--gold);font-weight:700}
+.rv-ag{padding:12px 14px;border-bottom:1px solid var(--line)}.rv-caja{padding:10px 14px;font-size:14px}
 .gs-prev{margin-top:12px;padding:10px 14px;border:1px dashed var(--line);border-radius:10px;font-size:14px}.gs-prev b{font-size:16px}
 .embed .shell{grid-template-columns:1fr}.embed .side{display:none}.embed .top .mob{display:none!important}.embed .ttl{display:block!important}.embed [data-act=theme]{display:none}
 @media (max-width:900px){.shell{grid-template-columns:1fr}.side{display:none}.top .mob{display:flex!important}.ttl{display:none}}
@@ -503,7 +507,7 @@ async function pdfToImage(file){
   return {text:txt, url:c.toDataURL('image/jpeg', .85)};
 }
 async function leerComprobante(file){
-  if(!file) return;
+  if(!file) return; UI.edit = false;
   const isPdf = file.type==='application/pdf' || /\.pdf$/i.test(file.name||'');
   if(!isPdf && !/^image\//.test(file.type)){ toast('Sube una foto, captura o PDF del comprobante.', true); return; }
   UI.ocr = {estado:'leyendo', prog:0}; UI.read = {}; renderForm();
@@ -624,20 +628,22 @@ function renderForm(){
   const dup = t.comp ? (duplicado(f.banco, f.comprobante) || duplicadoFlexible(f.comprobante)) : null;
   const ver = t.comp && f.cuentaDest ? cuentaEmpresa(f.cuentaDest) : null;
   const fechaDist = t.comp && f.fecha && f.fecha!==UI.fecha;
+  const st = !t.comp ? 'editar' : (!UI.img && !UI.ocr) ? 'subir' : UI.ocr?.estado==='leyendo' ? 'leyendo' : (UI.edit || UI.ocr?.estado==='error') ? 'editar' : 'revisar';
   const A = (k, inner) => `<div class="f auto ${UI.read[k]?'read':''} ${k==='nombre'||k==='nota'?'full':''}">${UI.read[k]?'<span class="tagr">Leído ✓</span>':''}${inner}</div>`;
   el.innerHTML = `
-    <h2 style="margin-bottom:4px">${isAdm()?'Inyectar saldo o ajustar':'Registrar movimiento'}</h2>
+    <h2 style="margin-bottom:4px">Registrar movimiento</h2>
     <p class="muted" style="font-size:13px;margin:0 0 12px">${isAdm()?`Caja de <b>${esc(opName(op))}</b>. Gerencia no registra comprobantes: supervisa, edita, anula, verifica y aprueba.`:'Solo puedes registrar. Si te equivocas, avisa a gerencia para que lo corrija.'}</p>
     ${tipoBtns()}
-    ${t.comp?`<div class="drop" id="drop" tabindex="0" role="button" aria-label="Subir comprobante">
+    ${t.comp?`${st==='subir'?`<div class="pasos-op"><span class="on">1. Sube el comprobante</span><span>2. Revisa los datos</span><span>3. Confirma</span></div><div class="drop" id="drop" tabindex="0" role="button" aria-label="Subir comprobante">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>
       <b>Arrastra aquí el comprobante</b><span>o haz clic para elegirlo · también puedes pegarlo con Ctrl+V · foto, captura o PDF</span>
-      <input type="file" id="fileIn" accept="image/*,application/pdf" hidden></div>
+      <input type="file" id="fileIn" accept="image/*,application/pdf" hidden></div>`:`<div class="pasos-op"><span class="ok">1. Comprobante subido</span><span class="${st==='leyendo'?'':'on'}">2. Revisa los datos</span><span>3. Confirma</span></div>`}
       ${UI.img||UI.ocr?`<div class="prev"><div class="img" data-act="verPrev">${UI.img?`<img src="${UI.img}" alt="Comprobante">`:''}</div><div>
         ${UI.ocr?.estado==='leyendo'?`<b>Leyendo el comprobante…</b><div class="prog"><i id="ocrBar" style="width:${Math.round((UI.ocr.prog||0)*100)}%"></i></div><span class="muted" style="font-size:13px">La primera vez tarda un poco más mientras se carga el lector.</span>`
         : UI.ocr?.estado==='error'?`<div class="alert warn">No se pudo leer automáticamente. Completa los datos a mano.</div>`
         : `<b>Datos leídos</b><p class="muted" style="font-size:13px;margin:4px 0 0">Los campos en verde se llenaron solos. Compáralos con la imagen antes de registrar.</p>${UI.ocr?.texto?`<button class="btn sm quiet" data-act="verTexto" style="margin-top:6px;padding-left:0">Ver texto leído</button>`:''}`}
-        <div><button class="btn sm quiet bad" data-act="limpiar" style="padding-left:0">Quitar comprobante</button></div></div></div>`:''}`:''}
+        <div><button class="btn sm quiet bad" data-act="limpiar" style="padding-left:0">Cambiar comprobante</button></div></div></div>`:''}`:''}
+    ${st==='subir'||st==='leyendo' ? '' : st==='revisar' ? revisarHTML(f, op, dup, ver) : `
     <div class="fg" style="margin-top:14px">
       ${t.comp?A('agente', `<label for="fAgId">ID del agente en la plataforma</label><input id="fAgId" data-k="agId" list="agIds" value="${esc(f.agId||'')}" placeholder="Escribe o busca el ID" autocomplete="off"><datalist id="agIds">${S.agentes.map(a=>`<option value="${esc(a.idPlat)}">${esc(a.nombre)}</option>`).join('')}</datalist>`):''}
       ${A('monto', `<label for="fMo">Monto (USD)</label><input id="fMo" data-k="monto" type="number" step="0.01" min="0" inputmode="decimal" value="${esc(f.monto??'')}" placeholder="0,00">`)}
@@ -649,11 +655,12 @@ function renderForm(){
       : UI.tipo==='carga' ? `<div class="f"><label for="fDs">¿A dónde va el dinero?</label><select id="fDs" data-k="dest">${['caja', ...ctasDeOp(op).map(c=>c.id)].map(k=>`<option value="${k}" ${(f.dest||'caja')===k?'selected':''}>${esc(lugarL(k))}</option>`).join('')}</select></div>` : UI.tipo==='ajuste' ? `<div class="f"><label for="fSg">Efecto en caja</label><select id="fSg" data-k="signo"><option value="1" ${f.signo!=-1?'selected':''}>Suma a la caja (+)</option><option value="-1" ${f.signo==-1?'selected':''}>Resta de la caja (−)</option></select></div>` : ''}
       ${A('nota', `<label for="fNt">${UI.tipo==='ajuste'?'Motivo del ajuste (obligatorio)':'Nota (opcional)'}</label><input id="fNt" data-k="nota" value="${esc(f.nota||'')}" placeholder="${UI.tipo==='carga'?'Ejemplo: inyección de capital para recargas':'Observación'}">`)}
     </div>
-    ${t.comp?agLinea(f, op):''}
+    `}
+    ${st==='editar' && t.comp?agLinea(f, op):''}
     ${dup?`<div class="alert bad" role="alert"><b>⛔</b><div><b>Comprobante repetido.</b> Ya se registró el ${fd(dup.fecha)} a las ${hm(dup.ts)} por ${money(dup.monto)}${dup.agente?` (${esc(S.agentes.find(a=>a.id===dup.agente)?.nombre||'')})`:''}, en ${esc(S.operadores.find(o=>o.id===dup.op)?.nombre||'')}. No se puede usar dos veces.</div></div>`:''}
     ${ver===false?`<div class="alert bad"><b>⚠</b><div><b>La cuenta destino no es de la empresa.</b> El comprobante dice ${esc(f.cuentaDest)}. Verifica que la transferencia llegó a una cuenta de BENDERAM antes de recargar.</div></div>`:ver?`<div class="alert ok"><b>✓</b><div>Llegó a la cuenta de la empresa: ${esc(ver.banco)} terminada en ${esc(ver.numero.slice(-4))}.</div></div>`:''}
     ${fechaDist?`<div class="alert warn"><b>!</b><div>La fecha del comprobante (${fd(f.fecha)}) no es la del turno (${fd(UI.fecha)}). Confirma que no sea un comprobante viejo.</div></div>`:''}
-    <div class="acts" style="margin-top:16px;justify-content:flex-end"><button class="btn quiet" data-act="limpiar">Limpiar</button><button class="btn gold" data-act="registrar" ${dup?'disabled':''}>Registrar ${t.label.toLowerCase()}</button></div>`;
+    ${st==='subir'||st==='leyendo' ? '' : `<div class="acts" style="margin-top:16px;justify-content:flex-end">${st==='revisar'?'<button class="btn" data-act="editarLectura">Los datos no son correctos · Editar</button>':(UI.ocr?.estado==='error'?'<button class="btn quiet" data-act="limpiar">Cancelar</button>':'<button class="btn quiet" data-act="verLectura">Volver a la revisión</button>')}<button class="btn gold" data-act="registrar" ${dup?'disabled':''}>Confirmar movimiento</button></div>`}`;
   const drop = $('#drop');
   if(drop){
     const fi = $('#fileIn');
@@ -690,7 +697,7 @@ async function registrar(){
   if(m.tipo==='ajuste') logAcc('Ajuste', `${m.signo<0?'−':'+'}${money(monto)} en ${opName(op)} · ${m.nota}`);
   if(m.tipo==='transfer') tgSend(`🔁 <b>Traspaso de saldo</b>\n${esc(opName(op))} → ${esc(opName(m.opDest))}: ${money(monto)}${m.nota?'\n'+esc(m.nota):''}`, 'alertas');
   if(m.tipo==='carga') tgSend(`💰 <b>Gestión de saldo</b>\n${esc(opName(op))} → ${esc(lugarL(m.dest))}: ${m.signo<0?'−':'+'}${money(monto)}${m.nota?'\n'+esc(m.nota):''}`, 'alertas');
-  UI.form = {}; UI.read = {}; UI.img = null; UI.ocr = null;
+  UI.form = {}; UI.read = {}; UI.img = null; UI.ocr = null; UI.edit = false;
   render();
   const nR = resumen(op, UI.fecha);
   toast(m.tipo==='carga' ? `${m.signo<0?'Se quitaron':'Se aumentaron'} ${money(monto)} ${m.signo<0?'de':'a'} ${lugarL(m.dest)} de ${opName(op)}. Saldo de caja: ${money(nR.esperado)}.` : m.tipo==='mover' ? `Moviste ${money(monto)}: ${lugarL(m.from)} → ${lugarL(m.to)}. El total no cambia.` : m.tipo==='carga' && m.dest!=='caja' ? `Inyección de ${money(monto)} a ${lugarL(m.dest)} de ${opName(op)}.` : m.tipo==='transfer' ? `Pasaste ${money(monto)} a ${opName(m.opDest)}. Tu saldo: ${money(nR.esperado)}.` : `${t.label} de ${money(monto)} registrada. Saldo de caja de ${opName(op)}: ${money(nR.esperado)}.`);
@@ -776,7 +783,9 @@ document.addEventListener('click', async e=>{
   else if(a==='theme'){ const cur = document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'); document.documentElement.dataset.theme = cur==='light'?'dark':'light'; try{ localStorage.setItem('benderam-sim-theme', document.documentElement.dataset.theme); }catch(e){} }
   else if(a==='tipo'){ UI.tipo = b.dataset.k; renderForm(); }
   else if(a==='registrar') registrar();
-  else if(a==='limpiar'){ UI.form = {}; UI.read = {}; UI.img = null; UI.ocr = null; renderForm(); }
+  else if(a==='limpiar'){ UI.form = {}; UI.read = {}; UI.img = null; UI.ocr = null; UI.edit = false; renderForm(); }
+  else if(a==='editarLectura'){ UI.edit = true; renderForm(); setTimeout(()=>$('#fMo')?.focus(), 30); }
+  else if(a==='verLectura'){ UI.edit = false; renderForm(); }
   else if(a==='verPrev' && UI.img) modal(`<img src="${UI.img}" alt="Comprobante">`, 'img');
   else if(a==='ver'){ const m = S.movs.find(x=>x.id===b.dataset.id); if(m&&m.img) modal(`<img src="${imgSrc(m.img)}" alt="Comprobante">`, 'img'); }
   else if(a==='verTexto') modal(`<div class="mh"><h2>Texto leído del comprobante</h2><button class="x" data-close aria-label="Cerrar">×</button></div><pre style="white-space:pre-wrap;font-size:13px;background:var(--bg-2);padding:12px;border-radius:10px;max-height:60vh;overflow:auto">${esc(UI.ocr?.texto||'')}</pre>`);
@@ -833,6 +842,23 @@ document.addEventListener('paste', e=>{
 document.addEventListener('keydown', e=>{ if(e.key==='Escape') document.querySelectorAll('.ov').forEach(o=>o.remove()); });
 
 
+function revisarHTML(f, op, dup, ver){
+  const a = f.agente ? S.agentes.find(x=>x.id===f.agente) : null;
+  const L = (l, v, k) => `<div class="rv ${v?'':'falta'}"><span>${l}</span><b>${v ? v : 'No se pudo leer'}</b>${v && UI.read[k] ? '<i>Leído ✓</i>' : ''}</div>`;
+  return `<div class="rv-box"><div class="rv-h"><b>Revisa que todo coincida con el comprobante</b><span>Si algo está mal, pulsa Editar.</span></div>
+    <div class="rv-grid">
+      ${L('Monto', f.monto ? `<span class="rv-big">${money(+f.monto)}</span>` : '', 'monto')}
+      ${L('Agente', a ? `${esc(a.nombre)} <small>ID ${esc(a.idPlat)}</small>` : '', 'agente')}
+      ${L('Banco', esc(f.banco||''), 'banco')}
+      ${L('N.º de comprobante', esc(f.comprobante||''), 'comprobante')}
+      ${L('Nombre del que transfiere', esc(f.nombre||''), 'nombre')}
+      ${L('Fecha', f.fecha ? fd(f.fecha) : '', 'fecha')}
+      ${L('Cuenta destino', esc(f.cuentaDest||''), 'cuentaDest')}
+    </div>
+    ${!a?`<div class="rv-ag"><div class="f"><label for="fAgId">No se reconoció al agente por el nombre. Escribe su ID</label><input id="fAgId" data-k="agId" list="agIds" value="${esc(f.agId||'')}" placeholder="ID del agente en la plataforma" autocomplete="off"><datalist id="agIds">${S.agentes.map(x=>`<option value="${esc(x.idPlat)}">${esc(x.nombre)}</option>`).join('')}</datalist></div>${agLinea(f, op)}</div>`:''}
+    <div class="rv-caja">Tu caja: <b class="num">${money(resumen(op, UI.fecha).esperado)}</b> → <b class="num neg">${money(resumen(op, UI.fecha).esperado - (+f.monto||0))}</b> al confirmar</div>
+  </div>`;
+}
 function agLinea(f, op){
   const a = f.agente ? S.agentes.find(x=>x.id===f.agente) : null;
   if(a) return `<div class="alert ${a.op===op?'ok':'warn'}"><b>${a.op===op?'✓':'!'}</b><div><b>${esc(a.nombre)}</b> · ${esc(a.titular||'')} · ${esc(a.telefono||'')}${a.op!==op?` · <b>es agente de ${esc(opName(a.op))}</b>`:''}</div></div>`;
