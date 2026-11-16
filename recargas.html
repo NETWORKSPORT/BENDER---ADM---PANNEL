@@ -183,6 +183,7 @@ table.t{width:100%;border-collapse:collapse;font-size:14px;min-width:860px}
 .mainc{min-width:0}
 .top .mob{display:none;gap:10px;align-items:center}.ttl{font-size:22px;margin-right:6px}
 .asw{width:auto}.asw label{font-size:11.5px;margin-bottom:2px}.asw select{padding:6px 10px;font-size:13.5px;min-width:220px}
+.gs-prev{margin-top:12px;padding:10px 14px;border:1px dashed var(--line);border-radius:10px;font-size:14px}.gs-prev b{font-size:16px}
 .embed .shell{grid-template-columns:1fr}.embed .side{display:none}.embed .top .mob{display:none!important}.embed .ttl{display:block!important}.embed [data-act=theme]{display:none}
 @media (max-width:900px){.shell{grid-template-columns:1fr}.side{display:none}.top .mob{display:flex!important}.ttl{display:none}}
 @media (max-width:640px){.asw{width:100%}.asw select{min-width:0}}
@@ -289,7 +290,7 @@ const TIPOS = {
   transfer:{label:'Pasar saldo', sub:'A otro operador', comp:false, quien:'op'},
   mover:{label:'Mover dinero', sub:'Caja ↔ mis bancos', comp:false, quien:'op'},
   extraccion:{label:'Extracción', sub:'', comp:false, quien:'none'},
-  carga:{label:'Inyección de saldo', sub:'La empresa inyecta dinero', comp:false, quien:'adm'},
+  carga:{label:'Gestión de saldo', sub:'Gerencia aumenta o quita saldo', comp:false, quien:'adm'},
   ajuste:{label:'Ajuste', sub:'Corrección con motivo', comp:false, quien:'adm'}
 };
 const isAdm = () => SES && SES.rol==='ceo';
@@ -368,7 +369,7 @@ const UI = {tab:'caja', op:null, fecha:todayS(), tipo:'', form:{}, read:{}, img:
 const cajaKey = (op, f) => `${op}|${f}`;
 const caja = (op, f) => S.cajas[cajaKey(op,f)] || (S.cajas[cajaKey(op,f)] = {inicial:'', real:'', cerrada:false});
 const movsDe = (op, f) => S.movs.filter(m=>m.fecha===f && (m.op===op || m.opDest===op)).sort((a,b)=>a.ts-b.ts);
-const efecto = (m, op) => { if(m.tipo==='recarga') return {caja:-m.monto, banco:m.monto}; if(m.tipo==='carga') return {caja: m.dest&&m.dest!=='caja' ? 0 : +m.monto, banco:0}; if(m.tipo==='extraccion') return {caja:+m.monto, banco:0}; if(m.tipo==='mover') return {caja:(m.to==='caja'?+m.monto:0)-(m.from==='caja'?+m.monto:0), banco:0}; if(m.tipo==='ajuste') return {caja:m.monto*(m.signo||1), banco:0}; if(m.tipo==='transfer') return {caja: op===m.opDest ? +m.monto : -m.monto, banco:0}; return {caja:0, banco:0}; };
+const efecto = (m, op) => { if(m.tipo==='recarga') return {caja:-m.monto, banco:m.monto}; if(m.tipo==='carga') return {caja: m.dest&&m.dest!=='caja' ? 0 : (m.signo||1)*m.monto, banco:0}; if(m.tipo==='extraccion') return {caja:+m.monto, banco:0}; if(m.tipo==='mover') return {caja:(m.to==='caja'?+m.monto:0)-(m.from==='caja'?+m.monto:0), banco:0}; if(m.tipo==='ajuste') return {caja:m.monto*(m.signo||1), banco:0}; if(m.tipo==='transfer') return {caja: op===m.opDest ? +m.monto : -m.monto, banco:0}; return {caja:0, banco:0}; };
 const prevDay = f => { const d = new Date(f+'T12:00:00'); d.setDate(d.getDate()-1); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
 function saldoInicial(op, f, depth=0){
   const c = S.cajas[cajaKey(op,f)];
@@ -381,14 +382,14 @@ function saldoInicial(op, f, depth=0){
 function resumen(op, f, depth=0){
   const c = caja(op,f), ms = movsDe(op,f).filter(m=>!m.anulado);
   const sm = arr => r2(arr.reduce((a,m)=>a+(+m.monto||0),0));
-  const rec = sm(ms.filter(m=>m.tipo==='recarga')), car = sm(ms.filter(m=>m.tipo==='carga' && (!m.dest||m.dest==='caja'))), carB = sm(ms.filter(m=>m.tipo==='carga' && m.dest && m.dest!=='caja')), mIn = sm(ms.filter(m=>m.tipo==='mover' && m.to==='caja')), mOut = sm(ms.filter(m=>m.tipo==='mover' && m.from==='caja')), ext = sm(ms.filter(m=>m.tipo==='extraccion'));
+  const rec = sm(ms.filter(m=>m.tipo==='recarga')), car = sm(ms.filter(m=>m.tipo==='carga' && (!m.dest||m.dest==='caja') && (m.signo||1)>0)), carQ = sm(ms.filter(m=>m.tipo==='carga' && (!m.dest||m.dest==='caja') && (m.signo||1)<0)), carB = sm(ms.filter(m=>m.tipo==='carga' && m.dest && m.dest!=='caja')), mIn = sm(ms.filter(m=>m.tipo==='mover' && m.to==='caja')), mOut = sm(ms.filter(m=>m.tipo==='mover' && m.from==='caja')), ext = sm(ms.filter(m=>m.tipo==='extraccion'));
   const tin = sm(ms.filter(m=>m.tipo==='transfer' && m.opDest===op)), tout = sm(ms.filter(m=>m.tipo==='transfer' && m.op===op));
   const aj = r2(ms.filter(m=>m.tipo==='ajuste').reduce((a,m)=>a+m.monto*(m.signo||1),0));
   const si = saldoInicial(op, f, depth); const ini = si.v;
-  const esperado = r2(ini - rec + car + ext + tin - tout + aj + mIn - mOut);
+  const esperado = r2(ini - rec + car - carQ + ext + tin - tout + aj + mIn - mOut);
   const bancos = {}; ms.forEach(m=>{ const e = efecto(m, op); if(e.banco) bancos[m.banco||'Sin banco'] = r2((bancos[m.banco||'Sin banco']||0) + e.banco); });
   const real = c.real===''||c.real==null ? null : +c.real;
-  return {ini, iniOrigen:si, rec, car, carB, mIn, mOut, ext, tin, tout, aj, esperado, real, dif: real==null?null:r2(real-esperado), n:ms.length, nRec:ms.filter(m=>m.tipo==='recarga').length, bancos, banco:r2(Object.values(bancos).reduce((a,b)=>a+b,0)), cerrada:c.cerrada, aprobada:c.aprobada, aprobadaPor:c.aprobadaPor};
+  return {ini, iniOrigen:si, rec, car, carQ, carB, mIn, mOut, ext, tin, tout, aj, esperado, real, dif: real==null?null:r2(real-esperado), n:ms.length, nRec:ms.filter(m=>m.tipo==='recarga').length, bancos, banco:r2(Object.values(bancos).reduce((a,b)=>a+b,0)), cerrada:c.cerrada, aprobada:c.aprobada, aprobadaPor:c.aprobadaPor};
 }
 const compKey = (banco, comp) => norm(banco).replace(/^banco\s+/,'') + '|' + String(comp||'').replace(/\D/g,'').replace(/^0+/,'');
 const duplicado = (banco, comp, exceptId) => { const k = compKey(banco, comp); if(!String(comp||'').replace(/\D/g,'')) return null; return S.movs.find(m=>!m.anulado && m.id!==exceptId && m.comprobante && compKey(m.banco, m.comprobante)===k) || null; };
@@ -575,8 +576,8 @@ function cajaHTML(){
   const ms = movsDe(op,f);
   let run = R.ini;
   const rows = ms.map(m=>{ if(!m.anulado) run = r2(run + efecto(m, op).caja); const ag = S.agentes.find(a=>a.id===m.agente); const t = TIPOS[m.tipo]; const e = efecto(m, op);
-    const tl = m.tipo==='transfer' ? (m.opDest===op ? `Recibió de ${esc(opName(m.op))}` : `Pasó a ${esc(opName(m.opDest))}`) : m.tipo==='extraccion' ? 'Extracción' : m.tipo==='mover' ? `${esc(lugarCorto(m.from))} → ${esc(lugarCorto(m.to))}` : m.tipo==='carga'&&m.dest&&m.dest!=='caja' ? `Inyección → ${esc(lugarCorto(m.dest))}` : t.label;
-    return `<tr class="${m.anulado?'anul':''}"><td class="num">${hm(m.ts)}<small>${esc(m.usuario||'')}</small></td><td><span class="pill ${m.tipo==='recarga'?'info':m.tipo==='carga'||m.tipo==='extraccion'?'ok':m.tipo==='transfer'||m.tipo==='mover'?'warn':''}">${tl}</span>${m.editado?'<small>Editado por gerencia</small>':''}${m.anulado?`<small>Anulado: ${esc(m.motivoAnul||'')}</small>`:''}</td>
+    const tl = m.tipo==='transfer' ? (m.opDest===op ? `Recibió de ${esc(opName(m.op))}` : `Pasó a ${esc(opName(m.opDest))}`) : m.tipo==='extraccion' ? 'Extracción' : m.tipo==='mover' ? `${esc(lugarCorto(m.from))} → ${esc(lugarCorto(m.to))}` : m.tipo==='carga' ? `${(m.signo||1)<0?'Saldo quitado':'Saldo aumentado'}${m.dest&&m.dest!=='caja'?' · '+esc(lugarCorto(m.dest)):''}` : t.label;
+    return `<tr class="${m.anulado?'anul':''}"><td class="num">${hm(m.ts)}<small>${esc(m.usuario||'')}</small></td><td><span class="pill ${m.tipo==='recarga'?'info':m.tipo==='carga'&&(m.signo||1)<0?'bad':m.tipo==='carga'||m.tipo==='extraccion'?'ok':m.tipo==='transfer'||m.tipo==='mover'?'warn':''}">${tl}</span>${m.editado?'<small>Editado por gerencia</small>':''}${m.anulado?`<small>Anulado: ${esc(m.motivoAnul||'')}</small>`:''}</td>
       <td>${ag?`<b>${esc(ag.nombre)}</b><small>${esc(ag.codigo)} · ${esc(ag.cuenta)}</small>`:m.tipo==='extraccion'?`<b>${esc(m.agencia||'')}</b><small>ID ${esc(m.idAgente||'')}</small>`:'<span class="muted">—</span>'}</td>
       <td>${esc(m.banco||'—')}<small class="num">${esc(m.comprobante||'')}</small></td>
       <td>${esc(m.nombre||m.nota||'—')}${m.verif===false?'<small class="neg">Cuenta destino no coincide</small>':m.verif?'<small class="pos">Cuenta de la empresa ✓</small>':''}</td>
@@ -614,9 +615,10 @@ function renderForm(){
   const el = $('#formCard'); if(!el) return;
   const op = opActual(), f = UI.form, t = TIPOS[UI.tipo], R = resumen(op, UI.fecha);
   if(!TIPOS[UI.tipo] || TIPOS[UI.tipo].quien !== (isAdm()?'adm':'op')){ UI.tipo = isAdm() ? 'carga' : 'recarga'; return renderForm(); }
-  if(R.cerrada){ el.innerHTML = `<h2>Caja cerrada</h2><p class="muted">Este turno ya se cerró. ${isAdm()?'Para inyectar saldo o ajustar, reabre la caja desde el cuadre.':'Para registrar más movimientos, pide a gerencia que reabra la caja.'}</p>`; return; }
+  if(R.cerrada){ el.innerHTML = `<h2>Caja cerrada</h2><p class="muted">Este turno ya se cerró. ${isAdm()?'Para aumentar o quitar saldo, reabre la caja desde el cuadre.':'Para registrar más movimientos, pide a gerencia que reabra la caja.'}</p>`; return; }
   if(UI.tipo==='transfer') return transferForm(el, op);
   if(UI.tipo==='mover') return moverForm(el, op);
+  if(isAdm()) return gestionForm(el, op);
   if(UI.tipo==='extraccion') return extrOpForm(el, op);
   const ags = S.agentes.filter(a=>a.op===op);
   const dup = t.comp ? (duplicado(f.banco, f.comprobante) || duplicadoFlexible(f.comprobante)) : null;
@@ -675,23 +677,23 @@ async function registrar(){
   if(t.comp && !String(f.comprobante||'').trim()) return toast('Escribe el número de comprobante.', true);
   if(t.comp && !String(f.banco||'').trim()) return toast('Escribe el banco.', true);
   if(UI.tipo==='ajuste' && !String(f.nota||'').trim()) return toast('Escribe el motivo del ajuste.', true);
-  if(isAdm() && (UI.tipo==='carga' || UI.tipo==='ajuste')){ const dst = UI.tipo==='carga' ? lugarL(f.dest||'caja') : 'Caja de operador'; if(!(await ask(UI.tipo==='carga'?'Confirmar inyección de saldo':'Confirmar ajuste', UI.tipo==='carga' ? `¿Inyectar <b>${money(monto)}</b> a <b>${esc(opName(op))}</b>?<br><span class="muted">Va a: ${esc(dst)} · ${fd(UI.fecha)}</span>` : `¿Registrar un ajuste de <b>${f.signo==='-'||f.signo==-1?'−':'+'}${money(monto)}</b> en la caja de <b>${esc(opName(op))}</b>?<br><span class="muted">Motivo: ${esc(f.nota||'')}</span>`, {ok:'Sí, confirmar'}))) return; }
+  if(isAdm() && UI.tipo==='carga'){ const dst = f.dest||'caja', q = f.signo==='-', ant = saldoLugar(op, dst, UI.fecha); if(!(await ask(q?'Confirmar: quitar saldo':'Confirmar: aumentar saldo', `¿${q?'Quitar':'Aumentar'} <b>${money(monto)}</b> ${q?'de':'a'} <b>${esc(opName(op))}</b>?<br><span class="muted">${esc(lugarL(dst))}: ${money(ant)} → <b>${money(ant + (q?-monto:monto))}</b> · ${fd(UI.fecha)}</span>${f.nota?`<br><span class="muted">Motivo: ${esc(f.nota)}</span>`:''}`, {ok:q?'Sí, quitar':'Sí, aumentar', danger:q}))) return; }
   if(t.comp && (duplicado(f.banco, f.comprobante) || duplicadoFlexible(f.comprobante))) return toast('Ese comprobante ya fue registrado.', true);
   const R = resumen(op, UI.fecha);
   if((UI.tipo==='recarga'||UI.tipo==='transfer') && monto > R.esperado + 0.005 && !(await ask('Caja insuficiente', `La caja tiene <b>${money(R.esperado)}</b> y la recarga es de <b>${money(monto)}</b>. La caja quedará en negativo. ¿Registrar igual?`, {ok:'Registrar igual'}))) return;
   const ver = t.comp && f.cuentaDest ? cuentaEmpresa(f.cuentaDest) : null;
-  const m = {id:uid('m'), ts:Date.now(), op, fecha:UI.fecha, tipo:UI.tipo, agente:f.agente||'', monto, banco:t.comp?f.banco.trim():'', comprobante:t.comp?String(f.comprobante).trim():'', nombre:t.comp?(f.nombre||'').trim():'', fechaComp:t.comp?(f.fecha||UI.fecha):'', cuentaDest:f.cuentaDest||'', verif: ver===null?null:!!ver, nota:(f.nota||'').trim(), signo: UI.tipo==='ajuste' ? (+f.signo||1) : undefined, img:t.comp?UI.img:null, auto:Object.keys(UI.read), usuario:SES.usuario, opDest: UI.tipo==='transfer' ? f.opDest : undefined, dest: UI.tipo==='carga' ? (f.dest||'caja') : undefined, from: UI.tipo==='mover' ? f.from : undefined, to: UI.tipo==='mover' ? f.to : undefined};
+  const m = {id:uid('m'), ts:Date.now(), op, fecha:UI.fecha, tipo:UI.tipo, agente:f.agente||'', monto, banco:t.comp?f.banco.trim():'', comprobante:t.comp?String(f.comprobante).trim():'', nombre:t.comp?(f.nombre||'').trim():'', fechaComp:t.comp?(f.fecha||UI.fecha):'', cuentaDest:f.cuentaDest||'', verif: ver===null?null:!!ver, nota:(f.nota||'').trim(), signo: UI.tipo==='ajuste' ? (+f.signo||1) : undefined, img:t.comp?UI.img:null, auto:Object.keys(UI.read), usuario:SES.usuario, opDest: UI.tipo==='transfer' ? f.opDest : undefined, dest: UI.tipo==='carga' ? (f.dest||'caja') : undefined, signo: UI.tipo==='carga' ? (f.signo==='-'?-1:1) : (UI.tipo==='ajuste' ? (f.signo==='-'||f.signo==-1?-1:1) : undefined), from: UI.tipo==='mover' ? f.from : undefined, to: UI.tipo==='mover' ? f.to : undefined};
   if(m.tipo==='recarga') m.rev = '';
   S.movs.push(m); save();
   if(m.tipo==='recarga') tgComprobante(m);
-  if(m.tipo==='carga') logAcc('Inyección de saldo', `${money(monto)} a ${opName(op)} → ${lugarL(m.dest)}${m.nota?' · '+m.nota:''}`);
+  if(m.tipo==='carga') logAcc('Gestión de saldo', `${m.signo<0?'Quitó':'Aumentó'} ${money(monto)} · ${opName(op)} → ${lugarL(m.dest)}${m.nota?' · '+m.nota:''}`);
   if(m.tipo==='ajuste') logAcc('Ajuste', `${m.signo<0?'−':'+'}${money(monto)} en ${opName(op)} · ${m.nota}`);
   if(m.tipo==='transfer') tgSend(`🔁 <b>Traspaso de saldo</b>\n${esc(opName(op))} → ${esc(opName(m.opDest))}: ${money(monto)}${m.nota?'\n'+esc(m.nota):''}`, 'alertas');
-  if(m.tipo==='carga') tgSend(`💰 <b>Inyección de saldo</b>\n${esc(opName(op))} → ${esc(lugarL(m.dest))}: ${money(monto)}${m.nota?'\n'+esc(m.nota):''}`, 'alertas');
+  if(m.tipo==='carga') tgSend(`💰 <b>Gestión de saldo</b>\n${esc(opName(op))} → ${esc(lugarL(m.dest))}: ${m.signo<0?'−':'+'}${money(monto)}${m.nota?'\n'+esc(m.nota):''}`, 'alertas');
   UI.form = {}; UI.read = {}; UI.img = null; UI.ocr = null;
   render();
   const nR = resumen(op, UI.fecha);
-  toast(m.tipo==='mover' ? `Moviste ${money(monto)}: ${lugarL(m.from)} → ${lugarL(m.to)}. El total no cambia.` : m.tipo==='carga' && m.dest!=='caja' ? `Inyección de ${money(monto)} a ${lugarL(m.dest)} de ${opName(op)}.` : m.tipo==='transfer' ? `Pasaste ${money(monto)} a ${opName(m.opDest)}. Tu saldo: ${money(nR.esperado)}.` : `${t.label} de ${money(monto)} registrada. Saldo de caja de ${opName(op)}: ${money(nR.esperado)}.`);
+  toast(m.tipo==='carga' ? `${m.signo<0?'Se quitaron':'Se aumentaron'} ${money(monto)} ${m.signo<0?'de':'a'} ${lugarL(m.dest)} de ${opName(op)}. Saldo de caja: ${money(nR.esperado)}.` : m.tipo==='mover' ? `Moviste ${money(monto)}: ${lugarL(m.from)} → ${lugarL(m.to)}. El total no cambia.` : m.tipo==='carga' && m.dest!=='caja' ? `Inyección de ${money(monto)} a ${lugarL(m.dest)} de ${opName(op)}.` : m.tipo==='transfer' ? `Pasaste ${money(monto)} a ${opName(m.opDest)}. Tu saldo: ${money(nR.esperado)}.` : `${t.label} de ${money(monto)} registrada. Saldo de caja de ${opName(op)}: ${money(nR.esperado)}.`);
 }
 function resumenHTML(){
   const f = UI.fecha;
@@ -716,7 +718,7 @@ function resumenHTML(){
   </section>
   ${alertas.length?`<div class="card" style="margin-bottom:18px;border-color:var(--danger)"><h2 class="neg">Revisar</h2><ul style="margin:8px 0 0;padding-left:18px">${alertas.map(a=>`<li>${a}</li>`).join('')}</ul></div>`:''}
   <div class="tw" style="margin-top:0"><table class="t"><thead><tr><th>Operador</th><th class="r">Inicial</th><th class="r">Recargas</th><th class="r">Extracciones</th><th class="r">Inyecciones</th><th class="r">Traspasos</th><th class="r">Caja esperada</th><th class="r">Real</th><th class="r">Diferencia</th><th class="r">Bancos</th><th class="r">Total</th><th>Estado</th><th></th></tr></thead><tbody>
-  ${rs.map(({o,R})=>`<tr><td><b>${esc(o.nombre)}</b><small>${R.n} movimientos</small></td><td class="r num">${money(R.ini)}</td><td class="r num">${money(R.rec)}</td><td class="r num">${money(R.ext)}</td><td class="r num">${money(R.car)}</td><td class="r num ${R.tin-R.tout<0?'neg':R.tin-R.tout>0?'pos':''}">${R.tin||R.tout?(R.tin-R.tout>0?'+':'')+money(R.tin-R.tout):'—'}</td><td class="r num"><b>${money(R.esperado)}</b></td><td class="r num">${R.real==null?'—':money(R.real)}</td><td class="r num ${R.dif==null?'':Math.abs(R.dif)<0.005?'pos':'neg'}">${R.dif==null?'—':money(R.dif)}</td><td class="r num">${money(saldosOp(o.id,f).totB)}</td><td class="r num"><b>${money(saldosOp(o.id,f).total)}</b></td><td>${R.aprobada?'<span class="pill ok">Aprobada</span>':R.cerrada?'<span class="pill info">Por aprobar</span>':'<span class="pill warn">Abierta</span>'}</td><td><button class="btn sm" data-act="irCaja" data-id="${o.id}">Ver cuadre</button></td></tr>`).join('')}
+  ${rs.map(({o,R})=>`<tr><td><b>${esc(o.nombre)}</b><small>${R.n} movimientos</small></td><td class="r num">${money(R.ini)}</td><td class="r num">${money(R.rec)}</td><td class="r num">${money(R.ext)}</td><td class="r num">${R.carQ?`${money(R.car-R.carQ)}<small>+${money(R.car)} / −${money(R.carQ)}</small>`:money(R.car)}</td><td class="r num ${R.tin-R.tout<0?'neg':R.tin-R.tout>0?'pos':''}">${R.tin||R.tout?(R.tin-R.tout>0?'+':'')+money(R.tin-R.tout):'—'}</td><td class="r num"><b>${money(R.esperado)}</b></td><td class="r num">${R.real==null?'—':money(R.real)}</td><td class="r num ${R.dif==null?'':Math.abs(R.dif)<0.005?'pos':'neg'}">${R.dif==null?'—':money(R.dif)}</td><td class="r num">${money(saldosOp(o.id,f).totB)}</td><td class="r num"><b>${money(saldosOp(o.id,f).total)}</b></td><td>${R.aprobada?'<span class="pill ok">Aprobada</span>':R.cerrada?'<span class="pill info">Por aprobar</span>':'<span class="pill warn">Abierta</span>'}</td><td><button class="btn sm" data-act="irCaja" data-id="${o.id}">Ver cuadre</button></td></tr>`).join('')}
   </tbody></table></div>
   <div class="sech"><h2>Recargas por agente</h2></div>
   <div class="tw"><table class="t" style="min-width:520px"><thead><tr><th>Agente</th><th>Cuenta</th><th>Operador</th><th class="r">Recargado hoy</th></tr></thead><tbody>
@@ -1287,7 +1289,7 @@ const lugarCorto = k => k==='caja' ? 'Caja' : (c=> c ? `${c.banco.replace(/^Banc
 function bankEf(m){
   if(m.anulado) return [];
   if(m.tipo==='recarga'){ const c = ctaDeRec(m); return c ? [{cta:c, v:+m.monto}] : []; }
-  if(m.tipo==='carga' && m.dest && m.dest!=='caja') return [{cta:m.dest, v:+m.monto}];
+  if(m.tipo==='carga' && m.dest && m.dest!=='caja') return [{cta:m.dest, v:(m.signo||1)*m.monto}];
   if(m.tipo==='mover'){ const L = []; if(m.from && m.from!=='caja') L.push({cta:m.from, v:-m.monto}); if(m.to && m.to!=='caja') L.push({cta:m.to, v:+m.monto}); return L; }
   return [];
 }
@@ -1298,10 +1300,10 @@ function ctaOpDia(id, f){
   const ini = r2((+c.inicial||0) + L.filter(x=>x.fecha<f).reduce((a,x)=>a+x.v,0));
   const hoy = L.filter(x=>x.fecha===f);
   const sum = fn => r2(hoy.filter(fn).reduce((a,x)=>a+Math.abs(x.v),0));
-  const rec = sum(x=>x.m.tipo==='recarga'), iny = sum(x=>x.m.tipo==='carga'), dIn = sum(x=>x.m.tipo==='mover' && x.v>0), dOut = sum(x=>x.m.tipo==='mover' && x.v<0);
-  const ent = r2(rec+iny+dIn), sal = dOut, esperado = r2(ini + ent - sal);
+  const rec = sum(x=>x.m.tipo==='recarga'), iny = sum(x=>x.m.tipo==='carga' && x.v>0), inyQ = sum(x=>x.m.tipo==='carga' && x.v<0), dIn = sum(x=>x.m.tipo==='mover' && x.v>0), dOut = sum(x=>x.m.tipo==='mover' && x.v<0);
+  const ent = r2(rec+iny+dIn), sal = r2(dOut+inyQ), esperado = r2(ini + ent - sal);
   const k = `${id}|${f}`, q = (S.cuadOp||{})[k] || {}; const real = q.real===''||q.real==null ? null : +q.real;
-  return {c, ini, rec, iny, dIn, dOut, ent, sal, esperado, real, dif: real==null?null:r2(real-esperado), hoy, nRec:hoy.filter(x=>x.m.tipo==='recarga').length, q, k};
+  return {c, ini, rec, iny, inyQ, dIn, dOut, ent, sal, esperado, real, dif: real==null?null:r2(real-esperado), hoy, nRec:hoy.filter(x=>x.m.tipo==='recarga').length, q, k};
 }
 function saldosOp(op, f){
   const R = resumen(op, f); const bk = ctasDeOp(op).map(c=>ctaOpDia(c.id, f));
@@ -1335,12 +1337,12 @@ function cuadresOpHTML(){
     <div class="xh"><div><b>Caja de operador</b><small>Saldo de la plataforma de ${esc(opName(op))}</small></div><span class="pill" style="background:var(--warn-bg);color:var(--accent-text)">Caja</span></div>
     <div class="qgrid">
       <div class="qbox"><small>Saldo al iniciar</small><b class="num">${money(R.ini)}</b><em>${R.iniOrigen.origen==='anterior'?'Del cierre anterior':R.iniOrigen.origen==='fijo'?'Fijado por gerencia':'Sin saldo anterior'}</em></div>
-      <div class="qbox in"><small>(+) Entra</small><b class="num">${money(R.ext+R.car+R.tin+R.mIn+Math.max(0,R.aj))}</b><em>Extracciones, inyecciones, traspasos</em></div>
-      <div class="qbox out"><small>(−) Sale</small><b class="num">${money(R.rec+R.tout+R.mOut+Math.max(0,-R.aj))}</b><em>${R.nRec} recargas y envíos</em></div>
+      <div class="qbox in"><small>(+) Entra</small><b class="num">${money(R.ext+R.car+R.tin+R.mIn+Math.max(0,R.aj))}</b><em>Extracciones, saldo de gerencia, traspasos</em></div>
+      <div class="qbox out"><small>(−) Sale</small><b class="num">${money(R.rec+R.tout+R.mOut+R.carQ+Math.max(0,-R.aj))}</b><em>${R.nRec} recargas y envíos</em></div>
       <div class="qbox hl"><small>Debe tener</small><b class="num">${money(R.esperado)}</b></div>
     </div>
     <table class="cq"><tbody>
-      ${lin('Recargas a agentes', R.rec, 'neg')}${lin('Extracciones de agentes', R.ext, 'pos')}${lin('Inyecciones de la empresa', R.car, 'pos')}
+      ${lin('Recargas a agentes', R.rec, 'neg')}${lin('Extracciones de agentes', R.ext, 'pos')}${lin('Saldo aumentado por gerencia', R.car, 'pos')}${lin('Saldo quitado por gerencia', R.carQ, 'neg')}
       ${lin('Recibido de otros operadores', R.tin, 'pos')}${lin('Pasado a otros operadores', R.tout, 'neg')}
       ${lin('Traído desde mis bancos', R.mIn, 'pos')}${lin('Enviado a mis bancos', R.mOut, 'neg')}${R.aj?`<tr><td>Ajustes de gerencia</td><td class="num">${R.aj>0?'+':''}${money(R.aj)}</td></tr>`:''}
     </tbody></table>
@@ -1360,7 +1362,7 @@ function cuadresOpHTML(){
       <div class="qbox out"><small>(−) Sale</small><b class="num">${money(d.sal)}</b><em>Movido a otra cuenta</em></div>
       <div class="qbox hl"><small>Debe tener</small><b class="num">${money(d.esperado)}</b></div>
     </div>
-    <table class="cq"><tbody>${lin('Recargas que pagaron los agentes', d.rec, 'pos')}${lin('Inyecciones de la empresa', d.iny, 'pos')}${lin('Recibido de mis otras cuentas', d.dIn, 'pos')}${lin('Enviado a mis otras cuentas', d.dOut, 'neg')}${d.ent||d.sal?'':'<tr><td class="muted">Sin movimientos hoy</td><td></td></tr>'}</tbody></table>
+    <table class="cq"><tbody>${lin('Recargas que pagaron los agentes', d.rec, 'pos')}${lin('Saldo aumentado por gerencia', d.iny, 'pos')}${lin('Saldo quitado por gerencia', d.inyQ, 'neg')}${lin('Recibido de mis otras cuentas', d.dIn, 'pos')}${lin('Enviado a mis otras cuentas', d.dOut, 'neg')}${d.ent||d.sal?'':'<tr><td class="muted">Sin movimientos hoy</td><td></td></tr>'}</tbody></table>
     <div class="qreal">
       <div class="f"><label>Saldo real según la app del banco</label><input type="number" step="0.01" inputmode="decimal" data-ok="${d.k}" value="${esc(d.q.real??'')}" placeholder="${ceo?'Lo escribe el operador':'Lo que muestra el banco'}" ${cerrada||ceo?'disabled':''}></div>
       <div class="dif ${d.dif==null?'na':Math.abs(d.dif)<0.005?'ok':'bad'}" data-od="${d.k}">${difMini(d.dif)}</div>
@@ -1387,13 +1389,33 @@ function movTxt(m, op){
   const ag = S.agentes.find(a=>a.id===m.agente);
   if(m.tipo==='recarga') return `Recarga · ${ag?ag.nombre:'agente'}${m.comprobante?' · N.º '+m.comprobante:''}`;
   if(m.tipo==='extraccion') return `Extracción · ${m.agencia||''}`;
-  if(m.tipo==='carga') return `Inyección de la empresa${m.dest&&m.dest!=='caja'?' → '+lugarCorto(m.dest):''}${m.nota?' · '+m.nota:''}`;
+  if(m.tipo==='carga') return `${(m.signo||1)<0?'Saldo quitado por gerencia':'Saldo aumentado por gerencia'}${m.dest&&m.dest!=='caja'?' · '+lugarCorto(m.dest):''}${m.nota?' · '+m.nota:''}`;
   if(m.tipo==='mover') return `${lugarCorto(m.from)} → ${lugarCorto(m.to)}${m.nota?' · '+m.nota:''}`;
   if(m.tipo==='transfer') return m.opDest===op ? `Recibido de ${opName(m.op)}` : `Pasado a ${opName(m.opDest)}`;
   if(m.tipo==='ajuste') return `Ajuste · ${m.nota||''}`;
   return TIPOS[m.tipo]?.label || m.tipo;
 }
 function saldoLugar(op, k, f){ return k==='caja' ? resumen(op, f).esperado : ctaOpDia(k, f).esperado; }
+function gestionForm(el, op){
+  UI.tipo = 'carga'; const f = UI.form; if(!f.signo) f.signo = '+'; const q = f.signo==='-';
+  const lug = ['caja', ...ctasDeOp(op).map(c=>c.id)]; const dst = f.dest||'caja'; const ant = saldoLugar(op, dst, UI.fecha), mo = r2(f.monto);
+  el.innerHTML = `<h2 style="margin-bottom:4px">Gestión de saldo</h2>
+    <p class="muted" style="font-size:13px;margin:0 0 12px">Caja de <b>${esc(opName(op))}</b>. Lo que aumentes o quites se refleja al momento en su panel y en su historial de movimientos.</p>
+    <div class="tipo" role="radiogroup" aria-label="Aumentar o quitar" style="grid-template-columns:1fr 1fr">
+      <button type="button" role="radio" aria-checked="${!q}" class="${!q?'on':''}" data-act="gsSigno" data-k="+">Aumentar saldo<small>Suma (+)</small></button>
+      <button type="button" role="radio" aria-checked="${q}" class="${q?'on':''}" data-act="gsSigno" data-k="-">Quitar saldo<small>Resta (−)</small></button></div>
+    <div class="fg" style="margin-top:14px">
+      <div class="f"><label for="fMo">Monto (USD)</label><input id="fMo" data-k="monto" type="number" step="0.01" min="0" inputmode="decimal" value="${esc(f.monto??'')}" placeholder="0,00"></div>
+      ${lug.length>1?`<div class="f"><label for="fDs">¿En qué cuenta?</label><select id="fDs" data-k="dest">${lug.map(k=>`<option value="${k}" ${dst===k?'selected':''}>${esc(lugarL(k))}</option>`).join('')}</select></div>`:''}
+      <div class="f full"><label for="fNt">Motivo (opcional)</label><input id="fNt" data-k="nota" value="${esc(f.nota||'')}" placeholder="${q?'Ejemplo: corrección de saldo':'Ejemplo: saldo para recargas del día'}"></div>
+    </div>
+    <div class="gs-prev" id="gsPrev">${esc(lugarL(dst))}: <b class="num">${money(ant)}</b> → <b class="num ${q?'neg':'pos'}">${money(mo>0 ? ant+(q?-mo:mo) : ant)}</b></div>
+    <div class="acts" style="margin-top:14px;justify-content:flex-end"><button class="btn quiet" data-act="limpiar">Limpiar</button><button class="btn ${q?'bad':'gold'}" data-act="registrar">${q?'Quitar saldo':'Aumentar saldo'}</button></div>`;
+}
+document.addEventListener('change', e=>{ if(e.target.id==='fDs' && isAdm() && document.getElementById('gsPrev')){ UI.form.dest = e.target.value; renderForm(); } });
+document.addEventListener('click', e=>{ const b = e.target.closest('[data-act="gsSigno"]'); if(!b) return; UI.form.signo = b.dataset.k; renderForm(); });
+document.addEventListener('input', e=>{ if(e.target.id!=='fMo' || !isAdm() || !document.getElementById('gsPrev')) return; const op = opActual(), f = UI.form, dst = f.dest||'caja', q = f.signo==='-', ant = saldoLugar(op, dst, UI.fecha), mo = r2(e.target.value);
+  document.getElementById('gsPrev').innerHTML = `${esc(lugarL(dst))}: <b class="num">${money(ant)}</b> → <b class="num ${q?'neg':'pos'}">${money(mo>0 ? ant+(q?-mo:mo) : ant)}</b>`; });
 function moverForm(el, op){
   const f = UI.form, lug = ['caja', ...ctasDeOp(op).map(c=>c.id)];
   const opt = (sel, excl) => lug.filter(k=>k!==excl).map(k=>`<option value="${k}" ${sel===k?'selected':''}>${esc(k==='caja'?'Caja de operador':lugarCorto(k))} · ${money(saldoLugar(op,k,UI.fecha))}</option>`).join('');
