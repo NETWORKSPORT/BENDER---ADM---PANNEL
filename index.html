@@ -2335,7 +2335,7 @@ async function submitLogin(form, setup){
 function userBar(){
   if(mode!=='sheet' || !SES) return '';
   return `<div class="userbar"><div class="ub-who"><b>${esc(SES.nombre)}</b><span class="muted">${SES.rol==='gerente'?'Administrador':'Acceso: '+esc((SES.areas||[]).map(a=>AREA_L[a]).join(', '))}</span></div>
-    <div class="acts"><span id="sync" class="sync">Guardado en Google Sheets</span><button class="btn sm quiet" data-act="sync-now">Actualizar</button><button class="btn sm quiet" data-act="my-pass">Contraseña</button><button class="btn sm" data-act="logout">Cerrar sesión</button></div></div>`;
+    <div class="acts"><span id="sync" class="sync">Guardado en Google Sheets</span><button class="btn sm quiet" data-act="sync-now">Actualizar</button>${SES.rol==='gerente'?'<button class="btn sm quiet" data-act="my-pass">Contraseña</button>':''}<button class="btn sm" data-act="logout">Cerrar sesión</button></div></div>`;
 }
 
 /* ---------- usuarios (gerente) ---------- */
