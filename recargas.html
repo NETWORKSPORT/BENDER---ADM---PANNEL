@@ -308,6 +308,10 @@ const isAdm = () => SES && SES.rol==='ceo';
 const tiposDe = () => Object.entries(TIPOS).filter(([k,v])=> isAdm() ? v.quien==='adm' : v.quien==='op');
 const opName = id => S.operadores.find(o=>o.id===id)?.nombre || '—';
 const opResp = id => S.operadores.find(o=>o.id===id)?.responsable || '';
+function opPickerHTML(op){
+  return `<div class="f"><label for="opSel">Nombre del operador</label><select id="opSel">${S.operadores.map(o=>`<option value="${o.id}" ${o.id===op?'selected':''}>${esc(o.nombre)}</option>`).join('')}</select></div>
+    <div class="f"><label for="opResp">Responsable</label><select id="opResp">${S.operadores.map(o=>`<option value="${o.id}" ${o.id===op?'selected':''}>${esc(o.responsable||'Sin responsable · '+o.nombre)}</option>`).join('')}</select></div>`;
+}
 const opLabel = o => o.nombre + (o.responsable ? ' — Responsable: ' + o.responsable : '');
 function logAcc(accion, detalle){ (S.log = S.log||[]).push({ts:Date.now(), usuario:SES.usuario, nombre:SES.nombre, accion, detalle}); }
 function seed(){
@@ -601,7 +605,7 @@ function cajaHTML(){
       ${ceo?`<td class="noprint"><div class="acts" style="flex-wrap:nowrap">${m.anulado?`<button class="btn sm quiet" data-act="reactivar" data-id="${m.id}">Reactivar</button>`:`<button class="btn sm" data-act="editar" data-id="${m.id}">Editar</button><button class="btn sm quiet bad" data-act="anular" data-id="${m.id}">Anular</button>`}<button class="btn sm quiet bad" data-act="eliminar" data-id="${m.id}" aria-label="Eliminar">🗑</button></div></td>`:''}</tr>`; }).join('');
   return `
   <div class="bar noprint">
-    ${ceo?`<div class="f"><label for="opSel">Operador</label><select id="opSel">${S.operadores.map(o=>`<option value="${o.id}" ${o.id===op?'selected':''}>${esc(opLabel(o))}</option>`).join('')}</select></div>`:''}
+    ${ceo?`${opPickerHTML(op)}`:''}
     <div class="f"><label for="fSel">Fecha del turno</label><input id="fSel" type="date" value="${f}" max="${todayS()}"></div>
     <div class="f"><label for="iniIn">Saldo inicial de caja</label>${ceo?`<input id="iniIn" type="number" step="0.01" inputmode="decimal" value="${esc(c.inicial)}" placeholder="${NF.format(R.ini)}">`:`<input id="iniIn" value="${money(R.ini)}" disabled>`}<small class="muted" style="display:block;font-size:12px;margin-top:3px">${R.iniOrigen.origen==='anterior'?`Viene del cierre del ${fd(R.iniOrigen.fecha)}`:R.iniOrigen.origen==='fijo'?'Fijado por gerencia':'Sin saldo anterior'}</small></div>
     <div class="sp" style="flex:1"></div>
@@ -832,7 +836,7 @@ document.addEventListener('input', e=>{
 document.addEventListener('change', e=>{
   const t = e.target;
   if(t.id==='asSel'){ const u = USERS.find(x=>x.usuario===t.value); SES = {usuario:u.usuario, nombre:u.nombre, rol:u.rol, op:u.op}; try{ sessionStorage.setItem('benderam-sim-ses', JSON.stringify(SES)); }catch(_){} UI.tab='caja'; UI.form={}; UI.read={}; UI.img=null; UI.ocr=null; render(); toast(u.rol==='ceo'?'Viendo como gerencia: acceso total.':`Viendo como ${u.nombre}: solo ve su caja y sus agentes.`); return; }
-  if(t.id==='opSel'){ UI.op = t.value; UI.form = {}; render(); }
+  if(t.id==='opSel' || t.id==='opResp'){ UI.op = t.value; UI.form = {}; render(); }
   else if(t.id==='fSel'){ UI.fecha = t.value || todayS(); render(); }
   else if(t.tagName==='SELECT' && t.dataset.k && t.closest('#formCard')){ UI.form[t.dataset.k] = t.value; delete UI.read[t.dataset.k]; }
   else if(t.dataset.ag!=null && t.tagName==='SELECT'){ S.agentes[+t.dataset.ag][t.dataset.k] = t.value; save(); }
@@ -1383,7 +1387,7 @@ function cuadresOpHTML(){
   if(v==='cuentas' && !isAdm()) UI.cq = 'hoy';
   return tabs + (v==='cuentas' && isAdm() ? cuentasOpHTML() : v==='historial' ? historialOpHTML() : cuadreDiaHTML());
 }
-function opSelBar(extra){ const op = opActual(); return isAdm() || extra ? `<div class="bar noprint">${isAdm()?`<div class="f"><label for="opSel">Operador</label><select id="opSel">${S.operadores.map(o=>`<option value="${o.id}" ${o.id===op?'selected':''}>${esc(opLabel(o))}</option>`).join('')}</select></div>`:''}${extra||''}</div>` : ''; }
+function opSelBar(extra){ const op = opActual(); return isAdm() || extra ? `<div class="bar noprint">${isAdm()?`${opPickerHTML(op)}`:''}${extra||''}</div>` : ''; }
 function cuentasOpHTML(){
   const op = opActual(), f = UI.fecha, R = resumen(op, f), cs = ctasDeOp(op);
   return `${opSelBar()}<div class="qcards">
@@ -1511,7 +1515,7 @@ function cuadreDiaHTML(){
     : cerrada ? (ceo?'<button class="btn" data-act="reabrir">Reabrir</button><button class="btn gold" data-act="aprobar">Aprobar cuadre</button>':'<span class="muted" style="font-size:13px">Cerrado. Gerencia revisa y aprueba.</span>')
     : (ceo?'<span class="muted" style="font-size:13px">El operador cierra el cuadre al terminar el turno.</span>':'<button class="btn gold" data-act="cerrar">Cerrar cuadre del día</button>');
   return `<div class="bar noprint">
-      ${ceo?`<div class="f"><label for="opSel">Operador</label><select id="opSel">${S.operadores.map(o=>`<option value="${o.id}" ${o.id===op?'selected':''}>${esc(opLabel(o))}</option>`).join('')}</select></div>`:''}
+      ${ceo?`${opPickerHTML(op)}`:''}
       <div class="f"><label for="fSel">Fecha</label><input id="fSel" type="date" value="${f}" max="${todayS()}"></div>
       <div style="flex:1"></div>
       <div class="acts">${estado}${!ceo&&!cerrada?'<button class="btn" data-act="irMover">Mover dinero entre mis cuentas</button>':''}</div></div>
