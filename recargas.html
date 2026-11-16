@@ -569,7 +569,7 @@ function render(){
     <div class="sp"></div>
     ${LIVE?`<span id="rcSync" class="pill ${LV.dirty?'warn':'ok'}">${LV.dirty?'Sin guardar · usa Guardar cambios arriba':'Guardado ✓'}</span>`:''}${rolSwitch()}<span class="rolp top">${ROLE_L[0]}</span>
     <button class="btn sm quiet" data-act="theme">Tema</button></header>
-    <main class="wrap" id="main">${UI.tab==='extr'&&(ceo||extr) ? extrHTML() : UI.tab==='extr' ? extrOpHTML() : UI.tab==='conta'&&(ceo||conta) ? contaHTML() : UI.tab==='resumen'&&ceo ? resumenHTML() : UI.tab==='agentes'&&ceo ? agentesHTML() : UI.tab==='config'&&ceo ? configHTML() : UI.tab==='cuadres' ? cuadresOpHTML() : cajaHTML()}</main></div></div>`;
+    <main class="wrap" id="main">${RCM==='op'&&ceo?opsSobrantesHTML():''}${UI.tab==='extr'&&(ceo||extr) ? extrHTML() : UI.tab==='extr' ? extrOpHTML() : UI.tab==='conta'&&(ceo||conta) ? contaHTML() : UI.tab==='resumen'&&ceo ? resumenHTML() : UI.tab==='agentes'&&ceo ? agentesHTML() : UI.tab==='config'&&ceo ? configHTML() : UI.tab==='cuadres' ? cuadresOpHTML() : cajaHTML()}</main></div></div>`;
   if(UI.tab==='caja') renderForm();
 }
 function loginHTML(){
@@ -1602,9 +1602,11 @@ document.addEventListener('click', async e=>{ const b = e.target.closest('[data-
   else if(b.dataset.act==='delOp'){ const o = S.operadores[+b.dataset.i]; if(!o) return;
     const ms = S.movs.filter(m=>m.op===o.id||m.opDest===o.id), xs = S.extr.filter(x=>x.op===o.id);
     if(!(await ask('Eliminar operador', `¿Eliminar a <b>${esc(o.nombre)}</b>?${ms.length||xs.length?`<br><span class="neg">Se borrarán también sus ${ms.length} movimientos, sus cuadres${xs.length?` y ${xs.length} extracciones`:''}.</span>`:''}<br><span class="muted">Su usuario del panel no se borra; puedes quitarlo en Usuarios.</span>`, {ok:'Eliminar', danger:true}))) return;
-    S.operadores.splice(+b.dataset.i,1); S.ctasOp = S.ctasOp.filter(c=>c.op!==o.id); S.movs = S.movs.filter(m=>!(m.op===o.id||m.opDest===o.id)); S.extr = S.extr.filter(x=>x.op!==o.id);
-    Object.keys(S.cajas).forEach(k=>{ if(k.startsWith(o.id+'|')) delete S.cajas[k]; }); Object.keys(S.cuadOp||{}).forEach(k=>{ const c = k.split('|')[0]; if(!S.ctasOp.some(x=>x.id===c) && !(S.ctasExt||[]).some(x=>x.id===c)) delete S.cuadOp[k]; });
-    if(UI.op===o.id) UI.op = null; logAcc('Eliminar operador', o.nombre); save(); render(); toast('Operador eliminado.'); }
+    borrarOperador(o); save(); render(); toast('Operador eliminado.'); }
+  else if(b.dataset.act==='limpiarOps'){ const L = opsSobrantes(); if(!L.length) return;
+    const n = L.reduce((a,o)=>a+S.movs.filter(m=>m.op===o.id||m.opDest===o.id).length,0);
+    if(!(await ask('Eliminar operadores sin usuario', `Se eliminarán: <b>${L.map(o=>esc(o.nombre)).join(', ')}</b>.${n?`<br><span class="neg">También se borran sus ${n} movimientos y sus cuadres.</span>`:''}<br><span class="muted">Quedan solo los operadores creados desde Usuarios.</span>`, {ok:'Eliminar', danger:true}))) return;
+    L.forEach(borrarOperador); save(); render(); toast(L.length===1?'Operador eliminado.':'Operadores eliminados.'); }
   else if(b.dataset.act==='addCtaOp'){ S.ctasOp.push({id:uid('co'), op:S.operadores[0].id, banco:'Banco Pichincha', numero:'', titular:'BENDERAM S.A.S.', inicial:0}); save(); render(); }
   else if(b.dataset.act==='delCtaOp'){ const c = S.ctasOp[+b.dataset.i]; if(S.movs.some(m=>!m.anulado && bankEf(m).some(x=>x.cta===c.id))) return toast('Esa cuenta ya tiene movimientos. No se puede quitar.', true); if(await ask('Quitar cuenta', `¿Quitar ${esc(c.banco)} ${esc(c.numero)}?`, {ok:'Quitar', danger:true})){ S.ctasOp.splice(+b.dataset.i,1); save(); render(); } } });
 
@@ -1805,6 +1807,17 @@ document.addEventListener('change', async e=>{ const t = e.target; if(t.id!=='in
   c.inicial = nuevo; logAcc('Saldo inicial de caja', `${opName(op)} · ${fd(f)} · ${nuevo===''?'cierre anterior':money(+nuevo)}`);
   guardarRegistro('rcu', 'caja|'+op+'|'+f); if(LIVE){ const lg = S.log[S.log.length-1]; if(lg){ toRecords(S); guardarRegistro('rlg', lg.id); } }
   render(); toast('Saldo inicial guardado.'); });
+/* ---- operadores que no se crearon desde Usuarios ---- */
+const opsSobrantes = () => LIVE ? S.operadores.filter(o=>!String(o.usuario||'').trim()) : [];
+function borrarOperador(o){
+  const i = S.operadores.indexOf(o); if(i<0) return;
+  S.operadores.splice(i,1); S.ctasOp = S.ctasOp.filter(c=>c.op!==o.id); S.movs = S.movs.filter(m=>!(m.op===o.id||m.opDest===o.id)); S.extr = S.extr.filter(x=>x.op!==o.id);
+  Object.keys(S.cajas).forEach(k=>{ if(k.startsWith(o.id+'|')) delete S.cajas[k]; });
+  Object.keys(S.cuadOp||{}).forEach(k=>{ const c = k.split('|')[0]; if(!S.ctasOp.some(x=>x.id===c) && !(S.ctasExt||[]).some(x=>x.id===c)) delete S.cuadOp[k]; });
+  if(UI.op===o.id) UI.op = null; logAcc('Eliminar operador', o.nombre);
+}
+function opsSobrantesHTML(){ const L = opsSobrantes(); if(!L.length) return '';
+  return `<div class="alert warn" style="margin:0 0 14px"><b>!</b><div style="flex:1"><b>${L.length===1?'Hay un operador que no se creó':'Hay '+L.length+' operadores que no se crearon'} desde Usuarios:</b> ${L.map(o=>esc(o.nombre)).join(', ')}. No tiene${L.length===1?'':'n'} usuario para entrar.<div style="margin-top:8px"><button class="btn sm bad" data-act="limpiarOps">Eliminar ${L.length===1?'este operador':'estos operadores'}</button></div></div></div>`; }
 /* ---- configuración (solo gerencia) ---- */
 function cexCardHTML(){ return `<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h2>Cuentas de extracciones</h2><button class="btn sm gold" data-act="addCex">Agregar cuenta</button></div>
     <p class="muted" style="font-size:13px;margin:4px 0 12px">Desde estas cuentas se pagan las extracciones. El saldo inicial es lo que tiene cada cuenta el día que empiezan a usar el sistema.</p>
@@ -1826,7 +1839,7 @@ function configHTML(){
       <div class="opcta-s"><small>Saldo hoy</small><b class="num">${money(ctaOpDia(c.id, UI.fecha).esperado)}</b></div>
       <button class="btn sm quiet bad" data-act="delCtaOp" data-i="${i}" aria-label="Quitar cuenta" title="Quitar cuenta">🗑</button></div>`; };
   return `${!S.operadores.length?`<div class="alert info" style="margin-top:0"><b>1</b><div><b>Primer paso:</b> crea los operadores desde <b>Usuarios</b> (tipo Operador) o con el botón de abajo, y ponle a cada uno su cuenta de banco.</div></div>`:''}
-  <div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h2>Operadores y sus cuentas de banco</h2><button class="btn sm gold" data-act="addOp">Agregar operador</button></div>
+  <div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h2>Operadores y sus cuentas de banco</h2>${LIVE?'<span class="muted" style="font-size:13px">Para agregar un operador, créalo en <b>Usuarios</b> con el tipo Operador.</span>':'<button class="btn sm gold" data-act="addOp">Agregar operador</button>'}</div>
     <p class="muted" style="font-size:13px;margin:4px 0 0">Cada operador tiene su caja y su cuenta de banco. <b>Los comprobantes de recarga de cada operador deben estar a nombre de su cuenta</b>; si no, el panel los rechaza.</p></div>
   ${S.operadores.map((o,i)=>{ const cs = ctasDeOp(o.id); const nm = S.movs.filter(m=>m.op===o.id||m.opDest===o.id).length; return `<div class="card opcard">
     <div class="opcard-h"><div class="f"><label>Nombre del operador</label><input data-opi="${i}" value="${esc(o.nombre)}"></div><div class="f"><label>Usuario que entra</label>${sel(o,i)}</div>
