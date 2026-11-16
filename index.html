@@ -339,6 +339,7 @@ body.locked .main{padding:0}
 .lbtn{justify-content:center;padding:12px;font-size:15px;margin-top:4px}
 .lerr{color:var(--danger);font-size:13.5px;min-height:18px}
 .rcframe{display:block;width:100%;height:calc(100vh - 120px);min-height:640px;border:1px solid var(--line);border-radius:14px;background:var(--bg)}
+.kv{display:inline-flex;align-items:center;gap:2px}.kv code{font-size:13.5px;letter-spacing:.02em}.kv .kv-eye{position:static;transform:none;width:30px;height:30px}.kv-big{display:flex;border:1px solid var(--line);border-radius:10px;padding:6px 6px 6px 12px;justify-content:space-between}.kv-big code{font-size:15px}
 .utipos{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px}.utipo{display:flex;flex-direction:column;gap:3px;text-align:left;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:transparent;color:inherit;font:inherit;cursor:pointer}.utipo b{font-size:14px}.utipo span{font-size:12px;color:var(--muted);line-height:1.35}.utipo.on{border-color:var(--gold);box-shadow:0 0 0 2px var(--glow, rgba(245,197,24,.25))}
 .userbar{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px;margin:-8px 0 18px;padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
 .ub-who{display:flex;flex-direction:column;line-height:1.3;font-size:14px;min-width:0}
@@ -2333,7 +2334,7 @@ async function submitLogin(form, setup){
 /* ---------- barra de usuario ---------- */
 function userBar(){
   if(mode!=='sheet' || !SES) return '';
-  return `<div class="userbar"><div class="ub-who"><b>${esc(SES.nombre)}</b><span class="muted">${SES.rol==='gerente'?'Gerente general':'Acceso: '+esc((SES.areas||[]).map(a=>AREA_L[a]).join(', '))}</span></div>
+  return `<div class="userbar"><div class="ub-who"><b>${esc(SES.nombre)}</b><span class="muted">${SES.rol==='gerente'?'Administrador':'Acceso: '+esc((SES.areas||[]).map(a=>AREA_L[a]).join(', '))}</span></div>
     <div class="acts"><span id="sync" class="sync">Guardado en Google Sheets</span><button class="btn sm quiet" data-act="sync-now">Actualizar</button><button class="btn sm quiet" data-act="my-pass">Contraseña</button><button class="btn sm" data-act="logout">Cerrar sesión</button></div></div>`;
 }
 
@@ -2348,20 +2349,27 @@ function usersTab(){
   if(mode!=='sheet') return `<section class="panel" style="max-width:760px"><h2>Usuarios y accesos</h2><p class="muted">Los usuarios con contraseña funcionan cuando el panel está conectado a Google Sheets. Sigue la guía de conexión y vuelve aquí para crear los accesos de cada área.</p></section>`;
   if(!isGerente()) return `<section class="panel"><p class="muted" style="margin:0">Solo el gerente general administra los usuarios.</p></section>`;
   if(UI.users==null) return `<section class="panel"><p class="muted" style="margin:0">Cargando usuarios…</p></section>`;
-  return `<div class="toolbar"><p class="muted" style="margin:0;font-size:14px">Cada usuario entra solo a las áreas marcadas. El gerente general ve todo y administra los accesos.</p><button class="btn gold" data-act="user-new">Nuevo usuario</button></div>
-  <div class="tw"><table class="t"><thead><tr><th>Nombre</th><th>Usuario</th><th>Tipo</th><th>Áreas</th><th>Último acceso</th><th>Estado</th><th></th></tr></thead><tbody>
-  ${UI.users.map(u=>`<tr class="click" data-act="user-edit" data-id="${esc(u.usuario)}"><td><b>${esc(u.nombre)}</b></td><td class="num">${esc(u.usuario)}</td><td>${u.rol==='gerente'?'<span class="pill borrador">Gerente general</span>':'Por áreas'}</td>
+  return `<div class="toolbar"><p class="muted" style="margin:0;font-size:14px">Cada usuario entra solo a las áreas marcadas. Los administradores ven y editan todo, y pueden ver la contraseña de cada usuario con el ojito.</p><button class="btn gold" data-act="user-new">Nuevo usuario</button></div>
+  <div class="tw"><table class="t"><thead><tr><th>Nombre</th><th>Usuario</th><th>Contraseña</th><th>Tipo</th><th>Áreas</th><th>Último acceso</th><th>Estado</th><th></th></tr></thead><tbody>
+  ${UI.users.map(u=>`<tr class="click" data-act="user-edit" data-id="${esc(u.usuario)}"><td><b>${esc(u.nombre)}</b></td><td class="num">${esc(u.usuario)}</td><td>${claveCelda(u)}</td><td>${u.rol==='gerente'?'<span class="pill borrador">Administrador</span>':'Por áreas'}</td>
     <td>${u.rol==='gerente'?'<span class="muted">Todas</span>':u.areas.map(a=>`<span class="pill" style="margin:2px">${esc(AREA_L[a]||a)}</span>`).join('')}</td>
     <td class="num">${u.ultimo?esc(fd(u.ultimo.slice(0,10))):'Nunca'}</td><td>${u.activo?'<span class="pill ok">Activo</span>':'<span class="pill inactivo">Bloqueado</span>'}</td>
     <td><div class="rowacts"><button class="btn sm quiet" data-act="user-edit" data-id="${esc(u.usuario)}">Editar</button></div></td></tr>`).join('')}
   </tbody></table></div>`;
 }
+function claveCelda(u){
+  if(!u.clave) return '<span class="muted" style="font-size:12.5px" title="Se creó antes de este cambio. Asígnale una nueva contraseña para poder verla.">No guardada</span>';
+  return `<span class="kv" data-clave="${esc(u.clave)}"><code class="num">••••••••</code><button type="button" class="pw-eye kv-eye" data-act="ver-clave" aria-label="Mostrar contraseña" title="Mostrar contraseña"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button></span>`;
+}
+document.addEventListener('click', e=>{ const b = e.target.closest('[data-act="ver-clave"]'); if(!b) return; e.stopPropagation(); e.preventDefault();
+  const w = b.closest('.kv'), c = w.querySelector('code'), ver = c.textContent.startsWith('•');
+  c.textContent = ver ? w.dataset.clave : '••••••••'; b.setAttribute('aria-label', ver?'Ocultar contraseña':'Mostrar contraseña'); b.title = b.getAttribute('aria-label'); }, true);
 const USER_TIPOS = [
   ['operador','Operador','Registra recargas, cuadra su caja y ejecuta extracciones'],
   ['extracciones','Extracciones','Pide y paga extracciones, cuadra sus cuentas'],
   ['contabilidad','Contabilidad','Verifica comprobantes y pagos'],
   ['caja','Caja','Cuadres de caja y multiagencia'],
-  ['gerente','Administrador','Ve todo y administra usuarios'],
+  ['gerente','Administrador','Administrador o subadministrador: ve y edita todo, y administra usuarios'],
   ['otro','Personalizado','Marca tú las áreas']];
 const TIPO_AREAS = {operador:['recargas'], extracciones:['extracciones'], contabilidad:['contabilidad'], caja:['caja']};
 function userTipo(u){ if(u.rol==='gerente') return 'gerente'; const a = u.areas||[]; if(!a.length) return ''; const k = Object.keys(TIPO_AREAS).find(k=>TIPO_AREAS[k].every(x=>a.includes(x)) && a.every(x=>TIPO_AREAS[k].includes(x)||x==='reportes')); return k || 'otro'; }
@@ -2403,6 +2411,7 @@ function userForm(usuario){
           <input id="u_nombre" name="nombre" value="${esc(u.nombre||'')}" placeholder="Escribe el nombre completo" style="margin-top:8px;${POTRA?'':'display:none'}">
           ${PERS.length?'':'<div class="hint">Todavía no hay personal registrado en Personal. Elige "Otra persona" y escribe el nombre.</div>'}<div class="err"></div></div>
         <div class="f" data-f="usuario"><label for="u_user">Usuario</label><input id="u_user" name="usuario" value="${esc(u.usuario||'')}" ${usuario?'readonly':''} autocapitalize="none" spellcheck="false" placeholder="pedro"><div class="hint">Minúsculas, sin espacios.</div><div class="err"></div></div>
+        ${usuario?`<div class="f full"><label>Contraseña actual</label>${u.clave?`<div class="kv kv-big" data-clave="${esc(u.clave)}"><code class="num">••••••••</code><button type="button" class="pw-eye kv-eye" data-act="ver-clave" aria-label="Mostrar contraseña" title="Mostrar contraseña"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button></div>`:'<div class="hint">No está guardada porque se creó antes. Escribe una nueva abajo y quedará visible aquí.</div>'}</div>`:''}
         <div class="f" data-f="clave"><label for="u_pass">${usuario?'Nueva contraseña':'Contraseña'}</label><input id="u_pass" name="clave" type="text" autocomplete="off" placeholder="${usuario?'Déjala vacía para no cambiarla':'Mínimo 8 caracteres'}"><div class="err"></div></div>
       </div></fieldset>
       <fieldset><legend>¿Qué hace este usuario?</legend><div class="utipos">${USER_TIPOS.map(([k,l,d])=>`<button type="button" class="utipo ${userTipo(u)===k?'on':''}" data-act="user-tipo" data-k="${k}"><b>${l}</b><span>${d}</span></button>`).join('')}</div>
