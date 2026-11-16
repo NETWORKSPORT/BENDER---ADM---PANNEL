@@ -555,7 +555,7 @@ function render(){
     <h1 class="ttl">${RCM==='op'?(conta?'Contabilidad de operadores':ceo?'Operadores':UI.tab==='cuadres'?'Mis cuadres':'Mi caja'):RCM==='ext'?(conta?'Contabilidad de extracciones':ceo||extr?'Extracciones':'Mis extracciones'):conta?'Contabilidad':extr?'Extracciones':ceo?'Administración':UI.tab==='extr'?'Mis extracciones':UI.tab==='cuadres'?'Mis cuadres':'Mi caja de recargas'}</h1>
     <nav class="tabs" aria-label="Secciones">${(tabsList(ceo,conta,extr)||(conta?[['conta','Contabilidad']]:extr?[['extr','Extracciones']]:[['caja','Caja del operador'], ...(!ceo?[['extr','Extracciones'],['cuadres','Cuadres']]:[['cuadres','Cuadres']]), ...(ceo?[['resumen','Resumen CEO'],['extr','Extracciones'],['conta','Contabilidad'],['agentes','Agentes'],['config','Configuración']]:[])])).map(([k,l])=>{ const n = k==='conta'?(RCM==='op'?pend:RCM==='ext'?extPendConta():pend+extPendConta()):k==='extr'&&!ceo&&!extr?extPendOp(SES.op):k==='extr'?extPorPagar():0; return `<button class="tab ${UI.tab===k?'on':''}" data-act="tab" data-k="${k}">${l}${n?` <span class="bdg">${n}</span>`:''}</button>`; }).join('')}</nav>
     <div class="sp"></div>
-    ${LIVE?'<span id="rcSync" class="pill ok">Guardado ✓</span>':''}${rolSwitch()}<span class="rolp top">${ROLE_L[0]}</span>
+    ${LIVE?`<span id="rcSync" class="pill ${LV.dirty?'warn':'ok'}">${LV.dirty?'Sin guardar · usa Guardar cambios arriba':'Guardado ✓'}</span>`:''}${rolSwitch()}<span class="rolp top">${ROLE_L[0]}</span>
     <button class="btn sm quiet" data-act="theme">Tema</button></header>
     <main class="wrap" id="main">${UI.tab==='extr'&&(ceo||extr) ? extrHTML() : UI.tab==='extr' ? extrOpHTML() : UI.tab==='conta'&&(ceo||conta) ? contaHTML() : UI.tab==='resumen'&&ceo ? resumenHTML() : UI.tab==='agentes'&&ceo ? agentesHTML() : UI.tab==='config'&&ceo ? configHTML() : UI.tab==='cuadres' ? cuadresOpHTML() : cajaHTML()}</main></div></div>`;
   if(UI.tab==='caja') renderForm();
@@ -1535,8 +1535,19 @@ function sacarFotos(){
 }
 
 /* ---- guardar: solo se envía lo que cambió ---- */
+const RC_AREA_L = {rmv:'Operadores: movimientos y recargas', rex:'Extracciones', rag:'Agentes', rcf:'Configuración de operadores', rcu:'Cuadres y saldos', rfo:'Fondeos de extracciones', rlg:'Bitácora de acciones'};
+const stageAdmin = () => LIVE && EMBED && SES && SES.rol==='ceo';
+function rcDiff(){ const R = toRecords(S), out = [];
+  RCOLS.forEach(c=>{ const sn = LV.snap[c]||{};
+    Object.entries(R[c]).forEach(([id,v])=>{ const js = JSON.stringify(v); if(sn[id]===js) return; if(sn[id]===undefined && vacio(c,id,v)) return; out.push({t:'put', col:c, id, area:RC_AREA_L[c]||c}); });
+    Object.keys(sn).forEach(id=>{ if(!(id in R[c])) out.push({t:'del', col:c, id, area:RC_AREA_L[c]||c}); }); });
+  return out; }
+window.rcPendientes = () => { if(!LV.dirty) return []; if(!LV.dc) LV.dc = rcDiff(); if(!LV.dc.length) LV.dirty = false; return LV.dc; };
+window.rcGuardar = async () => { LV.forzar = true; try{ liveSave(); } finally { LV.forzar = false; } clearTimeout(LV.bt); enviarLote(); LV.dirty = false; LV.dc = null; syncPill(); await LV.q; };
+window.rcDescartar = () => { LV.dirty = false; LV.dc = null; LV.batch = []; liveCargar(false); };
 function liveSave(){
   if(!LV.ready) return;
+  if(stageAdmin() && !LV.forzar){ LV.dirty = true; LV.dc = null; syncPill(); try{ window.parent.rcAviso && window.parent.rcAviso(); }catch(e){} return; }
   const fotos = sacarFotos();
   const R = toRecords(S), puts = [], dels = [];
   RCOLS.forEach(c=>{ const sn = LV.snap[c] = LV.snap[c]||{};
@@ -1555,9 +1566,9 @@ function enviarLote(){
     if(!j.ok){ part.forEach(it=>{ if(LV.snap[it.col]) delete LV.snap[it.col][it.id]; }); toast('No se guardó en Google Sheets: '+j.error, true); break; } } });
 }
 function encolar(fn){ LV.inflight++; syncPill(); LV.q = LV.q.then(fn).catch(()=>{}).finally(()=>{ LV.inflight--; syncPill(); }); return LV.q; }
-const liveBusy = () => LV.inflight>0 || LV.batch.length>0;
-function syncPill(){ const el = document.getElementById('rcSync'); if(!el) return; const b = liveBusy(); el.className = 'pill '+(b?'warn':'ok'); el.textContent = b ? 'Guardando…' : 'Guardado ✓'; }
-window.addEventListener('beforeunload', e=>{ if(LIVE && liveBusy()){ enviarLote(); e.preventDefault(); e.returnValue=''; } });
+const liveBusy = () => LV.inflight>0 || LV.batch.length>0 || !!LV.dirty;
+function syncPill(){ const el = document.getElementById('rcSync'); if(!el) return; if(LV.dirty){ el.className = 'pill warn'; el.textContent = 'Sin guardar · usa Guardar cambios arriba'; return; } const b = liveBusy(); el.className = 'pill '+(b?'warn':'ok'); el.textContent = b ? 'Guardando…' : 'Guardado ✓'; }
+window.addEventListener('beforeunload', e=>{ if(LIVE && (LV.inflight>0 || LV.batch.length>0)){ enviarLote(); e.preventDefault(); e.returnValue=''; } });
 
 /* ---- cargar y refrescar ---- */
 function liveOcupado(){ const a = document.activeElement; return !!document.querySelector('.ov') || !!(a && a.matches && a.matches('input,select,textarea') && a.id!=='rolSel'); }
