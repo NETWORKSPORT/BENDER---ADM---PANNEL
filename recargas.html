@@ -1760,6 +1760,7 @@ async function liveCargar(silencioso){
   if(!j.ok){ if(!silencioso){ LV.err = j.error || 'No se pudieron cargar los datos.'; render(); } return; }
   if(liveBusy() || (silencioso && liveOcupado())) return;
   const N = fromRecords(j.data||{}); Object.keys(N).forEach(k=>S[k] = N[k]); LV.snap = snapDe(S); LV.ready = true; LV.err = null; liveOp();
+  if(SES && SES.rol==='ceo' && USERS_PANEL===null){ USERS_PANEL = []; const ju = await rcApi('users.list'); USERS_PANEL = ju.ok ? ju.users : []; }
   if(SES && SES.rol==='ceo' && opsSobrantes().length){ const L = opsSobrantes(); L.forEach(borrarOperador); LV.ev = 'boton'; liveSave(); setTimeout(()=>toast(`Se eliminó ${L.map(o=>o.nombre).join(', ')}: no tenía usuario. Quedan solo los operadores creados desde Usuarios.`), 300); }
   render();
 }
@@ -1809,7 +1810,15 @@ document.addEventListener('change', async e=>{ const t = e.target; if(t.id!=='in
   guardarRegistro('rcu', 'caja|'+op+'|'+f); if(LIVE){ const lg = S.log[S.log.length-1]; if(lg){ toRecords(S); guardarRegistro('rlg', lg.id); } }
   render(); toast('Saldo inicial guardado.'); });
 /* ---- operadores que no se crearon desde Usuarios ---- */
-const opsSobrantes = () => LIVE ? S.operadores.filter(o=>!String(o.usuario||'').trim()) : [];
+const opsSobrantes = () => { if(!LIVE) return [];
+  const us = USERS_PANEL && USERS_PANEL.length ? new Set(USERS_PANEL.filter(u=>u.activo!==false).map(u=>u.usuario)) : null;
+  const porDefecto = o => /^operador\s*\d+$/i.test(String(o.nombre||'').trim());
+  return S.operadores.filter(o=>{ const u = String(o.usuario||'').trim();
+    if(!u) return true;                                   // sin usuario
+    if(us && !us.has(u)) return true;                     // su usuario ya no existe
+    if(porDefecto(o) && S.operadores.some(x=>x!==o && String(x.usuario||'').trim()===u)) return true; // duplicado con nombre automático
+    if(porDefecto(o) && USERS_PANEL && USERS_PANEL.some(x=>x.usuario===u && x.rol==='gerente')) return true; // de prueba, ligado a un administrador
+    return false; }); };
 function borrarOperador(o){
   const i = S.operadores.indexOf(o); if(i<0) return;
   S.operadores.splice(i,1); S.ctasOp = S.ctasOp.filter(c=>c.op!==o.id); S.movs = S.movs.filter(m=>!(m.op===o.id||m.opDest===o.id)); S.extr = S.extr.filter(x=>x.op!==o.id);

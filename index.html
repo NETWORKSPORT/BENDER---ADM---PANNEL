@@ -775,7 +775,7 @@ function renderSide(){
 const VIEWS = {};
 function rcFrame(v, titulo, sub){
   if(mode!=='sheet') return `<header class="vh"><div><h1>${titulo}</h1><p class="sub">${sub}</p></div></header>` + emptyBlock('Conecta Google Sheets primero', 'Esta sección trabaja con varios usuarios a la vez, por eso necesita el panel conectado a Google Sheets con usuario y contraseña.');
-  return `<iframe id="rcFrame" data-v="${v}" class="rcframe" src="recargas.html?m=${v==='extracciones'?'ext':'op'}&v=2" title="${titulo}"></iframe>`;
+  return `<iframe id="rcFrame" data-v="${v}" class="rcframe" src="recargas.html?m=${v==='extracciones'?'ext':'op'}&v=${Date.now()}" title="${titulo}"></iframe>`;
 }
 VIEWS.operadores = () => rcFrame('operadores', 'Operadores', 'Recargas de los operadores, sus cajas, bancos y cuadres.');
 VIEWS.extracciones = () => rcFrame('extracciones', 'Extracciones', 'Solicitudes, ejecución por el operador, pagos y cuadres de las cuentas.');
