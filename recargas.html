@@ -804,7 +804,7 @@ document.addEventListener('input', e=>{
   if(t.dataset.ag!=null){ S.agentes[+t.dataset.ag][t.dataset.k] = t.value; save(); return; }
   if(t.dataset.cta!=null){ S.cuentas[+t.dataset.cta][t.dataset.k] = t.value; save(); return; }
   if(t.dataset.opi!=null){ S.operadores[+t.dataset.opi].nombre = t.value; save(); return; }
-  if((t.id==='realIn' && !isAdm()) || (t.id==='iniIn' && isAdm())){ const c = caja(opActual(), UI.fecha); c[t.id==='realIn'?'real':'inicial'] = t.value; save(); const R = resumen(opActual(), UI.fecha); const d = $('#difBox'); if(d){ d.className = 'dif '+(R.dif==null?'na':Math.abs(R.dif)<0.005?'ok':'bad'); d.innerHTML = difHTML(R); } if(t.id==='iniIn'){ clearTimeout(window._iniT); window._iniT = setTimeout(()=>{ const p = t.selectionStart; render(); const n=$('#iniIn'); if(n){ n.focus(); try{n.setSelectionRange(p,p);}catch(_){} } }, 600); } }
+  if(t.id==='realIn' && !isAdm()){ const c = caja(opActual(), UI.fecha); c[t.id==='realIn'?'real':'inicial'] = t.value; save(); const R = resumen(opActual(), UI.fecha); const d = $('#difBox'); if(d){ d.className = 'dif '+(R.dif==null?'na':Math.abs(R.dif)<0.005?'ok':'bad'); d.innerHTML = difHTML(R); } if(t.id==='iniIn'){ clearTimeout(window._iniT); window._iniT = setTimeout(()=>{ const p = t.selectionStart; render(); const n=$('#iniIn'); if(n){ n.focus(); try{n.setSelectionRange(p,p);}catch(_){} } }, 600); } }
 });
 document.addEventListener('change', e=>{
   const t = e.target;
@@ -1609,6 +1609,22 @@ function liveGate(root){
   return false;
 }
 
+/* ---- saldo inicial de caja: el administrador lo confirma y se guarda en ese momento ---- */
+function guardarRegistro(col, id){
+  if(!LIVE) return save();
+  const v = toRecords(S)[col][id]; if(v===undefined) return;
+  LV.snap[col] = LV.snap[col]||{}; LV.snap[col][id] = JSON.stringify(v);
+  encolar(async ()=>{ const j = await rcApi('bulk', {items:[{col, id, data:v}]}); if(!j.ok){ delete LV.snap[col][id]; toast('No se guardó en Google Sheets: '+j.error, true); } });
+  LV.dc = null; if(LV.dirty && !rcDiff().length) LV.dirty = false; syncPill(); try{ window.parent.rcAviso && window.parent.rcAviso(); }catch(e){}
+}
+document.addEventListener('change', async e=>{ const t = e.target; if(t.id!=='iniIn' || !isAdm()) return;
+  const op = opActual(), f = UI.fecha, c = caja(op, f), antes = c.inicial, nuevo = t.value.trim();
+  if(String(antes??'')===nuevo) return;
+  const ok = await ask('Confirmar saldo inicial', `¿Fijar el saldo inicial de caja de <b>${esc(opName(op))}</b> del <b>${fd(f)}</b> en <b>${nuevo===''?'el saldo del cierre anterior':money(+nuevo)}</b>?${antes!==''&&antes!=null?`<br><span class="muted">Antes: ${money(+antes)}</span>`:''}`, {ok:'Sí, confirmar'});
+  if(!ok){ t.value = antes??''; return; }
+  c.inicial = nuevo; logAcc('Saldo inicial de caja', `${opName(op)} · ${fd(f)} · ${nuevo===''?'cierre anterior':money(+nuevo)}`);
+  guardarRegistro('rcu', 'caja|'+op+'|'+f); if(LIVE){ const lg = S.log[S.log.length-1]; if(lg){ toRecords(S); guardarRegistro('rlg', lg.id); } }
+  render(); toast('Saldo inicial guardado.'); });
 /* ---- configuración (solo gerencia) ---- */
 function cexCardHTML(){ return `<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h2>Cuentas de extracciones</h2><button class="btn sm gold" data-act="addCex">Agregar cuenta</button></div>
     <p class="muted" style="font-size:13px;margin:4px 0 12px">Desde estas cuentas se pagan las extracciones. El saldo inicial es lo que tiene cada cuenta el día que empiezan a usar el sistema.</p>
