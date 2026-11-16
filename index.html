@@ -338,7 +338,7 @@ body.locked .main{padding:0}
 .lbox form{text-align:left;display:flex;flex-direction:column;gap:12px}
 .lbtn{justify-content:center;padding:12px;font-size:15px;margin-top:4px}
 .lerr{color:var(--danger);font-size:13.5px;min-height:18px}
-.rcframe{display:block;width:100%;height:calc(100vh - 120px);min-height:640px;border:1px solid var(--line);border-radius:14px;background:var(--bg)}
+.rcframe{display:block;width:100%;height:calc(100vh - 120px);min-height:420px;border:1px solid var(--line);border-radius:14px;background:var(--bg)}
 .kv{display:inline-flex;align-items:center;gap:2px}.kv code{font-size:13.5px;letter-spacing:.02em}.kv .kv-eye{position:static;transform:none;width:30px;height:30px}.kv-big{display:flex;border:1px solid var(--line);border-radius:10px;padding:6px 6px 6px 12px;justify-content:space-between}.kv-big code{font-size:15px}
 .utipos{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px}.utipo{display:flex;flex-direction:column;gap:3px;text-align:left;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:transparent;color:inherit;font:inherit;cursor:pointer}.utipo b{font-size:14px}.utipo span{font-size:12px;color:var(--muted);line-height:1.35}.utipo.on{border-color:var(--gold);box-shadow:0 0 0 2px var(--glow, rgba(245,197,24,.25))}
 .pendbox{display:inline-flex;align-items:center;gap:8px}.pend-n{font-size:13px;font-weight:600;color:var(--gold);padding:4px 10px;border:1px solid var(--gold);border-radius:99px;white-space:nowrap}.sync.pend{color:var(--gold)}.sync.pend::before{background:var(--gold)!important}
@@ -2442,6 +2442,9 @@ document.addEventListener('change', e=>{ if(e.target.id!=='u_persona') return; c
   else { inp.style.display = 'none'; inp.value = sel.value; }
   if(uu && !uu.readOnly && !uu.dataset.tocado && inp.value) uu.value = sugerirUsuario(inp.value); });
 document.addEventListener('input', e=>{ if(e.target.id==='u_user') e.target.dataset.tocado = '1'; if(e.target.id==='u_nombre'){ const uu = $('#u_user'); if(uu && !uu.readOnly && !uu.dataset.tocado) uu.value = sugerirUsuario(e.target.value); } });
+function ajustarFrame(){ const fr = document.getElementById('rcFrame'); if(!fr) return; const top = fr.getBoundingClientRect().top + window.scrollY; let h = Math.max(420, window.innerHeight - top - 14); fr.style.height = h + 'px'; const sobra = document.documentElement.scrollHeight - window.innerHeight; if(sobra>0 && h-sobra>=420) fr.style.height = (h - sobra) + 'px'; }
+window.addEventListener('resize', ajustarFrame);
+new MutationObserver(()=>{ if(document.getElementById('rcFrame')) requestAnimationFrame(ajustarFrame); }).observe(document.body, {childList:true, subtree:true});
 window.rcPersonal = () => activeEmps().map(e=>({nombre:e.nombre, cargo:e.cargo||''}));
 async function asegurarOperador(usuario, opNombre, responsable){
   const j = await api('load', {cols:['rcf']}); if(!j.ok) return false;
