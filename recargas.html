@@ -186,6 +186,7 @@ table.t{width:100%;border-collapse:collapse;font-size:14px;min-width:860px}
 .pasos-op{display:flex;gap:6px;margin:0 0 12px;flex-wrap:wrap}.pasos-op span{font-size:12.5px;padding:5px 10px;border-radius:99px;border:1px solid var(--line);color:var(--muted)}.pasos-op span.on{border-color:var(--gold);color:var(--gold);font-weight:600}.pasos-op span.ok{border-color:var(--ok);color:var(--ok)}
 .rv-box{margin-top:14px;border:1px solid var(--line);border-radius:12px;overflow:hidden}.rv-h{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:12px 14px;background:var(--surface-2,rgba(255,255,255,.03));border-bottom:1px solid var(--line)}.rv-h span{font-size:13px;color:var(--muted)}
 .rv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr))}.rv{padding:10px 14px;border-bottom:1px solid var(--line);border-right:1px solid var(--line);position:relative}.rv span{display:block;font-size:12px;color:var(--muted)}.rv b{display:block;font-size:15px;margin-top:2px}.rv b small{font-weight:400;color:var(--muted);margin-left:4px}.rv i{position:absolute;top:8px;right:10px;font-style:normal;font-size:11px;color:var(--ok)}.rv.falta b{color:var(--danger);font-weight:500;font-size:13.5px}.rv span.rv-big{display:inline;font-size:24px;color:var(--gold);font-weight:700}
+.rv-mc{display:flex;gap:18px;align-items:flex-end;flex-wrap:wrap;padding:14px;border-bottom:1px solid var(--line);background:color-mix(in srgb,var(--gold) 7%,transparent)}.rv-mc .f{min-width:240px;margin:0}.rv-mc input{font:700 22px/1.2 var(--display);color:var(--gold)}.rv-mc p{flex:1;min-width:220px;margin:0;font-size:13px;color:var(--muted)}
 .rv-ag{padding:12px 14px;border-bottom:1px solid var(--line)}.rv-caja{padding:10px 14px;font-size:14px}
 .opcard{margin-top:14px}.opcard-h{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr) minmax(0,1fr) auto;gap:12px;align-items:end}.opcard-c{margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}.opcard-ct{display:flex;justify-content:space-between;gap:10px;margin-bottom:8px}.opcard-ct span{font-size:12.5px}
 .opcta{display:grid;grid-template-columns:1.2fr 1.2fr 1.4fr .9fr auto auto;gap:10px;align-items:end;padding:10px 0;border-bottom:1px dashed var(--line)}.opcta-s small{display:block;font-size:11.5px;color:var(--muted)}.opcta-s b{font-size:15px;white-space:nowrap}
@@ -470,6 +471,7 @@ function parseReceipt(raw){
       for(const s of seg){ const mm = s.match(/(?:us\$|usd|\$)\s*([\d.,]+)/i) || s.match(AMT); if(mm){ const v = parseNum(mm[1]); if(v>0 && v<1000000){ out.monto = r2(v); break; } } }
     }
   }
+  if(out.monto==null){ for(const l of lines){ const mm = l.match(/^(?:us\s*)?[$S5§]\s*(\d{1,3}(?:[.,]\d{3})*[.,]\d{2})$/i); if(mm){ const v = parseNum(mm[1]); if(v>0 && v<1000000){ out.monto = r2(v); break; } } } }
   if(out.monto==null){ const all = [...text.matchAll(/(?:us\$|usd|\$)\s*([\d][\d.,]*)/gi)].map(m=>parseNum(m[1])).filter(v=>v>0 && v<1000000); if(all.length) out.monto = r2(Math.max(...all)); }
   // número de comprobante
   const COMP = /(comprobante|n[uú]mero de (?:comprobante|transacci[oó]n|referencia|documento|operaci[oó]n)|nro\.?\s*(?:de\s*)?(?:comprobante|transacci[oó]n|referencia|documento)?|no\.\s*(?:de\s*)?(?:comprobante|transacci[oó]n)?|referencia|secuencial|documento|transacci[oó]n|c[oó]digo de (?:transacci[oó]n|operaci[oó]n))/i;
@@ -494,6 +496,7 @@ function parseReceipt(raw){
   // cuenta destino (para verificar que el dinero llegó a la empresa)
   const DEST = /(beneficiario|destinatario|cuenta destino|para\b|a la cuenta|cuenta acreditada|acreditado a)/i;
   for(let i=0;i<lines.length && !out.cuentaDest;i++){
+    if(!out.beneficiario && /^[Aa]\s+[A-ZÁÉÍÓÚÑ]/.test(lines[i]) && !/^a la cuenta/i.test(lines[i])){ const nn = lines[i].replace(/^[Aa]\s+/,'').replace(/[.…]+$/,'').trim(); if(nn.split(/\s+/).length>=2 && !/\d{3,}/.test(nn) && !/^(la|tu|su|mi)\s/i.test(nn)) out.beneficiario = nn.slice(0,80); }
     if(DEST.test(lines[i])){ const seg = lines[i]+' '+(lines[i+1]||'')+' '+(lines[i+2]||''); const mm = seg.match(/(?:[x*•]{2,}[\s-]*)?(\d{3,12})/i); if(mm) out.cuentaDest = mm[0].replace(/\s/g,''); const nn = okName((lines[i].replace(DEST,'').replace(/^[\s:]+/,''))) || okName(lines[i+1]||''); if(nn) out.beneficiario = nn; }
   }
   if(!out.cuentaDest){ const mm = text.match(/[x*•]{3,}\s*\d{3,6}/i); if(mm) out.cuentaDest = mm[0].replace(/\s/g,''); }
@@ -833,6 +836,7 @@ document.addEventListener('click', async e=>{
 });
 document.addEventListener('input', e=>{
   const t = e.target;
+  if(t.id==='fMontoC'){ UI.form.monto = t.value; delete UI.read.monto; const q = document.querySelector('#formCard .cqm'); if(q) q.outerHTML = cuadreMovHTML(UI.form, opActual()); return; }
   if(t.dataset.k && t.closest('#formCard')){ UI.form[t.dataset.k] = t.value; delete UI.read[t.dataset.k];
     if(t.dataset.k==='agId'){ const ag = agByPlat(t.value); UI.form.agente = ag ? ag.id : ''; delete UI.read.agente; }
     if(['comprobante','banco','cuentaDest','fecha','agId'].includes(t.dataset.k)){ const pos = t.selectionStart; const id = t.id; renderForm(); const n = document.getElementById(id); if(n){ n.focus(); try{ n.setSelectionRange(pos,pos); }catch(_){} } }
@@ -881,9 +885,10 @@ document.addEventListener('change', e=>{ if(e.target.id==='fCtaOp'){ UI.form.cta
 function revisarHTML(f, op, dup, ver){
   const a = f.agente ? S.agentes.find(x=>x.id===f.agente) : null;
   const L = (l, v, k) => `<div class="rv ${v?'':'falta'}"><span>${l}</span><b>${v ? v : 'No se pudo leer'}</b>${v && UI.read[k] ? '<i>Leído ✓</i>' : ''}</div>`;
-  return `<div class="rv-box"><div class="rv-h"><b>Revisa que todo coincida con el comprobante</b><span>Si algo está mal, pulsa Editar.</span></div>
+  if(f.montoLeido==null) f.montoLeido = UI.read.monto ? (+f.monto||0) : 0;
+  return `<div class="rv-box"><div class="rv-mc"><div class="f"><label for="fMontoC">Monto que se descontó de tu caja</label><input id="fMontoC" type="number" step="0.01" min="0" inputmode="decimal" data-k="monto" value="${esc(f.monto||'')}" placeholder="0,00" autocomplete="off"></div><p>${f.montoLeido?`El comprobante dice <b class="num">${money(f.montoLeido)}</b>.`:'No se pudo leer el monto del comprobante.'} Escribe cuánto le cargaste al agente; ese valor sale de tu caja y entra a la cuenta de banco.</p></div>
+    <div class="rv-h"><b>Revisa que todo coincida con el comprobante</b><span>Si algo está mal, pulsa Editar.</span></div>
     <div class="rv-grid">
-      ${L('Monto', f.monto ? `<span class="rv-big">${money(+f.monto)}</span>` : '', 'monto')}
       ${L('Agente', a ? `${esc(a.nombre)} <small>ID ${esc(a.idPlat)}</small>` : '', 'agente')}
       ${L('Banco', esc(f.banco||''), 'banco')}
       ${L('N.º de comprobante', esc(f.comprobante||''), 'comprobante')}
@@ -1360,8 +1365,8 @@ function validarCuentaOp(f, op){
     const n = String(c.numero||'').replace(/\D/g,''); const numOk = n.length>=4 && dig.length>=3 && (n.endsWith(dig.slice(-4)) || dig.endsWith(n.slice(-4)));
     if(nameOk || numOk) return {ok:true, cta:c, por: nameOk ? 'nombre' : 'cuenta'};
   }
-  const nombres = cs.map(c=>c.titular||c.banco).filter(Boolean).join(' o ');
-  return {ok:false, motivo:`El comprobante no está a nombre de tu cuenta${nombres?` (<b>${esc(nombres)}</b>)`:''}${f.beneficiario?`. Dice: <b>${esc(f.beneficiario)}</b>`:''}. No se puede registrar.`};
+  const lista = cs.map(c=>`<b>${esc(c.titular||c.banco)} ····${esc(String(c.numero||'').replace(/\D/g,'').slice(-4))}</b>`).join(' o ');
+  return {ok:false, motivo:`El dinero no entró a ninguna de tus cuentas (${lista}).${dig?` El comprobante dice cuenta destino <b>····${esc(dig.slice(-4))}</b>`:''}${f.beneficiario?`${dig?' a nombre de':' Dice:'} <b>${esc(f.beneficiario)}</b>`:''}${dig||f.beneficiario?'.':''} Si la cuenta sí es tuya, pide a gerencia que revise el número en Configuración.`};
 }
 const lugarL = k => k==='caja' ? 'Caja de operador' : (c=> c ? `${c.banco} ····${String(c.numero).slice(-4)}` : 'Cuenta')(ctaOpById(k));
 const lugarCorto = k => k==='caja' ? 'Caja' : (c=> c ? `${c.banco.replace(/^Banco\s+/,'')} ··${String(c.numero).slice(-4)}` : 'Cuenta')(ctaOpById(k));
