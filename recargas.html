@@ -874,14 +874,6 @@ document.addEventListener('click', async e=>{
   else if(a==='registrar') registrar();
   else if(a==='limpiar'){ UI.form = {}; UI.read = {}; UI.img = null; UI.ocr = null; UI.edit = false; UI.rec = null; renderForm(); }
   else if(a==='quitarRec'){ UI.rec = null; renderForm(); }
-  else if(a==='resetMovs' && SES && SES.rol==='ceo'){
-    const n = S.movs.length + (S.extr||[]).length + Object.keys(S.reportes||{}).length + Object.keys(S.cajas||{}).length;
-    const conf = await pedirConfirmacion('Borrar todo y empezar de cero', `Se van a borrar <b>${S.movs.length} movimientos</b>, ${(S.extr||[]).length} extracciones, ${Object.keys(S.reportes||{}).length} reportes de cierre y ${Object.keys(S.cajas||{}).length} cajas diarias de <b>todos los operadores</b>.<br>Se mantienen operadores, cuentas de banco y agencias.<br><br>Para confirmar escribe <b>BORRAR</b>:`, 'BORRAR');
-    if(!conf) return;
-    S.movs = []; S.extr = []; S.cajas = {}; S.cuadOp = {}; S.cuadExt = {}; S.reportes = {}; S.conc = {}; S.fondeos = []; S.log = [];
-    logAcc('Empezó de cero', `Borró ${n} registros de prueba`);
-    UI.form = {}; UI.read = {}; UI.img = null; UI.ocr = null; UI.rec = null; UI.ciPrev = null; UI.repSel = null; UI.fecha = todayS();
-    LV.ev = 'boton'; save(); render(); toast('Listo: el panel quedó vacío. Se está borrando en Google Sheets, espera unos segundos antes de cerrar.'); }
   else if(a==='irHoy'){ UI.fecha = todayS(); UI.ciF = todayS(); render(); }
   else if(a==='agForzar'){ const f = UI.form, c = checkRecargaAg(f); if(!(c.a && c.moOk && c.plOk && !c.agOk)) return;
     if(!(await ask('Confirmar agencia a mano', `La captura no muestra exactamente <b>${esc(c.a.nombre)}</b> (ID ${esc(c.a.idPlat)}), pero el monto <b>${money(c.mo)}</b> sí coincide.<br>¿Confirmas que la recarga fue a esta agencia? Quedará marcada como <b>confirmada a mano</b> para gerencia.`, {ok:'Sí, confirmar'}))) return;
@@ -1897,7 +1889,7 @@ function fromRecords(D){
   const N = emptyS(), cf = D.rcf||{}, main = cf.main||{};
   N.movs = v('rmv').sort(byTs); N.extr = v('rex').sort(byTs); N.agentes = v('rag'); N.fondeos = v('rfo').sort(byTs); N.log = v('rlg').sort(byTs);
   N.operadores = main.operadores||[]; N.cuentas = main.cuentas||[]; N.ctasOp = main.ctasOp||[]; N.ctasExt = main.ctasExt||[];
-  N.tg = {...N.tg, ...(cf.tg||{})}; N.agPanel = Object.keys(cf).filter(k=>/^agp\d+$/.test(k)).sort((a,b)=>+a.slice(3)-+b.slice(3)).flatMap(k=>(cf[k]||{}).lista||[]);
+  N.tg = {...N.tg, ...(cf.tg||{})}; N._rst = !!cf.reset1117; N.agPanel = Object.keys(cf).filter(k=>/^agp\d+$/.test(k)).sort((a,b)=>+a.slice(3)-+b.slice(3)).flatMap(k=>(cf[k]||{}).lista||[]);
   Object.entries(D.rcu||{}).forEach(([k,val])=>{ const i = k.indexOf('|'), p = k.slice(0,i), r = k.slice(i+1);
     if(p==='caja') N.cajas[r] = val; else if(p==='rep') N.reportes[r] = val; else if(p==='op') N.cuadOp[r] = val; else if(p==='ext') N.cuadExt[r] = val; else if(p==='conc') N.conc[r] = val.v; });
   return N;
@@ -2011,6 +2003,7 @@ async function liveCargar(silencioso){
   if(SES && SES.rol==='ceo'){ const mig = S.operadores.filter(o=>!o.responsable && String(o.usuario||'').trim() && String(o.nombre||'').trim().split(/\s+/).length>=2 && !/^operador\s*\d+$/i.test(o.nombre));
     if(mig.length){ mig.forEach(o=>{ o.responsable = o.nombre; o.nombre = nombreOp(o.usuario); }); LV.ev = 'boton'; liveSave(); } }
   if(LV.ready && !TURNO_PEDIDO) setTimeout(pedirInicioTurno, 300);
+  if(SES && SES.rol==='ceo' && !S._rst) await reinicioUnico();
   if(SES && SES.rol==='ceo' && opsSobrantes().length){ const L = opsSobrantes(); L.forEach(borrarOperador); LV.ev = 'boton'; liveSave(); setTimeout(()=>toast(`Se eliminó ${L.map(o=>o.nombre).join(', ')}: no tenía usuario. Quedan solo los operadores creados desde Usuarios.`), 300); }
   render();
 }
@@ -2193,7 +2186,6 @@ function configHTML(){
       ${cs.length?`<div class="ctag">${cs.map(ctaFila).join('')}</div>`:`<div class="alert warn" style="margin:0"><b>!</b><div>Sin cuenta de banco: <b>${esc(o.nombre)}</b> no podrá registrar recargas hasta que le pongas una.</div></div>`}
       <button class="btn sm gold" data-act="nuevaCta" data-tipo="op" data-op="${o.id}" style="margin-top:12px">${cs.length?'+ Agregar otra cuenta':'+ Agregar cuenta de banco'}</button></div>
   </details>`; }).join('')}</div>
-  ${SES && SES.rol==='ceo' ? `<div class="card reset-card"><div><h2>Empezar de cero</h2><p class="muted" style="font-size:13px;margin:4px 0 0">Borra <b>todos los movimientos</b> (recargas, gestión de saldo, traspasos, extracciones), los saldos iniciales, los cierres y reportes de caja, las fotos de saldos y la bitácora. <b>Se mantiene la configuración:</b> operadores, responsables, usuarios, cuentas de banco y agencias. No se puede deshacer.</p></div><button class="btn bad" data-act="resetMovs">Borrar movimientos y empezar de cero</button></div>` : ''}
   <datalist id="bancosL3">${BANCOS.map(b=>`<option value="${b[0]}">`).join('')}</datalist>`;
 }
 document.addEventListener('toggle', e=>{ const d = e.target; if(!d.dataset || !d.dataset.opd) return; if(!UI.opOpen) UI.opOpen = new Set(S.operadores.length===1?[S.operadores[0].id]:[]); d.open ? UI.opOpen.add(d.dataset.opd) : UI.opOpen.delete(d.dataset.opd); }, true);
@@ -2443,6 +2435,16 @@ function pedirConfirmacion(titulo, html, palabra){ return new Promise(res=>{ con
   ov.innerHTML = `<div class="modal" role="dialog" aria-modal="true" style="max-width:480px"><h2>${esc(titulo)}</h2><p>${html}</p><div class="f"><input id="pcf" autocomplete="off" placeholder="${esc(palabra)}"></div><div class="acts" style="justify-content:flex-end;margin-top:14px"><button class="btn quiet" data-a="no">Cancelar</button><button class="btn bad" data-a="yes">Borrar todo</button></div></div>`;
   document.body.appendChild(ov); setTimeout(()=>ov.querySelector('#pcf').focus(), 30);
   ov.addEventListener('click', ev=>{ const a = ev.target.closest('[data-a]'); if(!a) return; if(a.dataset.a==='yes' && ov.querySelector('#pcf').value.trim().toUpperCase()!==palabra){ toast(`Escribe ${palabra} para confirmar.`, true); return; } ov.remove(); res(a.dataset.a==='yes'); }); }); }
+/* reinicio único pedido por gerencia (17/11/2026): borra los datos de prueba una sola vez y deja la configuración */
+async function reinicioUnico(){
+  const mk = await rcApi('bulk', {items:[{col:'rcf', id:'reset1117', data:{hecho:new Date().toISOString(), por:SES.usuario}}]}); if(!mk.ok) return;
+  S._rst = true;
+  const n = S.movs.length + (S.extr||[]).length + Object.keys(S.reportes||{}).length + Object.keys(S.cajas||{}).length;
+  S.movs = []; S.extr = []; S.cajas = {}; S.cuadOp = {}; S.cuadExt = {}; S.reportes = {}; S.conc = {}; S.fondeos = []; S.log = [];
+  logAcc('Panel reiniciado para pruebas', `Se borraron ${n} registros de prueba`);
+  LV.ev = 'boton'; save();
+  setTimeout(()=>toast(`Panel reiniciado: se borraron los movimientos, cajas y reportes de prueba (${n}). Espera unos segundos antes de cerrar.`), 400);
+}
 async function fotoPrueba(file){
   const isPdf = file.type==='application/pdf' || /\.pdf$/i.test(file.name||'');
   let url; if(isPdf){ url = (await pdfToImage(file)).url; } else { if(!/^image\//.test(file.type)) throw new Error('formato'); url = await new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(file); }); }
