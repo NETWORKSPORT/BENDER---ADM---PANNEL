@@ -186,7 +186,6 @@ table.t{width:100%;border-collapse:collapse;font-size:14px;min-width:860px}
 .pasos-op{display:flex;gap:6px;margin:0 0 12px;flex-wrap:wrap}.pasos-op span{font-size:12.5px;padding:5px 10px;border-radius:99px;border:1px solid var(--line);color:var(--muted)}.pasos-op span.on{border-color:var(--gold);color:var(--gold);font-weight:600}.pasos-op span.ok{border-color:var(--ok);color:var(--ok)}
 .rv-box{margin-top:14px;border:1px solid var(--line);border-radius:12px;overflow:hidden}.rv-h{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:12px 14px;background:var(--surface-2,rgba(255,255,255,.03));border-bottom:1px solid var(--line)}.rv-h span{font-size:13px;color:var(--muted)}
 .rv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr))}.rv{padding:10px 14px;border-bottom:1px solid var(--line);border-right:1px solid var(--line);position:relative}.rv span{display:block;font-size:12px;color:var(--muted)}.rv b{display:block;font-size:15px;margin-top:2px}.rv b small{font-weight:400;color:var(--muted);margin-left:4px}.rv i{position:absolute;top:8px;right:10px;font-style:normal;font-size:11px;color:var(--ok)}.rv.falta b{color:var(--danger);font-weight:500;font-size:13.5px}.rv span.rv-big{display:inline;font-size:24px;color:var(--gold);font-weight:700}
-.rv-mc{display:flex;gap:18px;align-items:flex-end;flex-wrap:wrap;padding:14px;border-bottom:1px solid var(--line);background:color-mix(in srgb,var(--gold) 7%,transparent)}.rv-mc .f{min-width:240px;margin:0}.rv-mc input{font:700 22px/1.2 var(--display);color:var(--gold)}.rv-mc p{flex:1;min-width:220px;margin:0;font-size:13px;color:var(--muted)}
 .rv-ag{padding:12px 14px;border-bottom:1px solid var(--line)}.rv-caja{padding:10px 14px;font-size:14px}
 .opcard{margin-top:14px}.opcard-h{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr) minmax(0,1fr) auto;gap:12px;align-items:end}.opcard-c{margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}.opcard-ct{display:flex;justify-content:space-between;gap:10px;margin-bottom:8px}.opcard-ct span{font-size:12.5px}
 .opcta{display:grid;grid-template-columns:1.2fr 1.2fr 1.4fr .9fr auto auto;gap:10px;align-items:end;padding:10px 0;border-bottom:1px dashed var(--line)}.opcta-s small{display:block;font-size:11.5px;color:var(--muted)}.opcta-s b{font-size:15px;white-space:nowrap}
@@ -198,9 +197,29 @@ table.t{width:100%;border-collapse:collapse;font-size:14px;min-width:860px}
 .rep{border:1px solid var(--line);border-radius:16px;padding:18px;background:var(--bg-2,transparent)}.rep-h{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:14px}.rep-h img{width:54px;height:54px;object-fit:contain}.rep-h>div{flex:1;min-width:220px}.rep-h small{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--accent-text);font-weight:700}.rep-h h2{margin:2px 0}.rep-h h2 span{font-weight:400;font-size:15px;color:var(--muted)}.rep-h p{margin:0;font-size:13px;color:var(--muted)}
 .rep-g{display:grid;grid-template-columns:1fr;gap:14px;margin-top:14px}.rep h3{margin:0;font-size:16px}.rep-k{margin-top:0}
 .ntf-b small{display:block}.ntf-list{display:flex;flex-direction:column;gap:10px}.ntf.nuevo{border-color:var(--gold)!important}.ntf{border-color:var(--line)!important;background:var(--surface,transparent)!important}.ntf.act{border-color:var(--gold)!important;background:var(--warn-bg)!important}.ntf{display:flex;align-items:center;gap:14px;padding:14px;border:1px solid var(--gold);border-radius:12px;margin-top:10px;background:var(--warn-bg);flex-wrap:wrap}.ntf-i{font-size:22px}.ntf-b{flex:1;min-width:220px}.ntf-b b{display:block}.ntf-m{display:block;font:700 22px/1.2 var(--display);color:var(--gold);margin:2px 0}.ntf-b small{color:var(--muted)}
-.cqm{border-top:1px solid var(--line);padding:12px 14px}.cqm-h{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px}.cqm-h span{font-size:12.5px;color:var(--muted)}
-.cqm-g{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:stretch}.cqm-c{border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:3px}.cqm-c.out{border-color:color-mix(in srgb,var(--danger) 45%,var(--line))}.cqm-c.in{border-color:color-mix(in srgb,var(--ok) 45%,var(--line))}.cqm-c small{font-size:12px;color:var(--muted)}.cqm-c em{font-style:normal;font-size:12px;color:var(--muted)}.cqm-c select{margin:2px 0}.cqm-arrow{align-self:center;font:700 22px/1 var(--display);color:var(--gold)}
-@media (max-width:700px){.cqm-g{grid-template-columns:1fr}.cqm-arrow{display:none}}
+.cqm{margin-top:14px;border:1px solid var(--line);border-radius:14px;padding:14px 16px;background:color-mix(in srgb,var(--gold) 3%,transparent)}.cqm-h{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px}.cqm-h span{font-size:12.5px;color:var(--muted)}
+.cqm-g{display:grid;grid-template-columns:1fr 150px 1fr;gap:0;align-items:center}.cqm-c{border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:3px}.cqm-c.out{border-color:color-mix(in srgb,var(--danger) 45%,var(--line))}.cqm-c.in{border-color:color-mix(in srgb,var(--ok) 45%,var(--line))}.cqm-c small{font-size:12px;color:var(--muted)}.cqm-c em{font-style:normal;font-size:12px;color:var(--muted)}.cqm-c select{margin:2px 0}.cqm-arrow{align-self:center;font:700 22px/1 var(--display);color:var(--gold)}
+@media (max-width:700px){.cqm-g{grid-template-columns:1fr;gap:10px}.cqm-arrow{display:none}}
+.cqm-h b{font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--gold)}
+.cqm-c{padding:12px 14px!important;border-radius:12px!important;background:var(--bg-2)}.cqm-c>b{font-size:15px}
+.cqm-n{display:flex;align-items:baseline;gap:8px;margin-top:4px;font-size:13px;color:var(--muted)}.cqm-n i{font-style:normal}.cqm-n b{font:700 19px/1.2 var(--display)}.cqm-c.out .cqm-n b{color:var(--danger)}.cqm-c.in .cqm-n b{color:var(--ok)}
+.cqm-arrow{display:flex!important;flex-direction:column;align-items:center;gap:4px;padding:0 10px;font:700 14px/1 var(--display)!important;color:var(--gold)}.cqm-arrow i{position:relative;display:block;width:100%;height:2px;background:linear-gradient(90deg,color-mix(in srgb,var(--danger) 70%,transparent),color-mix(in srgb,var(--ok) 80%,transparent))}.cqm-arrow i::after{content:"";position:absolute;right:-1px;top:-4px;border:5px solid transparent;border-left:7px solid var(--ok);border-right:0}
+.rq{display:grid;grid-template-columns:170px minmax(0,1fr);gap:18px;margin-top:14px}
+@media (max-width:760px){.rq{grid-template-columns:1fr}.rq-img{max-width:200px}}
+.rq-pic{position:relative;display:block;width:100%;aspect-ratio:3/4;padding:0;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fff;cursor:zoom-in}.rq-pic img{width:100%;height:100%;object-fit:contain}.rq-pic span{position:absolute;inset:auto 0 0 0;padding:6px;font-size:12px;color:#fff;background:linear-gradient(transparent,rgba(0,0,0,.65));opacity:0;transition:opacity .15s}.rq-pic:hover span,.rq-pic:focus-visible span{opacity:1}
+.rq-links{display:flex;justify-content:space-between;margin-top:8px;font-size:13px}.lnk.bad{color:var(--danger)}
+.rq-main{display:flex;flex-direction:column;gap:14px;min-width:0}
+.rq-in{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:14px}@media (max-width:900px){.rq-in{grid-template-columns:1fr}}
+.rq-in .f{margin:0;padding:14px;border:1px solid var(--line);border-radius:14px;background:var(--bg-2)}.rq-in label{font-weight:600}
+.rq-mo{border-color:color-mix(in srgb,var(--gold) 45%,var(--line))!important}
+.rq-money{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:10px;padding:0 12px;background:var(--bg)}.rq-money:focus-within{border-color:var(--gold);box-shadow:0 0 0 3px color-mix(in srgb,var(--gold) 20%,transparent)}.rq-money span{font:700 22px/1 var(--display);color:var(--gold)}.rq-money input{border:0!important;box-shadow:none!important;background:transparent!important;padding:10px 0;font:700 26px/1.2 var(--display);color:var(--gold);width:100%}
+.rq-money input::-webkit-inner-spin-button,.rq-money input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}.rq-money input{-moz-appearance:textfield}
+.rq-hint{display:block;margin-top:8px;font-size:12.5px;color:var(--muted)}
+.rq-sel{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 10px;margin-top:10px;padding:8px 10px;border-radius:10px;background:color-mix(in srgb,var(--ok) 10%,transparent);border:1px solid color-mix(in srgb,var(--ok) 35%,transparent)}.rq-sel span{font-size:12.5px;color:var(--muted);width:100%}.rq-sel.warn{background:color-mix(in srgb,var(--warn,#e0a030) 10%,transparent);border-color:color-mix(in srgb,var(--warn,#e0a030) 40%,transparent)}.rq-sel.warn span{width:auto}
+.rq-data{border:1px solid var(--line);border-radius:14px;overflow:hidden}.rq-dh{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:10px 14px;border-bottom:1px solid var(--line);font-size:13px}.rq-dh em{font-style:normal;font-weight:600}.rq-dh em.ok{color:var(--ok)}.rq-dh em.bad{color:var(--danger)}
+.rq-data dl{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin:0}@media (max-width:900px){.rq-data dl{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.rq-d{padding:10px 14px;border-top:1px solid var(--line);min-width:0}.rq-d:nth-child(-n+3){border-top:0}.rq-d dt{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:flex;gap:6px}.rq-d dt i{font-style:normal;color:var(--ok)}.rq-d dd{margin:3px 0 0;font-size:14px;font-weight:600;overflow-wrap:anywhere}.rq-d.no dd{color:var(--muted);font-weight:400}
+.rq-err{padding:10px 14px;border-top:1px solid color-mix(in srgb,var(--danger) 40%,var(--line));background:color-mix(in srgb,var(--danger) 10%,transparent);font-size:13px;color:var(--danger)}
 .ctag{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}.ctac{border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px;background:var(--bg-2,transparent)}.ctac-h{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}.ctac-h b{display:block;font-size:16px}.ctac-h small{color:var(--muted);font-size:12.5px}.ctac dl{margin:0;display:grid;gap:0}.ctac dl>div{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-top:1px dashed var(--line);font-size:13.5px}.ctac dt{color:var(--muted)}.ctac dd{margin:0;text-align:right}.ctac dd small{display:block;color:var(--muted);font-size:12px}
 .ctaf{max-width:620px;width:100%}.ctaf .fg{display:grid;grid-template-columns:1fr 1fr;gap:12px}.ctaf .f.full{grid-column:1/-1}.ctaf .hint{font-size:12px;color:var(--muted);margin-top:4px}.ctaf-err{color:var(--danger);font-size:13.5px;min-height:18px;margin-top:10px}
 .ctaf-res{display:grid;gap:0;border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-top:6px}.ctaf-res>div{display:flex;justify-content:space-between;gap:10px;padding:8px 12px;border-top:1px solid var(--line)}.ctaf-res>div:first-child{border-top:0}.ctaf-res span{color:var(--muted)}
@@ -559,7 +578,6 @@ function aplicarLectura(p){
   const f = UI.form; UI.read = {};
   ['banco','comprobante','monto','nombre','fecha'].forEach(k=>{ if(p[k]!=null && p[k]!==''){ f[k] = p[k]; UI.read[k] = true; } });
   f.cuentaDest = p.cuentaDest||''; f.beneficiario = p.beneficiario||''; if(p.beneficiario) UI.read.beneficiario = true; if(p.cuentaDest) UI.read.cuentaDest = true;
-  if(!f.agente && p.nombre){ const a = sugerirAgente(p.nombre, opActual()); if(a){ f.agente = a.id; f.agId = a.idPlat; UI.read.agente = true; } }
   renderForm();
   const n = Object.keys(UI.read).length;
   toast(n ? `Se leyeron ${n} datos del comprobante. Revísalos antes de registrar.` : 'No se reconocieron datos. Escríbelos a mano.', !n);
@@ -661,7 +679,7 @@ function renderForm(){
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>
       <b>Arrastra aquí el comprobante</b><span>o haz clic para elegirlo · también puedes pegarlo con Ctrl+V · foto, captura o PDF</span>
       <input type="file" id="fileIn" accept="image/*,application/pdf" hidden></div>`:`<div class="pasos-op"><span class="ok">1. Comprobante subido</span><span class="${st==='leyendo'?'':'on'}">2. Revisa los datos</span><span>3. Confirma</span></div>`}
-      ${UI.img||UI.ocr?`<div class="prev"><div class="img" data-act="verPrev">${UI.img?`<img src="${UI.img}" alt="Comprobante">`:''}</div><div>
+      ${(UI.img||UI.ocr)&&st!=='revisar'?`<div class="prev"><div class="img" data-act="verPrev">${UI.img?`<img src="${UI.img}" alt="Comprobante">`:''}</div><div>
         ${UI.ocr?.estado==='leyendo'?`<b>Leyendo el comprobante…</b><div class="prog"><i id="ocrBar" style="width:${Math.round((UI.ocr.prog||0)*100)}%"></i></div><span class="muted" style="font-size:13px">La primera vez tarda un poco más mientras se carga el lector.</span>`
         : UI.ocr?.estado==='error'?`<div class="alert warn">No se pudo leer automáticamente. Completa los datos a mano.</div>`
         : `<b>Datos leídos</b><p class="muted" style="font-size:13px;margin:4px 0 0">Los campos en verde se llenaron solos. Compáralos con la imagen antes de registrar.</p>${UI.ocr?.texto?`<button class="btn sm quiet" data-act="verTexto" style="margin-top:6px;padding-left:0">Ver texto leído</button>`:''}`}
@@ -681,9 +699,9 @@ function renderForm(){
     </div>
     `}
     ${st==='editar' && t.comp?agLinea(f, op):''}
-    ${st==='editar' && t.comp && f.monto?`<div class="rv-box" style="margin-top:12px">${cuadreMovHTML(f, op)}</div>`:''}
+    ${st==='editar' && t.comp && f.monto?cuadreMovHTML(f, op):''}
     ${dup?`<div class="alert bad" role="alert"><b>⛔</b><div><b>Comprobante repetido.</b> Ya se registró el ${fd(dup.fecha)} a las ${hm(dup.ts)} por ${money(dup.monto)}${dup.agente?` (${esc(S.agentes.find(a=>a.id===dup.agente)?.nombre||'')})`:''}, en ${esc(S.operadores.find(o=>o.id===dup.op)?.nombre||'')}. No se puede usar dos veces.</div></div>`:''}
-    ${ver===false?`<div class="alert bad"><b>⚠</b><div><b>La cuenta destino no es de la empresa.</b> El comprobante dice ${esc(f.cuentaDest)}. Verifica que la transferencia llegó a una cuenta de BENDERAM antes de recargar.</div></div>`:ver?`<div class="alert ok"><b>✓</b><div>Llegó a la cuenta de la empresa: ${esc(ver.banco)} terminada en ${esc(ver.numero.slice(-4))}.</div></div>`:''}
+    ${st==='revisar'?'':ver===false?`<div class="alert bad"><b>⚠</b><div><b>La cuenta destino no es de la empresa.</b> El comprobante dice ${esc(f.cuentaDest)}. Verifica que la transferencia llegó a una cuenta de BENDERAM antes de recargar.</div></div>`:ver?`<div class="alert ok"><b>✓</b><div>Llegó a la cuenta de la empresa: ${esc(ver.banco)} terminada en ${esc(ver.numero.slice(-4))}.</div></div>`:''}
     ${fechaDist?`<div class="alert warn"><b>!</b><div>La fecha del comprobante (${fd(f.fecha)}) no es la del turno (${fd(UI.fecha)}). Confirma que no sea un comprobante viejo.</div></div>`:''}
     ${st==='subir'||st==='leyendo' ? '' : `<div class="acts" style="margin-top:16px;justify-content:flex-end">${st==='revisar'?'<button class="btn" data-act="editarLectura">Los datos no son correctos · Editar</button>':(UI.ocr?.estado==='error'?'<button class="btn quiet" data-act="limpiar">Cancelar</button>':'<button class="btn quiet" data-act="verLectura">Volver a la revisión</button>')}<button class="btn gold" data-act="registrar" ${dup||(t.comp&&!validarCuentaOp(f,op).ok)?'disabled':''}>Confirmar movimiento</button></div>`}`;
   const drop = $('#drop');
@@ -874,33 +892,39 @@ function cuadreMovHTML(f, op){
   const cs = ctasDeOp(op), mo = +f.monto||0, v = validarCuentaOp(f, op);
   if(!f.ctaOp || !cs.some(c=>c.id===f.ctaOp)) f.ctaOp = v.ok && v.cta ? v.cta.id : (cs[0]||{}).id || '';
   const cj = resumen(op, UI.fecha).esperado, c = ctaOpById(f.ctaOp), cb = c ? ctaOpDia(c.id, UI.fecha).esperado : 0;
-  return `<div class="cqm"><div class="cqm-h"><b>Cuadre de este movimiento</b><span>Se registra solo al confirmar. No tienes que hacer otro registro.</span></div>
+  return `<div class="cqm"><div class="cqm-h"><b>Cuadre automático</b><span>Se aplica al confirmar</span></div>
     <div class="cqm-g">
-      <div class="cqm-c out"><small>Sale de</small><b>Caja de operador</b><span class="num">${money(cj)} → <b class="neg">${money(cj - mo)}</b></span><em>Saldo que cargas al agente: −${money(mo)}</em></div>
-      <div class="cqm-arrow" aria-hidden="true">→</div>
-      <div class="cqm-c in"><small>El dinero entró a</small>${cs.length>1?`<select id="fCtaOp" data-k="ctaOp">${cs.map(x=>`<option value="${x.id}" ${x.id===f.ctaOp?'selected':''}>${esc(x.banco)} ····${esc(String(x.numero).slice(-4))}${x.titular?' · '+esc(x.titular):''}</option>`).join('')}</select>`:`<b>${c?`${esc(c.banco)} ····${esc(String(c.numero).slice(-4))}`:'Sin cuenta'}</b>`}${c?`<span class="num">${money(cb)} → <b class="pos">${money(cb + mo)}</b></span><em>Transferencia del agente: +${money(mo)}</em>`:''}</div>
+      <div class="cqm-c out"><small>Sale de</small><b>Caja de operador</b><div class="cqm-n"><span class="num">${money(cj)}</span><i>→</i><b class="num">${money(cj - mo)}</b></div></div>
+      <div class="cqm-arrow" aria-hidden="true"><span class="num">${money(mo)}</span><i></i></div>
+      <div class="cqm-c in"><small>Entra a</small>${cs.length>1?`<select id="fCtaOp" data-k="ctaOp" aria-label="Cuenta que recibió el dinero">${cs.map(x=>`<option value="${x.id}" ${x.id===f.ctaOp?'selected':''}>${esc(x.titular||x.banco)} · ${esc(x.banco)} ····${esc(String(x.numero).slice(-4))}</option>`).join('')}</select>`:`<b>${c?`${esc(c.titular||c.banco)} · ····${esc(String(c.numero).slice(-4))}`:'Sin cuenta'}</b>`}${c?`<div class="cqm-n"><span class="num">${money(cb)}</span><i>→</i><b class="num">${money(cb + mo)}</b></div>`:''}</div>
     </div></div>`;
 }
 document.addEventListener('change', e=>{ if(e.target.id==='fCtaOp'){ UI.form.ctaOp = e.target.value; renderForm(); } });
 function revisarHTML(f, op, dup, ver){
   const a = f.agente ? S.agentes.find(x=>x.id===f.agente) : null;
-  const L = (l, v, k) => `<div class="rv ${v?'':'falta'}"><span>${l}</span><b>${v ? v : 'No se pudo leer'}</b>${v && UI.read[k] ? '<i>Leído ✓</i>' : ''}</div>`;
   if(f.montoLeido==null) f.montoLeido = UI.read.monto ? (+f.monto||0) : 0;
-  return `<div class="rv-box"><div class="rv-mc"><div class="f"><label for="fMontoC">Monto que se descontó de tu caja</label><input id="fMontoC" type="number" step="0.01" min="0" inputmode="decimal" data-k="monto" value="${esc(f.monto||'')}" placeholder="0,00" autocomplete="off"></div><p>${f.montoLeido?`El comprobante dice <b class="num">${money(f.montoLeido)}</b>.`:'No se pudo leer el monto del comprobante.'} Escribe cuánto le cargaste al agente; ese valor sale de tu caja y entra a la cuenta de banco.</p></div>
-    <div class="rv-h"><b>Revisa que todo coincida con el comprobante</b><span>Si algo está mal, pulsa Editar.</span></div>
-    <div class="rv-grid">
-      ${L('Agente', a ? `${esc(a.nombre)} <small>ID ${esc(a.idPlat)}</small>` : '', 'agente')}
-      ${L('Banco', esc(f.banco||''), 'banco')}
-      ${L('N.º de comprobante', esc(f.comprobante||''), 'comprobante')}
-      ${L('Nombre del que transfiere', esc(f.nombre||''), 'nombre')}
-      ${L('Fecha', f.fecha ? fd(f.fecha) : '', 'fecha')}
-      ${L('Cuenta destino', esc(f.cuentaDest||''), 'cuentaDest')}
-      ${L('A nombre de (beneficiario)', esc(f.beneficiario||''), 'beneficiario')}
+  const v = validarCuentaOp(f, op), ags = S.agentes.filter(x=>x.op===op);
+  const D = (l, val, k) => `<div class="rq-d ${val?'':'no'}"><dt>${l}${val&&UI.read[k]?'<i title="Leído del comprobante">✓</i>':''}</dt><dd>${val||'—'}</dd></div>`;
+  return `<div class="rq">
+    <aside class="rq-img">
+      <button type="button" class="rq-pic" data-act="verPrev" aria-label="Ver comprobante en grande">${UI.img?`<img src="${UI.img}" alt="Comprobante">`:''}<span>Ampliar</span></button>
+      <div class="rq-links">${UI.ocr?.texto?'<button class="lnk" data-act="verTexto">Texto leído</button>':''}<button class="lnk bad" data-act="limpiar">Cambiar</button></div>
+    </aside>
+    <div class="rq-main">
+      <div class="rq-in">
+        <div class="f rq-ag"><label for="fAgId">Agencia a la que recargaste</label><input id="fAgId" data-k="agId" list="agIds" value="${esc(f.agId||'')}" placeholder="Busca por ID o nombre" autocomplete="off"><datalist id="agIds">${(ags.length?ags:S.agentes).map(x=>`<option value="${esc(x.idPlat)}">${esc(x.nombre)}</option>`).join('')}</datalist>
+          ${a?`<div class="rq-sel ${a.op===op?'':'warn'}"><b>${esc(a.nombre)}</b><span>ID ${esc(a.idPlat)}${a.titular?' · '+esc(a.titular):''}${a.op!==op?` · agente de ${esc(opName(a.op))}`:''}</span></div>`:String(f.agId||'').trim()?`<div class="rq-sel warn"><b>El ID ${esc(f.agId)} no está registrado</b><button class="btn sm gold" data-act="agReg">Registrar agente</button></div>`:'<small class="rq-hint">El comprobante no trae el nombre de la agencia: elígela tú.</small>'}
+        </div>
+        <div class="f rq-mo"><label for="fMontoC">Monto descontado de tu caja</label><div class="rq-money"><span>$</span><input id="fMontoC" type="number" step="0.01" min="0" inputmode="decimal" data-k="monto" value="${esc(f.monto||'')}" placeholder="0,00" autocomplete="off"></div>
+          <small class="rq-hint">${f.montoLeido?`El comprobante dice <b class="num">${money(f.montoLeido)}</b>`:'No se leyó el monto del comprobante'}</small></div>
+      </div>
+      <div class="rq-data"><div class="rq-dh"><b>Datos del comprobante</b><span>${v.ok?`<em class="ok">✓ Entró a tu cuenta ${esc(v.cta.titular||v.cta.banco)}</em>`:'<em class="bad">Cuenta no reconocida</em>'}</span></div>
+        <dl>${D('Banco', esc(f.banco||''), 'banco')}${D('N.º de comprobante', `<span class="num">${esc(f.comprobante||'')}</span>`.replace('<span class="num"></span>',''), 'comprobante')}${D('Fecha', f.fecha?fd(f.fecha):'', 'fecha')}${D('Cuenta destino', esc(f.cuentaDest||''), 'cuentaDest')}${D('Beneficiario', esc(f.beneficiario||''), 'beneficiario')}${D('Ordenante', esc(f.nombre||''), 'nombre')}</dl>
+        ${v.ok?'':`<div class="rq-err"><b>No se puede registrar.</b> ${v.motivo}</div>`}
+      </div>
     </div>
-    ${(()=>{ const v = validarCuentaOp(f, op); return v.ok ? `<div class="alert ok" style="margin:0;border-radius:0"><b>✓</b><div>El comprobante es de tu cuenta: <b>${esc(v.cta.titular||'')}</b> · ${esc(v.cta.banco)} ····${esc(String(v.cta.numero).slice(-4))}</div></div>` : `<div class="alert bad" style="margin:0;border-radius:0"><b>⛔</b><div><b>Comprobante rechazado.</b> ${v.motivo}</div></div>`; })()}
-    ${!a?`<div class="rv-ag"><div class="f"><label for="fAgId">No se reconoció al agente por el nombre. Escribe su ID</label><input id="fAgId" data-k="agId" list="agIds" value="${esc(f.agId||'')}" placeholder="ID del agente en la plataforma" autocomplete="off"><datalist id="agIds">${S.agentes.map(x=>`<option value="${esc(x.idPlat)}">${esc(x.nombre)}</option>`).join('')}</datalist></div>${agLinea(f, op)}</div>`:''}
-    ${cuadreMovHTML(f, op)}
-  </div>`;
+  </div>
+  ${cuadreMovHTML(f, op)}`;
 }
 function agLinea(f, op){
   const a = f.agente ? S.agentes.find(x=>x.id===f.agente) : null;
