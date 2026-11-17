@@ -1846,10 +1846,8 @@ function saldosPorCuentaHTML(op, f, ms){
   const det = L => L.filter(x=>x[1]).map(x=>`${x[0]} ${money(x[1])}`).join(' · ');
   const entC = r2(R.ext+R.car+R.tin+R.mIn+Math.max(0,R.aj)), salC = r2(R.rec+R.tout+R.mOut+R.carQ+Math.max(0,-R.aj));
   const cajaCard = `<section class="sx c0"><div class="sx-h"><i class="dot" style="background:${SEGC[0]}"></i><div><b>Caja de operador</b><small>Saldo en la plataforma · ${esc(opName(op))}</small></div><span class="sx-p">${Math.round(Math.max(0,R.esperado)/pos*100)}%</span></div>
-    ${fila('Saldo al iniciar', R.ini, '', R.iniOrigen.origen==='anterior'?'Del cierre anterior':R.iniOrigen.origen==='fijo'?'Fijado por gerencia':'Sin saldo anterior')}
     <div class="sx-t"><span>Saldo ahora</span><b class="num ${R.esperado<0?'neg':''}">${money(R.esperado)}</b></div></section>`;
   const bankCard = (d, i) => `<section class="sx"><div class="sx-h"><i class="dot" style="background:${SEGC[(i+1)%SEGC.length]}"></i><div><b>${esc(d.c.banco)}</b><small>${esc(d.c.tipoCta||'Cuenta')} · N.º <span class="num">${esc(d.c.numero)}</span>${d.c.titular?' · '+esc(d.c.titular):''}</small></div><span class="sx-p">${Math.round(Math.max(0,d.esperado)/pos*100)}%</span></div>
-    ${fila('Saldo al iniciar', d.ini, '', 'Del día anterior')}
     <div class="sx-t"><span>Saldo ahora</span><b class="num">${money(d.esperado)}</b></div></section>`;
   const items = [{l:'Caja de operador', s:'Plataforma', v:R.esperado}, ...Q.bk.map(d=>({l:d.c.banco, s:`N.º ····${String(d.c.numero).slice(-4)}${d.c.titular?' · '+d.c.titular:''}`, v:d.esperado}))];
   const nVer = ms.filter(m=>!m.anulado&&m.tipo==='recarga'&&m.rev==='ok').length, nBad = ms.filter(m=>!m.anulado&&m.rev==='bad').length;
