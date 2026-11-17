@@ -621,6 +621,7 @@ function cajaHTML(){
       <td>${m.tipo==='recarga'&&!m.anulado?`<span class="pill ${REV[m.rev||''].c}">${REV[m.rev||''].l}</span>`:''}</td>
       ${ceo?`<td class="noprint"><div class="acts" style="flex-wrap:nowrap">${m.anulado?`<button class="btn sm quiet" data-act="reactivar" data-id="${m.id}">Reactivar</button>`:`<button class="btn sm" data-act="editar" data-id="${m.id}">Editar</button><button class="btn sm quiet bad" data-act="anular" data-id="${m.id}">Anular</button>`}<button class="btn sm quiet bad" data-act="eliminar" data-id="${m.id}" aria-label="Eliminar">🗑</button></div></td>`:''}</tr>`; }).join('');
   return `
+  ${ceo?'':'<section class="card noprint" id="formCard" style="margin:0 0 16px"></section>'}
   <div class="bar noprint">
     ${ceo?`${opPickerHTML(op)}`:''}
     <div class="f"><label for="fSel">Fecha del turno</label><input id="fSel" type="date" value="${f}" max="${todayS()}"></div>
@@ -629,7 +630,7 @@ function cajaHTML(){
     <div class="acts"><button class="btn" data-act="csv">Exportar CSV</button><button class="btn" data-act="print">Imprimir cuadre</button></div>
   </div>
   ${saldosPorCuentaHTML(op, f, ms)}
-  <section class="card noprint" id="formCard"></section>
+  ${ceo?'<section class="card noprint" id="formCard"></section>':''}
   <p class="muted noprint" style="font-size:13px;margin:12px 2px 0">Los movimientos registrados y el saldo de cada día están en <button class="lnk" data-act="irHist">Historial</button>.</p>`;
 }
 const difHTML = R => R.dif==null ? `<small>Diferencia</small><b>—</b><span style="font-size:13px">Escribe el saldo real para cuadrar</span>` : Math.abs(R.dif)<0.005 ? `<small>Diferencia</small><b>$0,00</b><span style="font-size:13px">Caja cuadrada ✓</span>` : `<small>${R.dif<0?'Faltante':'Sobrante'}</small><b class="num">${money(Math.abs(R.dif))}</b><span style="font-size:13px">${R.dif<0?'Falta dinero en la caja':'Hay más dinero del esperado'}. Revisa los comprobantes.</span>`;
