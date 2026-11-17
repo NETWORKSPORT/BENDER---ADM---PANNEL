@@ -200,6 +200,10 @@ table.t{width:100%;border-collapse:collapse;font-size:14px;min-width:860px}
 .cqm{border-top:1px solid var(--line);padding:12px 14px}.cqm-h{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px}.cqm-h span{font-size:12.5px;color:var(--muted)}
 .cqm-g{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:stretch}.cqm-c{border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:3px}.cqm-c.out{border-color:color-mix(in srgb,var(--danger) 45%,var(--line))}.cqm-c.in{border-color:color-mix(in srgb,var(--ok) 45%,var(--line))}.cqm-c small{font-size:12px;color:var(--muted)}.cqm-c em{font-style:normal;font-size:12px;color:var(--muted)}.cqm-c select{margin:2px 0}.cqm-arrow{align-self:center;font:700 22px/1 var(--display);color:var(--gold)}
 @media (max-width:700px){.cqm-g{grid-template-columns:1fr}.cqm-arrow{display:none}}
+.ctag{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}.ctac{border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px;background:var(--bg-2,transparent)}.ctac-h{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}.ctac-h b{display:block;font-size:16px}.ctac-h small{color:var(--muted);font-size:12.5px}.ctac dl{margin:0;display:grid;gap:0}.ctac dl>div{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-top:1px dashed var(--line);font-size:13.5px}.ctac dt{color:var(--muted)}.ctac dd{margin:0;text-align:right}.ctac dd small{display:block;color:var(--muted);font-size:12px}
+.ctaf{max-width:620px;width:100%}.ctaf .fg{display:grid;grid-template-columns:1fr 1fr;gap:12px}.ctaf .f.full{grid-column:1/-1}.ctaf .hint{font-size:12px;color:var(--muted);margin-top:4px}.ctaf-err{color:var(--danger);font-size:13.5px;min-height:18px;margin-top:10px}
+.ctaf-res{display:grid;gap:0;border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-top:6px}.ctaf-res>div{display:flex;justify-content:space-between;gap:10px;padding:8px 12px;border-top:1px solid var(--line)}.ctaf-res>div:first-child{border-top:0}.ctaf-res span{color:var(--muted)}
+@media (max-width:640px){.ctaf .fg{grid-template-columns:1fr}}
 .gs-prev{margin-top:12px;padding:10px 14px;border:1px dashed var(--line);border-radius:10px;font-size:14px}.gs-prev b{font-size:16px}
 .embed .shell{grid-template-columns:1fr}.embed .side{display:none}.embed .top .mob{display:none!important}.embed .ttl{display:block!important}.embed [data-act=theme]{display:none}
 @media (max-width:900px){.shell{grid-template-columns:1fr}.side{display:none}.top .mob{display:flex!important}.ttl{display:none}}
@@ -1838,6 +1842,69 @@ document.addEventListener('change', async e=>{ const t = e.target; if(t.id!=='in
   guardarRegistro('rcu', 'caja|'+op+'|'+f); if(LIVE){ const lg = S.log[S.log.length-1]; if(lg){ toRecords(S); guardarRegistro('rlg', lg.id); } }
   render(); toast('Saldo inicial guardado.'); });
 try{ new ResizeObserver(()=>{ const t = document.querySelector('.top'); if(t) document.documentElement.style.setProperty('--topH', t.offsetHeight+'px'); }).observe(document.body); }catch(e){}
+/* ---- cuentas de banco: formulario con Guardar cuenta y confirmación ---- */
+function ctaCardHTML(c, tipo, saldoHoy){
+  return `<div class="ctac"><div class="ctac-h"><div><b>${esc(c.banco||'Banco')}</b><small>${esc(c.tipoCta||'Cuenta')} · N.º <span class="num">${esc(c.numero||'—')}</span></small></div><span class="pill info">Activa</span></div>
+    <dl><div><dt>A nombre de</dt><dd><b>${esc(c.titular||'—')}</b>${c.doc?`<small>${esc(c.doc)}</small>`:''}</dd></div><div><dt>Saldo inicial</dt><dd class="num">${money(+c.inicial||0)}</dd></div><div><dt>Saldo hoy</dt><dd class="num"><b>${money(saldoHoy)}</b></dd></div></dl>
+    <div class="acts"><button class="btn sm" data-act="editarCta" data-tipo="${tipo}" data-id="${c.id}">Editar</button><button class="btn sm quiet bad" data-act="quitarCta" data-tipo="${tipo}" data-id="${c.id}">Quitar</button></div></div>`;
+}
+function cuentaForm(tipo, op, cta){
+  return new Promise(res=>{
+    const c = cta || {banco:'Banco Pichincha', tipoCta:'Ahorros', inicial:''}; const ov = document.createElement('div'); ov.className = 'ov';
+    const bancos = BANCOS.map(b=>b[0]); const otro = c.banco && !bancos.includes(c.banco);
+    ov.innerHTML = `<form class="modal ctaf" role="dialog" aria-modal="true" aria-labelledby="ctaT" novalidate>
+      <h2 id="ctaT">${cta?'Editar cuenta de banco':'Nueva cuenta de banco'}</h2>
+      <p class="muted" style="margin:2px 0 14px">${tipo==='op'?`Operador: <b>${esc(opName(op))}</b>${opResp(op)?` · Responsable: ${esc(opResp(op))}`:''}`:'Cuenta para pagar extracciones'}</p>
+      <div class="fg">
+        <div class="f"><label for="cBa">Banco</label><select id="cBa">${bancos.map(b=>`<option ${c.banco===b?'selected':''}>${esc(b)}</option>`).join('')}<option value="__otro" ${otro?'selected':''}>Otro banco…</option></select><input id="cBo" placeholder="Nombre del banco" value="${otro?esc(c.banco):''}" style="margin-top:6px;${otro?'':'display:none'}"></div>
+        <div class="f"><label for="cTi">Tipo de cuenta</label><select id="cTi">${['Ahorros','Corriente'].map(t=>`<option ${c.tipoCta===t?'selected':''}>${t}</option>`).join('')}</select></div>
+        <div class="f"><label for="cNu">N.º de cuenta</label><input id="cNu" inputmode="numeric" autocomplete="off" value="${esc(c.numero||'')}" placeholder="2201234567"></div>
+        <div class="f"><label for="cDo">Cédula o RUC del titular <span class="muted">(opcional)</span></label><input id="cDo" inputmode="numeric" autocomplete="off" value="${esc(c.doc||'')}" placeholder="1712345678"></div>
+        <div class="f full"><label for="cTt">A nombre de</label><input id="cTt" autocomplete="off" value="${esc(c.titular||'')}" placeholder="Ejemplo: Valles de Lirio"><div class="hint">${tipo==='op'?'Escríbelo como sale en los comprobantes: las recargas de este operador se aceptan solo si están a este nombre.':'Escríbelo como sale en los comprobantes de pago.'}</div></div>
+        <div class="f"><label for="cIn">Saldo inicial (USD)</label><input id="cIn" type="number" step="0.01" inputmode="decimal" value="${esc(c.inicial??'')}" placeholder="0,00"><div class="hint">Lo que tiene la cuenta hoy.</div></div>
+      </div>
+      <div class="ctaf-err" id="cErr" role="alert"></div>
+      <div class="acts" style="justify-content:flex-end;margin-top:16px"><button type="button" class="btn quiet" data-a="no">Cancelar</button><button type="submit" class="btn gold">Guardar cuenta</button></div>
+    </form>`;
+    document.body.appendChild(ov); const $f = id => ov.querySelector('#'+id);
+    setTimeout(()=>$f('cNu').focus(), 40);
+    ov.addEventListener('input', ()=>{ $f('cErr').textContent = ''; });
+    $f('cBa').addEventListener('change', ()=>{ const o = $f('cBa').value==='__otro'; $f('cBo').style.display = o ? '' : 'none'; if(o) $f('cBo').focus(); });
+    const cerrar = v => { ov.remove(); res(v); };
+    ov.addEventListener('click', e=>{ if(e.target===ov || e.target.closest('[data-a="no"]')) cerrar(null); });
+    ov.addEventListener('keydown', e=>{ if(e.key==='Escape') cerrar(null); });
+    ov.querySelector('form').addEventListener('submit', async e=>{ e.preventDefault();
+      const banco = $f('cBa').value==='__otro' ? $f('cBo').value.trim() : $f('cBa').value;
+      const d = {banco, tipoCta:$f('cTi').value, numero:$f('cNu').value.replace(/\D/g,''), doc:$f('cDo').value.trim(), titular:$f('cTt').value.trim().replace(/\s+/g,' '), inicial:$f('cIn').value===''?0:r2(+$f('cIn').value)};
+      const err = m => { $f('cErr').textContent = m; return; };
+      if(!d.banco) return err('Escribe el nombre del banco.');
+      if(d.numero.length<6) return err('El número de cuenta debe tener al menos 6 dígitos.');
+      if(d.titular.length<3) return err('Escribe a nombre de quién está la cuenta.');
+      if(isNaN(d.inicial)) return err('El saldo inicial no es un número válido.');
+      const dup = [...(S.ctasOp||[]), ...(S.ctasExt||[])].find(x=>x.id!==(cta&&cta.id) && String(x.numero).replace(/\D/g,'')===d.numero);
+      if(dup) return err(`Ese número ya está registrado (${dup.banco}${dup.op?' · '+opName(dup.op):' · extracciones'}).`);
+      $f('cErr').textContent = '';
+      const ok = await ask(cta?'Confirmar cambios de la cuenta':'Confirmar nueva cuenta', `<div class="ctaf-res"><div><span>Banco</span><b>${esc(d.banco)}</b></div><div><span>Tipo</span><b>${esc(d.tipoCta)}</b></div><div><span>N.º de cuenta</span><b class="num">${esc(d.numero)}</b></div><div><span>A nombre de</span><b>${esc(d.titular)}</b></div>${d.doc?`<div><span>Cédula o RUC</span><b>${esc(d.doc)}</b></div>`:''}<div><span>Saldo inicial</span><b class="num">${money(d.inicial)}</b></div></div>${tipo==='op'?`<p class="muted" style="margin:10px 0 0">Quedará como cuenta de <b>${esc(opName(op))}</b>.</p>`:''}`, {ok:'Sí, guardar cuenta'});
+      if(ok) cerrar(d);
+    });
+  });
+}
+async function guardarCuentaFlujo(tipo, op, id){
+  const L = tipo==='op' ? S.ctasOp : S.ctasExt; const cta = id ? L.find(x=>x.id===id) : null;
+  const d = await cuentaForm(tipo, op || (cta&&cta.op), cta); if(!d) return;
+  if(cta) Object.assign(cta, d); else L.push({id:uid(tipo==='op'?'co':'ce'), ...(tipo==='op'?{op}:{}), ...d});
+  if(tipo==='op' && !S.cuentas.some(x=>String(x.numero).replace(/\D/g,'')===d.numero)) S.cuentas.push({banco:d.banco, numero:d.numero, titular:d.titular});
+  logAcc(cta?'Editó cuenta de banco':'Agregó cuenta de banco', `${d.banco} ${d.numero} · ${d.titular}${tipo==='op'?' · '+opName(op||cta.op):' · extracciones'}`);
+  LV.ev = 'boton'; save(); render(); toast(cta?'Cuenta actualizada en todo el panel.':'Cuenta guardada. Ya aparece en todo el panel.');
+}
+document.addEventListener('click', async e=>{ const b = e.target.closest('[data-act="nuevaCta"],[data-act="editarCta"],[data-act="quitarCta"]'); if(!b || !isAdm()) return; const t = b.dataset.tipo;
+  if(b.dataset.act==='nuevaCta') return guardarCuentaFlujo(t, b.dataset.op, null);
+  if(b.dataset.act==='editarCta') return guardarCuentaFlujo(t, null, b.dataset.id);
+  const L = t==='op' ? S.ctasOp : S.ctasExt, c = L.find(x=>x.id===b.dataset.id); if(!c) return;
+  const usada = t==='op' ? S.movs.some(m=>!m.anulado && bankEf(m).some(x=>x.cta===c.id)) : (S.extr.some(x=>x.pago && x.pago.cuenta===c.id) || S.fondeos.some(f=>f.cuenta===c.id));
+  if(usada) return toast('Esa cuenta ya tiene movimientos. No se puede quitar.', true);
+  if(!(await ask('Quitar cuenta', `¿Quitar ${esc(c.banco)} N.º ${esc(c.numero)} (${esc(c.titular||'')})?`, {ok:'Quitar', danger:true}))) return;
+  L.splice(L.indexOf(c),1); logAcc('Quitó cuenta de banco', `${c.banco} ${c.numero}`); LV.ev = 'boton'; save(); render(); toast('Cuenta quitada.'); });
 /* ---- operadores que no se crearon desde Usuarios ---- */
 const nombreOp = u => { u = String(u||'').trim(); return u ? u.charAt(0).toUpperCase() + u.slice(1).toLowerCase() : 'Operador'; };
 const opsSobrantes = () => { if(!LIVE) return [];
@@ -1859,11 +1926,9 @@ function borrarOperador(o){
 function opsSobrantesHTML(){ const L = opsSobrantes(); if(!L.length) return '';
   return `<div class="alert warn" style="margin:0 0 14px"><b>!</b><div style="flex:1"><b>${L.length===1?'Hay un operador que no se creó':'Hay '+L.length+' operadores que no se crearon'} desde Usuarios:</b> ${L.map(o=>esc(o.nombre)).join(', ')}. No tiene${L.length===1?'':'n'} usuario para entrar.<div style="margin-top:8px"><button class="btn sm bad" data-act="limpiarOps">Eliminar ${L.length===1?'este operador':'estos operadores'}</button></div></div></div>`; }
 /* ---- configuración (solo gerencia) ---- */
-function cexCardHTML(){ return `<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h2>Cuentas de extracciones</h2><button class="btn sm gold" data-act="addCex">Agregar cuenta</button></div>
-    <p class="muted" style="font-size:13px;margin:4px 0 12px">Desde estas cuentas se pagan las extracciones. El saldo inicial es lo que tiene cada cuenta el día que empiezan a usar el sistema.</p>
-    <div class="tw" style="margin:0"><table class="t" style="min-width:680px"><thead><tr><th>Banco</th><th>N.º de cuenta</th><th>Titular</th><th class="r">Saldo inicial</th><th></th></tr></thead><tbody>
-    ${S.ctasExt.map((c,i)=>`<tr><td><input data-cex="${i}" data-k="banco" list="bancosL3" value="${esc(c.banco)}"></td><td><input data-cex="${i}" data-k="numero" value="${esc(c.numero)}" inputmode="numeric"></td><td><input data-cex="${i}" data-k="titular" value="${esc(c.titular||'')}"></td><td class="r"><input data-cex="${i}" data-k="inicial" type="number" step="0.01" value="${esc(c.inicial)}" style="max-width:120px;text-align:right"></td><td><button class="btn sm quiet bad" data-act="delCex" data-i="${i}" aria-label="Quitar">🗑</button></td></tr>`).join('')||'<tr><td colspan="5" class="empty">Sin cuentas.</td></tr>'}
-    </tbody></table></div></div><datalist id="bancosL3">${BANCOS.map(b=>`<option value="${b[0]}">`).join('')}</datalist>`; }
+function cexCardHTML(){ return `<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h2>Cuentas de extracciones</h2><button class="btn sm gold" data-act="nuevaCta" data-tipo="ext">Agregar cuenta de banco</button></div>
+  <p class="muted" style="font-size:13px;margin:4px 0 12px">Desde estas cuentas se pagan las extracciones. El saldo inicial es lo que tiene cada cuenta el día que empiezan a usar el sistema.</p>
+  <div class="ctag">${(S.ctasExt||[]).map(c=>ctaCardHTML(c, 'ext', saldoCta(c.id))).join('') || '<p class="empty" style="margin:0">Todavía no hay cuentas.</p>'}</div></div>`; }
 let USERS_PANEL = null;
 async function cargarUsuariosPanel(){ const j = await rcApi('users.list'); USERS_PANEL = j.ok ? j.users : []; if(UI.tab==='config' && !liveOcupado()) render(); }
 function configHTML(){
@@ -1873,13 +1938,7 @@ function configHTML(){
   const sel = (o, i) => `<select data-opu="${i}"><option value="">Sin usuario</option>${usrOps.map(u=>`<option value="${esc(u.usuario)}" ${String(o.usuario||'')===u.usuario?'selected':''}>${esc(u.nombre)} (${esc(u.usuario)})</option>`).join('')}${o.usuario && !usrOps.some(u=>u.usuario===o.usuario)?`<option value="${esc(o.usuario)}" selected>${esc(o.usuario)}</option>`:''}</select>`;
   const pers = (()=>{ try{ return (window.parent && window.parent.rcPersonal) ? window.parent.rcPersonal() : []; }catch(e){ return []; } })();
   const respSel = (o, i) => { const ls = pers.map(p=>p.nombre); const cur = o.responsable||''; return `<select data-opr="${i}"><option value="">Elige del personal</option>${pers.map(p=>`<option value="${esc(p.nombre)}" ${cur===p.nombre?'selected':''}>${esc(p.nombre)}${p.cargo?' · '+esc(p.cargo):''}</option>`).join('')}${cur && !ls.includes(cur)?`<option value="${esc(cur)}" selected>${esc(cur)}</option>`:''}</select>`; };
-  const ctaFila = c => { const i = S.ctasOp.indexOf(c); return `<div class="opcta">
-      <div class="f"><label>Banco</label><input data-cop="${i}" data-k="banco" list="bancosL3" value="${esc(c.banco)}"></div>
-      <div class="f"><label>N.º de cuenta</label><input data-cop="${i}" data-k="numero" value="${esc(c.numero)}" inputmode="numeric" placeholder="2201234567"></div>
-      <div class="f"><label>A nombre de</label><input data-cop="${i}" data-k="titular" value="${esc(c.titular||'')}" placeholder="Ejemplo: Valles de Lirio"></div>
-      <div class="f"><label>Saldo inicial</label><input data-cop="${i}" data-k="inicial" type="number" step="0.01" value="${esc(c.inicial)}"></div>
-      <div class="opcta-s"><small>Saldo hoy</small><b class="num">${money(ctaOpDia(c.id, UI.fecha).esperado)}</b></div>
-      <button class="btn sm quiet bad" data-act="delCtaOp" data-i="${i}" aria-label="Quitar cuenta" title="Quitar cuenta">🗑</button></div>`; };
+  const ctaFila = c => ctaCardHTML(c, 'op', ctaOpDia(c.id, UI.fecha).esperado);
   return `${!S.operadores.length?`<div class="alert info" style="margin-top:0"><b>1</b><div><b>Primer paso:</b> crea los operadores desde <b>Usuarios</b> (tipo Operador) o con el botón de abajo, y ponle a cada uno su cuenta de banco.</div></div>`:''}
   <div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h2>Operadores y sus cuentas de banco</h2>${LIVE?'<span class="muted" style="font-size:13px">Para agregar un operador, créalo en <b>Usuarios</b> con el tipo Operador.</span>':'<button class="btn sm gold" data-act="addOp">Agregar operador</button>'}</div>
     <p class="muted" style="font-size:13px;margin:4px 0 0">Cada operador tiene su caja y su cuenta de banco. <b>Los comprobantes de recarga de cada operador deben estar a nombre de su cuenta</b>; si no, el panel los rechaza.</p></div>
@@ -1887,8 +1946,8 @@ function configHTML(){
     <div class="opcard-h"><div class="f"><label>Nombre del operador</label><input data-opi="${i}" value="${esc(o.nombre)}" placeholder="Ejemplo: Techis"></div><div class="f"><label>Responsable</label>${respSel(o,i)}</div><div class="f"><label>Usuario que entra</label>${sel(o,i)}</div>
       <button class="btn sm quiet bad" data-act="delOp" data-i="${i}" title="Eliminar operador">Eliminar operador</button></div>
     <div class="opcard-c"><div class="opcard-ct"><b>Cuenta de banco</b><span class="muted">${nm} movimientos registrados</span></div>
-      ${cs.length?cs.map(ctaFila).join(''):`<div class="alert warn" style="margin:0"><b>!</b><div>Sin cuenta de banco: <b>${esc(o.nombre)}</b> no podrá registrar recargas hasta que le pongas una.</div></div>`}
-      <button class="btn sm" data-act="addCtaOpX" data-op="${o.id}" style="margin-top:10px">${cs.length?'Agregar otra cuenta':'Agregar cuenta de banco'}</button></div>
+      ${cs.length?`<div class="ctag">${cs.map(ctaFila).join('')}</div>`:`<div class="alert warn" style="margin:0"><b>!</b><div>Sin cuenta de banco: <b>${esc(o.nombre)}</b> no podrá registrar recargas hasta que le pongas una.</div></div>`}
+      <button class="btn sm gold" data-act="nuevaCta" data-tipo="op" data-op="${o.id}" style="margin-top:12px">${cs.length?'+ Agregar otra cuenta':'+ Agregar cuenta de banco'}</button></div>
   </div>`; }).join('')}
   <datalist id="bancosL3">${BANCOS.map(b=>`<option value="${b[0]}">`).join('')}</datalist>`;
 }
