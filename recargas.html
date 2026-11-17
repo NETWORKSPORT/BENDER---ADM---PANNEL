@@ -1607,10 +1607,24 @@ function historialOpHTML(){
   </section>
   <section class="card" style="margin-top:14px"><h2>Movimientos del período</h2>${barrasHTML(L)}</section>
   <div class="sech"><h2>Cuadre por día</h2><span class="muted" style="font-size:13px">${isAdm()?'Toca un día para ver su caja.':'Toca un día para hacer su cierre de caja.'}</span></div>
-  <div class="tw"><table class="t" style="min-width:1050px"><thead><tr><th>Fecha</th><th class="r">Saldo al iniciar</th><th class="r">Recargas</th><th class="r">Extracciones</th><th class="r">Gerencia</th><th class="r">Traspasos</th><th class="r">Caja debe tener</th><th class="r">Caja real</th><th class="r">Diferencia</th><th class="r">Bancos</th><th class="r">Total</th><th>Estado</th></tr></thead><tbody>
-    ${filas.length?filas.map(({d:x,Q})=>{ const R = Q.R, g = r2(R.car-R.carQ), tr = r2(R.tin-R.tout+R.mIn-R.mOut);
-      return `<tr class="click" data-act="cqDia" data-f="${x}"><td class="num"><b>${fd(x)}</b>${x===hoy?'<small>Hoy</small>':''}</td><td class="r num">${money(R.ini)}</td><td class="r num neg">${R.rec?'−'+money(R.rec):'—'}<small>${R.nRec||''} ${R.nRec?'comp.':''}</small></td><td class="r num pos">${R.ext?'+'+money(R.ext):'—'}</td><td class="r num ${g<0?'neg':g>0?'pos':''}">${g?(g>0?'+':'−')+money(Math.abs(g)):'—'}</td><td class="r num">${tr?(tr>0?'+':'−')+money(Math.abs(tr)):'—'}</td><td class="r num"><b>${money(R.esperado)}</b></td><td class="r num">${R.real==null?'—':money(R.real)}</td><td class="r num ${R.dif==null?'':Math.abs(R.dif)<0.005?'pos':'neg'}">${R.dif==null?'—':Math.abs(R.dif)<0.005?'Cuadra ✓':money(R.dif)}</td><td class="r num">${money(Q.totB)}</td><td class="r num"><b>${money(Q.total)}</b></td><td>${est(R)}</td></tr>`; }).join(''):'<tr><td colspan="12" class="empty">Sin actividad en estas fechas.</td></tr>'}
-  </tbody></table></div>
+  ${(()=>{ const sg = v => (v>0?'+':'−')+money(Math.abs(v));
+    const C = [
+      {h:'Fecha', c:x=>`<td class="num"><b>${fd(x.d)}</b>${x.d===hoy?'<small>Hoy</small>':''}</td>`, on:true},
+      {h:'Saldo al iniciar', r:1, c:x=>`<td class="r num">${money(x.Q.R.ini)}</td>`, on:true},
+      {h:'Recargas', r:1, c:x=>`<td class="r num neg">${x.Q.R.rec?'−'+money(x.Q.R.rec):'—'}${x.Q.R.nRec?`<small>${x.Q.R.nRec} comp.</small>`:''}</td>`, on:filas.some(x=>x.Q.R.rec)},
+      {h:'Extracciones', r:1, c:x=>`<td class="r num pos">${x.Q.R.ext?'+'+money(x.Q.R.ext):'—'}</td>`, on:filas.some(x=>x.Q.R.ext)},
+      {h:'Gerencia', r:1, c:x=>{ const g = r2(x.Q.R.car-x.Q.R.carQ); return `<td class="r num ${g<0?'neg':g>0?'pos':''}">${g?sg(g):'—'}</td>`; }, on:filas.some(x=>r2(x.Q.R.car-x.Q.R.carQ))},
+      {h:'Traspasos', r:1, c:x=>{ const R = x.Q.R, t = r2(R.tin-R.tout+R.mIn-R.mOut); return `<td class="r num">${t?sg(t):'—'}</td>`; }, on:filas.some(x=>{ const R = x.Q.R; return r2(R.tin-R.tout+R.mIn-R.mOut); })},
+      {h:'Estado de caja', r:1, c:x=>`<td class="r num"><b>${money(x.Q.R.esperado)}</b><small>${x.d===hoy?'Actual':'Al cerrar el día'}</small></td>`, on:true},
+      {h:'Caja real', r:1, c:x=>`<td class="r num">${x.Q.R.real==null?'—':money(x.Q.R.real)}</td>`, on:filas.some(x=>x.Q.R.real!=null)},
+      {h:'Diferencia', r:1, c:x=>{ const R = x.Q.R; return `<td class="r num ${R.dif==null?'':Math.abs(R.dif)<0.005?'pos':'neg'}">${R.dif==null?'—':Math.abs(R.dif)<0.005?'Cuadra ✓':money(R.dif)}</td>`; }, on:filas.some(x=>x.Q.R.dif!=null)},
+      {h:'Estado de bancos', r:1, c:x=>`<td class="r num">${money(x.Q.totB)}${x.Q.bk.length>1?`<small>${x.Q.bk.length} cuentas</small>`:''}</td>`, on:true},
+      {h:'Total', r:1, c:x=>`<td class="r num"><b>${money(x.Q.total)}</b></td>`, on:true},
+      {h:'Cierre', c:x=>`<td>${est(x.Q.R)}</td>`, on:true}
+    ].filter(c=>c.on);
+    return `<div class="tw"><table class="t" style="min-width:${Math.max(640, C.length*105)}px"><thead><tr>${C.map(c=>`<th class="${c.r?'r':''}">${c.h}</th>`).join('')}</tr></thead><tbody>
+    ${filas.length?filas.map(x=>`<tr class="click" data-act="cqDia" data-f="${x.d}">${C.map(c=>c.c(x)).join('')}</tr>`).join(''):`<tr><td colspan="${C.length}" class="empty">Sin actividad en estas fechas.</td></tr>`}
+  </tbody></table></div>`; })()}
   <div class="sech"><h2>Detalle de movimientos</h2><div class="segf">${TF.map(([k,l])=>`<button class="tab ${tipoF===k?'on':''}" data-act="hT" data-k="${k}">${l} <span class="muted">${k==='todos'?ms.length:ms.filter(m=>m.tipo===k).length}</span></button>`).join('')}</div></div>
   <div class="tw"><table class="t" style="min-width:1250px"><thead><tr><th>Fecha y hora</th><th>Tipo</th><th>Detalle</th><th>Comprobante</th><th class="r">Caja</th><th>Banco</th><th>Contabilidad</th><th>Foto</th><th>Registró</th>${isAdm()?'<th></th>':''}</tr></thead><tbody>
     ${msF.length?msF.slice(0,500).map(m=>{ const e = efecto(m, op), b = bankEf(m), tl = m.tipo==='carga' ? ((m.signo||1)<0?'Saldo quitado':'Saldo aumentado') : m.tipo==='transfer' ? (m.opDest===op?'Recibido':'Pasado')+(m.estadoT==='pendiente'?' · pendiente':m.estadoT==='rechazado'?' · rechazado':'') : m.tipo==='mover' ? 'Entre mis cuentas' : (TIPOS[m.tipo]?.label||m.tipo);
