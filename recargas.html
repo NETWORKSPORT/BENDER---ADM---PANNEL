@@ -2003,7 +2003,6 @@ async function liveCargar(silencioso){
   if(SES && SES.rol==='ceo'){ const mig = S.operadores.filter(o=>!o.responsable && String(o.usuario||'').trim() && String(o.nombre||'').trim().split(/\s+/).length>=2 && !/^operador\s*\d+$/i.test(o.nombre));
     if(mig.length){ mig.forEach(o=>{ o.responsable = o.nombre; o.nombre = nombreOp(o.usuario); }); LV.ev = 'boton'; liveSave(); } }
   if(LV.ready && !TURNO_PEDIDO) setTimeout(pedirInicioTurno, 300);
-  if(SES && SES.rol==='ceo' && !S._rst) await reinicioUnico();
   if(SES && SES.rol==='ceo' && opsSobrantes().length){ const L = opsSobrantes(); L.forEach(borrarOperador); LV.ev = 'boton'; liveSave(); setTimeout(()=>toast(`Se eliminó ${L.map(o=>o.nombre).join(', ')}: no tenía usuario. Quedan solo los operadores creados desde Usuarios.`), 300); }
   render();
 }
