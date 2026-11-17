@@ -736,6 +736,7 @@ async function registrar(){
   const monto = r2(f.monto);
   if(!(monto>0)) return toast('Escribe el monto.', true);
   if(UI.tipo==='mover'){ const sd = saldoLugar(op, f.from, UI.fecha); if(monto > sd + 0.005 && !(await ask('Saldo insuficiente', `${esc(lugarL(f.from))} tiene <b>${money(sd)}</b> y vas a mover <b>${money(monto)}</b>. ¿Registrar igual?`, {ok:'Registrar igual'}))) return; }
+  if(UI.tipo==='recarga' && !f.agente && String(f.agId||'').trim()){ const x = agenciasLista(op).find(y=>y.id && normId(y.id)===normId(f.agId)); if(x) agSeleccionar(x.k); }
   if(UI.tipo==='recarga' && !f.agente) return toast(String(f.agId||'').trim() ? 'Ese ID no está registrado. Pulsa "Registrar agente" primero.' : 'Escribe el ID del agente.', true);
   let VC = null; if(UI.tipo==='recarga'){ VC = validarCuentaOp(f, op); if(!VC.ok) return toast(VC.motivo.replace(/<[^>]+>/g,''), true); }
   if(t.comp && !String(f.comprobante||'').trim()) return toast('Escribe el número de comprobante.', true);
