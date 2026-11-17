@@ -232,6 +232,8 @@ table.t{width:100%;border-collapse:collapse;font-size:14px;min-width:860px}
 .cbx-l em{font-style:normal;font-size:11.5px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:2px 8px;white-space:nowrap}.cbx-l em.mia{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 40%,transparent)}
 .cbx-l li.cbx-none{cursor:default;color:var(--muted);font-size:13px;flex-wrap:wrap;justify-content:space-between}.cbx-l li.cbx-none:hover{background:none}
 .rq-in .f{overflow:visible}.rq-chk{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}.rq-chk li{display:flex;gap:8px;align-items:flex-start;font-size:14px}.rq-chk li>b{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:12px}.rq-chk li.ok>b{background:color-mix(in srgb,var(--ok) 18%,transparent);color:var(--ok)}.rq-chk li.bad>b{background:color-mix(in srgb,var(--danger) 18%,transparent);color:var(--danger)}.rq-chk li.bad span{color:var(--danger)}
+.rq-force{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);display:flex;gap:12px;align-items:center;flex-wrap:wrap}.rq-force p{flex:1;min-width:240px;margin:0!important;color:var(--muted)!important}
+.warnc{color:var(--warn,#d99a2b)!important;font-weight:600}
 .fms{display:flex;gap:8px}.t .pill{white-space:nowrap}.fm{display:flex;flex-direction:column;align-items:center;gap:3px;padding:0;border:0;background:none;cursor:zoom-in;color:inherit}.fm img,.fm i{width:46px;height:60px;border-radius:7px;border:1px solid var(--line);object-fit:cover;object-position:top;background:#fff;display:grid;place-items:center}.fm i{background:var(--bg-2);font-style:normal;font-size:10px;color:var(--muted);text-align:center;line-height:1.2;cursor:default}.fm span{font-size:11px;color:var(--muted)}.fm:hover img{border-color:var(--gold)}.fm.no{cursor:default}
 .rq-hint{display:block;margin-top:8px;font-size:12.5px;color:var(--muted)}
 .rq-sel{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 10px;margin-top:10px;padding:8px 10px;border-radius:10px;background:color-mix(in srgb,var(--ok) 10%,transparent);border:1px solid color-mix(in srgb,var(--ok) 35%,transparent)}.rq-sel span{font-size:12.5px;color:var(--muted);width:100%}.rq-sel.warn{background:color-mix(in srgb,var(--warn,#e0a030) 10%,transparent);border-color:color-mix(in srgb,var(--warn,#e0a030) 40%,transparent)}.rq-sel.warn span{width:auto}
@@ -752,7 +754,7 @@ async function registrar(){
   if(UI.tipo==='mover'){ const sd = saldoLugar(op, f.from, UI.fecha); if(monto > sd + 0.005 && !(await ask('Saldo insuficiente', `${esc(lugarL(f.from))} tiene <b>${money(sd)}</b> y vas a mover <b>${money(monto)}</b>. ¿Registrar igual?`, {ok:'Registrar igual'}))) return; }
   if(UI.tipo==='recarga' && !f.agente && String(f.agId||'').trim()){ const x = agenciasLista(op).find(y=>y.id && normId(y.id)===normId(f.agId)); if(x) agSeleccionar(x.k); }
   if(UI.tipo==='recarga' && !f.agente) return toast(String(f.agId||'').trim() ? 'Ese ID no está registrado. Pulsa "Registrar agente" primero.' : 'Escribe el ID del agente.', true);
-  if(UI.tipo==='recarga'){ const c = checkRecargaAg(f); if(c.falta) return toast('Sube el comprobante de la recarga a la agencia.', true); if(!c.agOk) return toast('La agencia elegida no aparece en el comprobante de la recarga. No se puede registrar.', true); if(!c.moOk) return toast('El monto no coincide con el comprobante de la recarga. No se puede registrar.', true); }
+  if(UI.tipo==='recarga'){ const c = checkRecargaAg(f); if(c.falta) return toast('Sube el comprobante de la recarga a la agencia.', true); if(!c.agOk && !(f.agManual && c.moOk)) return toast('La agencia elegida no aparece en el comprobante de la recarga. No se puede registrar.', true); if(!c.moOk) return toast('El monto no coincide con el comprobante de la recarga. No se puede registrar.', true); }
   let VC = null; if(UI.tipo==='recarga'){ VC = validarCuentaOp(f, op); if(!VC.ok) return toast(VC.motivo.replace(/<[^>]+>/g,''), true); }
   if(t.comp && !String(f.comprobante||'').trim()) return toast('Escribe el número de comprobante.', true);
   if(t.comp && !String(f.banco||'').trim()) return toast('Escribe el banco.', true);
@@ -763,7 +765,7 @@ async function registrar(){
   const pendOut = r2(S.movs.filter(x=>x.tipo==='transfer' && x.op===op && x.estadoT==='pendiente' && !x.anulado).reduce((a,x)=>a+x.monto,0));
   if((UI.tipo==='recarga'||UI.tipo==='transfer') && monto > R.esperado - pendOut + 0.005 && !(await ask('Caja insuficiente', `La caja tiene <b>${money(R.esperado)}</b> y la recarga es de <b>${money(monto)}</b>. La caja quedará en negativo. ¿Registrar igual?`, {ok:'Registrar igual'}))) return;
   const ver = t.comp && f.cuentaDest ? cuentaEmpresa(f.cuentaDest) : null;
-  const m = {id:uid('m'), ts:Date.now(), op, fecha:UI.fecha, tipo:UI.tipo, agente:f.agente||'', monto, banco:t.comp?f.banco.trim():'', comprobante:t.comp?String(f.comprobante).trim():'', nombre:t.comp?(f.nombre||'').trim():'', fechaComp:t.comp?(f.fecha||UI.fecha):'', cuentaDest:f.cuentaDest||'', verif: ver===null?null:!!ver, nota:(f.nota||'').trim(), signo: UI.tipo==='ajuste' ? (+f.signo||1) : undefined, img:t.comp?UI.img:null, imgRec: UI.tipo==='recarga' && UI.rec && UI.rec.img ? UI.rec.img : undefined, auto:Object.keys(UI.read), usuario:SES.usuario, opDest: UI.tipo==='transfer' ? f.opDest : undefined, estadoT: UI.tipo==='transfer' ? 'pendiente' : undefined, ctaOp: UI.tipo==='recarga' ? ((f.ctaOp && ctaOpById(f.ctaOp) && ctaOpById(f.ctaOp).op===op) ? f.ctaOp : (VC && VC.cta ? VC.cta.id : undefined)) : undefined, beneficiario: UI.tipo==='recarga' ? (f.beneficiario||'') : undefined, dest: UI.tipo==='carga' ? (f.dest||'caja') : undefined, signo: UI.tipo==='carga' ? (f.signo==='-'?-1:1) : (UI.tipo==='ajuste' ? (f.signo==='-'||f.signo==-1?-1:1) : undefined), from: UI.tipo==='mover' ? f.from : undefined, to: UI.tipo==='mover' ? f.to : undefined};
+  const m = {id:uid('m'), ts:Date.now(), op, fecha:UI.fecha, tipo:UI.tipo, agente:f.agente||'', monto, banco:t.comp?f.banco.trim():'', comprobante:t.comp?String(f.comprobante).trim():'', nombre:t.comp?(f.nombre||'').trim():'', fechaComp:t.comp?(f.fecha||UI.fecha):'', cuentaDest:f.cuentaDest||'', verif: ver===null?null:!!ver, nota:(f.nota||'').trim(), signo: UI.tipo==='ajuste' ? (+f.signo||1) : undefined, img:t.comp?UI.img:null, imgRec: UI.tipo==='recarga' && UI.rec && UI.rec.img ? UI.rec.img : undefined, agManual: UI.tipo==='recarga' && f.agManual && !checkRecargaAg(f).agOk ? true : undefined, auto:Object.keys(UI.read), usuario:SES.usuario, opDest: UI.tipo==='transfer' ? f.opDest : undefined, estadoT: UI.tipo==='transfer' ? 'pendiente' : undefined, ctaOp: UI.tipo==='recarga' ? ((f.ctaOp && ctaOpById(f.ctaOp) && ctaOpById(f.ctaOp).op===op) ? f.ctaOp : (VC && VC.cta ? VC.cta.id : undefined)) : undefined, beneficiario: UI.tipo==='recarga' ? (f.beneficiario||'') : undefined, dest: UI.tipo==='carga' ? (f.dest||'caja') : undefined, signo: UI.tipo==='carga' ? (f.signo==='-'?-1:1) : (UI.tipo==='ajuste' ? (f.signo==='-'||f.signo==-1?-1:1) : undefined), from: UI.tipo==='mover' ? f.from : undefined, to: UI.tipo==='mover' ? f.to : undefined};
   if(m.tipo==='recarga') m.rev = '';
   S.movs.push(m); save();
   if(m.tipo==='recarga') tgComprobante(m);
@@ -859,6 +861,9 @@ document.addEventListener('click', async e=>{
   else if(a==='registrar') registrar();
   else if(a==='limpiar'){ UI.form = {}; UI.read = {}; UI.img = null; UI.ocr = null; UI.edit = false; UI.rec = null; renderForm(); }
   else if(a==='quitarRec'){ UI.rec = null; renderForm(); }
+  else if(a==='agForzar'){ const f = UI.form, c = checkRecargaAg(f); if(!(c.a && c.moOk && !c.agOk)) return;
+    if(!(await ask('Confirmar agencia a mano', `La captura no muestra exactamente <b>${esc(c.a.nombre)}</b> (ID ${esc(c.a.idPlat)}), pero el monto <b>${money(c.mo)}</b> sí coincide.<br>¿Confirmas que la recarga fue a esta agencia? Quedará marcada como <b>confirmada a mano</b> para gerencia.`, {ok:'Sí, confirmar'}))) return;
+    f.agManual = true; await registrar(); if(UI.form===f) delete f.agManual; }
   else if(a==='verRec' && UI.rec && UI.rec.img) modal(`<img src="${UI.rec.img}" alt="Comprobante de la recarga">`, 'img');
   else if(a==='verRecTx') modal(`<div class="mh"><h2>Texto leído de la captura</h2><button class="x" data-close aria-label="Cerrar">×</button></div><pre style="white-space:pre-wrap;font-size:13px;background:var(--bg-2);padding:12px;border-radius:10px;max-height:60vh;overflow:auto">${esc(UI.rec?.texto||'')}</pre>`);
   else if(a==='verR'){ const m = S.movs.find(x=>x.id===b.dataset.id); if(m&&m.imgRec) modal(`<img src="${imgSrc(m.imgRec)}" alt="Comprobante de la recarga">`, 'img'); }
@@ -998,10 +1003,33 @@ document.addEventListener('keydown', e=>{ if(e.target.id!=='fAgId') return; cons
 async function leerRecargaAg(file){
   if(!file) return;
   UI.rec = {estado:'leyendo'}; renderForm();
-  try{ const r = await leerArchivo(file, true); UI.rec = {estado:'listo', img:r.thumb, texto:r.text||''}; }
+  try{
+    const isPdf = file.type==='application/pdf' || /\.pdf$/i.test(file.name||'');
+    if(!isPdf && !/^image\//.test(file.type)) throw new Error('Formato no válido');
+    let text = '', url;
+    if(isPdf){ const r = await pdfToImage(file); text = r.text||''; url = r.url; }
+    else url = await new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(file); });
+    const pi = await prepImage(url); const w = await getWorker();
+    try{ text += '\n' + (await w.recognize(pi.ocr)).data.text; }catch(e){}
+    try{ text += '\n' + (await w.recognize(sinLineas(pi.ocr))).data.text; }catch(e){}
+    UI.rec = {estado:'listo', img:pi.thumb, texto:text.trim()};
+  }
   catch(e){ UI.rec = {estado:'error'}; toast('No se pudo leer. Sube una foto, captura o PDF.', true); }
   renderForm();
 }
+/* quita bordes de tablas (líneas largas) que confunden al lector, y agranda la imagen */
+function sinLineas(src){
+  const k = Math.min(2, Math.max(1, 1800/Math.max(src.width,1))), W = Math.round(src.width*k), H = Math.round(src.height*k);
+  const c = document.createElement('canvas'); c.width = W; c.height = H; const x = c.getContext('2d'); x.imageSmoothingQuality = 'high'; x.drawImage(src,0,0,W,H);
+  const d = x.getImageData(0,0,W,H), p = d.data, dk = i => p[i*4] < 150;
+  const blanco = i => { p[i*4]=p[i*4+1]=p[i*4+2]=255; };
+  for(let y=0;y<H;y++){ let s = -1; for(let xx=0;xx<=W;xx++){ const on = xx<W && dk(y*W+xx); if(on && s<0) s = xx; if(!on && s>=0){ if(xx-s > W*0.25) for(let q=s;q<xx;q++) blanco(y*W+q); s = -1; } } }
+  const lv = Math.max(40, H*0.06);
+  for(let xx=0;xx<W;xx++){ let s = -1; for(let y=0;y<=H;y++){ const on = y<H && dk(y*W+xx); if(on && s<0) s = y; if(!on && s>=0){ if(y-s > lv) for(let q=s;q<y;q++) blanco(q*W+xx); s = -1; } } }
+  x.putImageData(d,0,0); return c;
+}
+function lev(a, b){ if(Math.abs(a.length-b.length)>2) return 9; const m = []; for(let i=0;i<=a.length;i++){ m[i] = [i]; for(let j=1;j<=b.length;j++) m[i][j] = i ? Math.min(m[i-1][j]+1, m[i][j-1]+1, m[i-1][j-1]+(a[i-1]===b[j-1]?0:1)) : j; } return m[a.length][b.length]; }
+function palabraParecida(w, palabras){ const tol = w.length>=8 ? 2 : w.length>=4 ? 1 : 0; return palabras.some(p=>p===w || (tol && Math.abs(p.length-w.length)<=tol && lev(p,w)<=tol) || (w.length>=5 && p.length>=4 && (w.startsWith(p)||p.startsWith(w)) && Math.abs(p.length-w.length)<=1)); }
 function checkRecargaAg(f){
   const R = UI.rec||{}, mo = r2(+f.monto||0);
   let a = f.agente ? S.agentes.find(x=>x.id===f.agente) : null;
@@ -1012,7 +1040,8 @@ function checkRecargaAg(f){
   if(a){ const id = normId(a.idPlat);
     if(id && id.length>=3 && (' '+digs+' ').replace(/ 0+/g,' ').includes(' '+id+' ')) { agOk = true; agPor = 'ID '+a.idPlat; }
     else { const cands = [a.cuenta, a.nombre].filter(Boolean).map(x=>norm(x).replace(/[^a-z0-9 ]/g,' ').trim()).filter(x=>x.length>=3);
-      for(const c of cands){ const tk = c.split(/\s+/).filter(w=>w.length>2 && !VACIAS.has(w) && !/^agencia$/.test(w)); if(tk.length && tk.every(w=>low.includes(w))){ agOk = true; agPor = c; break; } } } }
+      const pal = low.split(/[^a-z0-9]+/).filter(Boolean);
+      for(const c of cands){ const tk = c.split(/\s+/).filter(w=>w.length>2 && !VACIAS.has(w) && !/^agencia$/.test(w)); if(tk.length && tk.every(w=>low.includes(w) || palabraParecida(w, pal))){ agOk = true; agPor = c; break; } } } }
   const nums = [...tx.matchAll(/\d{1,3}(?:[.,\s]\d{3})*(?:[.,]\d{1,2})?|\d+(?:[.,]\d{1,2})?/g)].map(m=>parseNum(m[0])).filter(v=>v>0 && v<1000000);
   const moOk = mo>0 && nums.some(v=>Math.abs(v-mo)<0.005);
   const montosVistos = [...new Set(nums.filter(v=>/[.,]\d{2}\b/.test(String(v))||v>=1).map(v=>r2(v)))].slice(0,4);
@@ -1033,7 +1062,7 @@ function recChkHTML(f){
   if(R.estado!=='listo') return `<div class="rq-chkbox wait"><b>Verificación de la recarga</b><p>${R.estado==='leyendo'?'Leyendo la captura…':'Sube la captura de la recarga (2) para verificar que la agencia y el monto coincidan.'}</p></div>`;
   return `<div class="rq-chkbox ${c.ok?'ok':'bad'}"><b>Verificación de la recarga</b><ul class="rq-chk">${fila(c.agOk, c.a ? (c.agOk?`Agencia coincide: <b>${esc(c.a.nombre)}</b> (${esc(c.agPor)})`:`No se ve la agencia <b>${esc(c.a.nombre)}</b> · ID ${esc(c.a.idPlat)} en la captura`) : 'Primero elige la agencia')}
     ${fila(c.moOk, c.mo>0 ? (c.moOk?`Monto coincide: <b>${money(c.mo)}</b>`:`El monto <b>${money(c.mo)}</b> no aparece en la captura`) : 'Escribe el monto descontado')}</ul>
-    ${c.ok?'':'<p>No se puede registrar: la agencia y el monto deben coincidir con la captura.</p>'}</div>`;
+    ${c.ok?'':c.a&&c.moOk&&!c.agOk&&validarCuentaOp(f, opActual()).ok?`<div class="rq-force"><p>Solo falta el nombre de la agencia. Si estás seguro de que es la misma agencia (por ejemplo, está escrita distinto en la plataforma), puedes confirmar a mano. Quedará marcado para gerencia.</p><button class="btn sm gold" data-act="agForzar">Confirmar de todas formas</button></div>`:'<p>No se puede registrar: la agencia y el monto deben coincidir con la captura.</p>'}</div>`;
 }
 function fotosMov(m){
   if(!m.img && !m.imgRec && m.tipo!=='recarga') return '<span class="muted">—</span>';
@@ -1634,7 +1663,7 @@ function historialOpHTML(){
   <div class="sech"><h2>Detalle de movimientos</h2><div class="segf">${TF.map(([k,l])=>`<button class="tab ${tipoF===k?'on':''}" data-act="hT" data-k="${k}">${l} <span class="muted">${k==='todos'?ms.length:ms.filter(m=>m.tipo===k).length}</span></button>`).join('')}</div></div>
   <div class="tw"><table class="t" style="min-width:1050px"><thead><tr><th>Fecha y hora</th><th>Tipo</th><th>Detalle</th><th>Comprobantes</th><th class="r">Caja</th><th>Banco</th><th>Contabilidad</th><th>Registró</th>${isAdm()?'<th></th>':''}</tr></thead><tbody>
     ${msF.length?msF.slice(0,500).map(m=>{ const e = efecto(m, op), b = bankEf(m), tl = m.tipo==='carga' ? ((m.signo||1)<0?'Saldo quitado':'Saldo aumentado') : m.tipo==='transfer' ? (m.opDest===op?'Recibido':'Pasado')+(m.estadoT==='pendiente'?' · pendiente':m.estadoT==='rechazado'?' · rechazado':'') : m.tipo==='mover' ? 'Entre mis cuentas' : (TIPOS[m.tipo]?.label||m.tipo);
-      return `<tr class="${m.anulado?'anul':''}"><td class="num">${fd(m.fecha)}<small>${hm(m.ts)}</small></td><td><span class="pill ${m.tipo==='recarga'?'info':m.tipo==='carga'&&(m.signo||1)<0?'bad':m.tipo==='carga'||m.tipo==='extraccion'?'ok':'warn'}">${esc(tl)}</span>${m.anulado?'<small class="neg">Anulado</small>':''}</td><td>${esc(movTxt(m, op))}${m.banco?`<small>${esc(m.banco)}</small>`:''}</td><td>${fotosMov(m)}</td><td class="r num ${e.caja<0?'neg':e.caja>0?'pos':''}">${e.caja?(e.caja<0?'−':'+')+money(Math.abs(e.caja)):'—'}</td><td>${b.length&&!m.anulado?b.map(x=>`${esc(lugarCorto(x.cta))} <span class="num ${x.v<0?'neg':'pos'}">${x.v<0?'−':'+'}${money(Math.abs(x.v))}</span>`).join('<br>'):'—'}</td><td>${m.tipo==='recarga'?(m.rev==='ok'?'<span class="pill ok">Llegó</span>':m.rev==='bad'?'<span class="pill bad">No llegó</span>':'<span class="pill warn">Por verificar</span>'):'—'}</td><td>${esc(m.usuario||'')}</td>${isAdm()?`<td class="noprint"><div class="acts" style="flex-wrap:nowrap">${m.anulado?`<button class="btn sm quiet" data-act="reactivar" data-id="${m.id}">Reactivar</button>`:`<button class="btn sm" data-act="editar" data-id="${m.id}">Editar</button><button class="btn sm quiet bad" data-act="anular" data-id="${m.id}">Anular</button>`}<button class="btn sm quiet bad" data-act="eliminar" data-id="${m.id}" aria-label="Eliminar">🗑</button></div></td>`:''}</tr>`; }).join('') : '<tr><td colspan="10" class="empty">Nada en este filtro.</td></tr>'}
+      return `<tr class="${m.anulado?'anul':''}"><td class="num">${fd(m.fecha)}<small>${hm(m.ts)}</small></td><td><span class="pill ${m.tipo==='recarga'?'info':m.tipo==='carga'&&(m.signo||1)<0?'bad':m.tipo==='carga'||m.tipo==='extraccion'?'ok':'warn'}">${esc(tl)}</span>${m.anulado?'<small class="neg">Anulado</small>':''}</td><td>${esc(movTxt(m, op))}${m.banco?`<small>${esc(m.banco)}</small>`:''}${m.agManual?'<small class="warnc">⚠ Agencia confirmada a mano</small>':''}</td><td>${fotosMov(m)}</td><td class="r num ${e.caja<0?'neg':e.caja>0?'pos':''}">${e.caja?(e.caja<0?'−':'+')+money(Math.abs(e.caja)):'—'}</td><td>${b.length&&!m.anulado?b.map(x=>`${esc(lugarCorto(x.cta))} <span class="num ${x.v<0?'neg':'pos'}">${x.v<0?'−':'+'}${money(Math.abs(x.v))}</span>`).join('<br>'):'—'}</td><td>${m.tipo==='recarga'?(m.rev==='ok'?'<span class="pill ok">Llegó</span>':m.rev==='bad'?'<span class="pill bad">No llegó</span>':'<span class="pill warn">Por verificar</span>'):'—'}</td><td>${esc(m.usuario||'')}</td>${isAdm()?`<td class="noprint"><div class="acts" style="flex-wrap:nowrap">${m.anulado?`<button class="btn sm quiet" data-act="reactivar" data-id="${m.id}">Reactivar</button>`:`<button class="btn sm" data-act="editar" data-id="${m.id}">Editar</button><button class="btn sm quiet bad" data-act="anular" data-id="${m.id}">Anular</button>`}<button class="btn sm quiet bad" data-act="eliminar" data-id="${m.id}" aria-label="Eliminar">🗑</button></div></td>`:''}</tr>`; }).join('') : '<tr><td colspan="10" class="empty">Nada en este filtro.</td></tr>'}
   </tbody></table></div>${msF.length>500?'<p class="muted" style="font-size:13px">Se muestran los 500 más recientes. Acorta las fechas para ver el resto.</p>':''}`;
 }
 document.addEventListener('click', e=>{ if(e.target.closest('[data-act="irHist"]')){ UI.tab = 'historial'; UI.hR = UI.hR||'hoy'; render(); } });
@@ -2383,7 +2412,7 @@ function contaHTML(){
   <div class="tw" style="margin-top:12px"><table class="t" style="min-width:1050px"><thead><tr><th>Recibido</th><th>Operador</th><th>Agente</th><th>Banco y comprobante</th><th>Depositante</th><th>Cuenta destino</th><th class="r">Monto</th><th>Estado</th><th>Foto</th><th></th></tr></thead><tbody>
   ${list.length?list.map(m=>{ const a = S.agentes.find(x=>x.id===m.agente)||{}; const r = m.anulado?{l:'Anulado', c:''}:REV[m.rev||'']; const fdis = m.fechaComp && m.fechaComp!==m.fecha;
     return `<tr class="${m.anulado?'anul':''}"><td class="num">${fd(m.fecha)}<small>${hm(m.ts)}</small></td><td>${esc(S.operadores.find(o=>o.id===m.op)?.nombre||'')}<small>${esc(m.usuario||'')}</small></td>
-      <td><b>${esc(a.nombre||'—')}</b><small>${esc(a.cuenta||'')}</small></td>
+      <td><b>${esc(a.nombre||'—')}</b><small>${esc(a.cuenta||'')}</small>${m.agManual?'<small class="warnc">⚠ Agencia confirmada a mano</small>':''}</td>
       <td>${esc(m.banco)}<small class="num">${esc(m.comprobante)}${fdis?` · <span class="neg">fecha ${fd(m.fechaComp)}</span>`:''}</small></td>
       <td>${esc(m.nombre||'—')}</td>
       <td>${m.verif===false?`<span class="pill bad">${esc(m.cuentaDest)} ajena</span>`:m.verif?`<span class="pill ok">Empresa ✓</span>`:'<span class="muted">Sin dato</span>'}</td>
