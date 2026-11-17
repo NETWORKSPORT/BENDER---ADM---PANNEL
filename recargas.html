@@ -227,7 +227,14 @@ table.t{width:100%;border-collapse:collapse;font-size:14px;min-width:860px}
 .cbx-t{min-width:0;flex:1}.cbx-t b{display:block;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cbx-t small{display:block;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cbx-l em{font-style:normal;font-size:11.5px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:2px 8px;white-space:nowrap}.cbx-l em.mia{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 40%,transparent)}
 .cbx-l li.cbx-none{cursor:default;color:var(--muted);font-size:13px;flex-wrap:wrap;justify-content:space-between}.cbx-l li.cbx-none:hover{background:none}
-.rq-in .f{overflow:visible}.rq-hint{display:block;margin-top:8px;font-size:12.5px;color:var(--muted)}
+.rq-in .f{overflow:visible}.rq-rc{margin-top:14px;border:1px solid var(--line);border-radius:14px;padding:14px 16px;background:var(--bg-2)}.rq-rc.ok{border-color:color-mix(in srgb,var(--ok) 45%,var(--line))}.rq-rc.bad{border-color:color-mix(in srgb,var(--danger) 55%,var(--line))}
+.rq-rch{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px}.rq-rch span{font-size:12.5px;color:var(--muted)}
+.rq-rcz{display:flex;flex-direction:column;align-items:center;gap:4px;padding:18px;border:1.5px dashed color-mix(in srgb,var(--gold) 45%,var(--line));border-radius:12px;cursor:pointer;text-align:center}.rq-rcz:hover,.rq-rcz.over{background:color-mix(in srgb,var(--gold) 7%,transparent)}.rq-rcz svg{width:26px;height:26px;fill:none;stroke:var(--gold);stroke-width:1.8}.rq-rcz span{font-size:12.5px;color:var(--muted)}
+.rq-rcb{display:grid;grid-template-columns:90px minmax(0,1fr) auto;gap:14px;align-items:center}.rq-rcimg{padding:0;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff;aspect-ratio:3/4;cursor:zoom-in}.rq-rcimg img{width:100%;height:100%;object-fit:contain}
+.rq-chk{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}.rq-chk li{display:flex;gap:8px;align-items:flex-start;font-size:14px}.rq-chk li>b{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:12px}.rq-chk li.ok>b{background:color-mix(in srgb,var(--ok) 18%,transparent);color:var(--ok)}.rq-chk li.bad>b{background:color-mix(in srgb,var(--danger) 18%,transparent);color:var(--danger)}.rq-chk li.bad span{color:var(--danger)}
+.rq-rca{display:flex;flex-direction:column;gap:6px;font-size:13px;align-items:flex-end}.rq-rcm{margin:10px 0 0;font-size:13px;color:var(--danger)}
+@media (max-width:700px){.rq-rcb{grid-template-columns:70px 1fr}.rq-rca{grid-column:1/-1;flex-direction:row;justify-content:space-between}}
+.rq-hint{display:block;margin-top:8px;font-size:12.5px;color:var(--muted)}
 .rq-sel{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 10px;margin-top:10px;padding:8px 10px;border-radius:10px;background:color-mix(in srgb,var(--ok) 10%,transparent);border:1px solid color-mix(in srgb,var(--ok) 35%,transparent)}.rq-sel span{font-size:12.5px;color:var(--muted);width:100%}.rq-sel.warn{background:color-mix(in srgb,var(--warn,#e0a030) 10%,transparent);border-color:color-mix(in srgb,var(--warn,#e0a030) 40%,transparent)}.rq-sel.warn span{width:auto}
 .rq-data{border:1px solid var(--line);border-radius:14px;overflow:hidden}.rq-dh{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:10px 14px;border-bottom:1px solid var(--line);font-size:13px}.rq-dh em{font-style:normal;font-weight:600}.rq-dh em.ok{color:var(--ok)}.rq-dh em.bad{color:var(--danger)}
 .rq-data dl{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin:0}@media (max-width:900px){.rq-data dl{grid-template-columns:repeat(2,minmax(0,1fr))}}
@@ -651,7 +658,7 @@ function cajaHTML(){
       <td>${esc(m.nombre||m.nota||'—')}${m.verif===false?'<small class="neg">Cuenta destino no coincide</small>':m.verif?'<small class="pos">Cuenta de la empresa ✓</small>':''}</td>
       <td class="r num ${e.caja<0?'neg':e.caja>0?'pos':''}">${e.caja ? (e.caja<0?'−':'+')+money(Math.abs(e.caja)) : `<span class="muted">${m.tipo==='recarga'?'':'0,00'}</span>`}${(()=>{ const b = bankEf(m); return b.length&&!m.anulado ? `<small>${b.map(x=>`${esc(lugarCorto(x.cta))} ${x.v<0?'−':'+'}${money(Math.abs(x.v))}`).join(' · ')}</small>` : ''; })()}</td>
       <td class="r num"><b>${m.anulado?'—':money(run)}</b></td>
-      <td>${m.img?`<img class="thumb" src="${imgSrc(m.img)}" alt="Comprobante" data-act="ver" data-id="${m.id}">`:''}</td>
+      <td><div class="thumbs">${m.img?`<img class="thumb" src="${imgSrc(m.img)}" alt="Comprobante de transferencia" title="Transferencia" data-act="ver" data-id="${m.id}">`:''}${m.imgRec?`<img class="thumb" src="${imgSrc(m.imgRec)}" alt="Comprobante de la recarga" title="Recarga a la agencia" data-act="verR" data-id="${m.id}">`:''}</div></td>
       <td>${m.tipo==='recarga'&&!m.anulado?`<span class="pill ${REV[m.rev||''].c}">${REV[m.rev||''].l}</span>`:''}</td>
       ${ceo?`<td class="noprint"><div class="acts" style="flex-wrap:nowrap">${m.anulado?`<button class="btn sm quiet" data-act="reactivar" data-id="${m.id}">Reactivar</button>`:`<button class="btn sm" data-act="editar" data-id="${m.id}">Editar</button><button class="btn sm quiet bad" data-act="anular" data-id="${m.id}">Anular</button>`}<button class="btn sm quiet bad" data-act="eliminar" data-id="${m.id}" aria-label="Eliminar">🗑</button></div></td>`:''}</tr>`; }).join('');
   return `
@@ -716,7 +723,15 @@ function renderForm(){
     ${dup?`<div class="alert bad" role="alert"><b>⛔</b><div><b>Comprobante repetido.</b> Ya se registró el ${fd(dup.fecha)} a las ${hm(dup.ts)} por ${money(dup.monto)}${dup.agente?` (${esc(S.agentes.find(a=>a.id===dup.agente)?.nombre||'')})`:''}, en ${esc(S.operadores.find(o=>o.id===dup.op)?.nombre||'')}. No se puede usar dos veces.</div></div>`:''}
     ${st==='revisar'?'':ver===false?`<div class="alert bad"><b>⚠</b><div><b>La cuenta destino no es de la empresa.</b> El comprobante dice ${esc(f.cuentaDest)}. Verifica que la transferencia llegó a una cuenta de BENDERAM antes de recargar.</div></div>`:ver?`<div class="alert ok"><b>✓</b><div>Llegó a la cuenta de la empresa: ${esc(ver.banco)} terminada en ${esc(ver.numero.slice(-4))}.</div></div>`:''}
     ${fechaDist?`<div class="alert warn"><b>!</b><div>La fecha del comprobante (${fd(f.fecha)}) no es la del turno (${fd(UI.fecha)}). Confirma que no sea un comprobante viejo.</div></div>`:''}
-    ${st==='subir'||st==='leyendo' ? '' : `<div class="acts" style="margin-top:16px;justify-content:flex-end">${st==='revisar'?'<button class="btn" data-act="editarLectura">Los datos no son correctos · Editar</button>':(UI.ocr?.estado==='error'?'<button class="btn quiet" data-act="limpiar">Cancelar</button>':'<button class="btn quiet" data-act="verLectura">Volver a la revisión</button>')}<button class="btn gold" data-act="registrar" ${dup||(t.comp&&!validarCuentaOp(f,op).ok)?'disabled':''}>Confirmar movimiento</button></div>`}`;
+    ${st==='subir'||st==='leyendo' ? '' : `<div class="acts" style="margin-top:16px;justify-content:flex-end">${st==='revisar'?'<button class="btn" data-act="editarLectura">Los datos no son correctos · Editar</button>':(UI.ocr?.estado==='error'?'<button class="btn quiet" data-act="limpiar">Cancelar</button>':'<button class="btn quiet" data-act="verLectura">Volver a la revisión</button>')}<button class="btn gold" data-act="registrar" ${dup||(t.comp&&!validarCuentaOp(f,op).ok)||(UI.tipo==='recarga'&&st==='revisar'&&!checkRecargaAg(f).ok)?'disabled':''}>Confirmar movimiento</button></div>`}`;
+  const dr = $('#dropRec');
+  if(dr){
+    dr.addEventListener('click', ()=>pickFile(leerRecargaAg));
+    dr.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); pickFile(leerRecargaAg); } });
+    ['dragenter','dragover'].forEach(ev=>dr.addEventListener(ev, e=>{ e.preventDefault(); dr.classList.add('over'); }));
+    ['dragleave','drop'].forEach(ev=>dr.addEventListener(ev, e=>{ e.preventDefault(); dr.classList.remove('over'); }));
+    dr.addEventListener('drop', e=>{ leerRecargaAg(e.dataTransfer.files[0]); });
+  }
   const drop = $('#drop');
   if(drop){
     const fi = $('#fileIn');
@@ -738,6 +753,7 @@ async function registrar(){
   if(UI.tipo==='mover'){ const sd = saldoLugar(op, f.from, UI.fecha); if(monto > sd + 0.005 && !(await ask('Saldo insuficiente', `${esc(lugarL(f.from))} tiene <b>${money(sd)}</b> y vas a mover <b>${money(monto)}</b>. ¿Registrar igual?`, {ok:'Registrar igual'}))) return; }
   if(UI.tipo==='recarga' && !f.agente && String(f.agId||'').trim()){ const x = agenciasLista(op).find(y=>y.id && normId(y.id)===normId(f.agId)); if(x) agSeleccionar(x.k); }
   if(UI.tipo==='recarga' && !f.agente) return toast(String(f.agId||'').trim() ? 'Ese ID no está registrado. Pulsa "Registrar agente" primero.' : 'Escribe el ID del agente.', true);
+  if(UI.tipo==='recarga'){ const c = checkRecargaAg(f); if(c.falta) return toast('Sube el comprobante de la recarga a la agencia.', true); if(!c.agOk) return toast('La agencia elegida no aparece en el comprobante de la recarga. No se puede registrar.', true); if(!c.moOk) return toast('El monto no coincide con el comprobante de la recarga. No se puede registrar.', true); }
   let VC = null; if(UI.tipo==='recarga'){ VC = validarCuentaOp(f, op); if(!VC.ok) return toast(VC.motivo.replace(/<[^>]+>/g,''), true); }
   if(t.comp && !String(f.comprobante||'').trim()) return toast('Escribe el número de comprobante.', true);
   if(t.comp && !String(f.banco||'').trim()) return toast('Escribe el banco.', true);
@@ -748,7 +764,7 @@ async function registrar(){
   const pendOut = r2(S.movs.filter(x=>x.tipo==='transfer' && x.op===op && x.estadoT==='pendiente' && !x.anulado).reduce((a,x)=>a+x.monto,0));
   if((UI.tipo==='recarga'||UI.tipo==='transfer') && monto > R.esperado - pendOut + 0.005 && !(await ask('Caja insuficiente', `La caja tiene <b>${money(R.esperado)}</b> y la recarga es de <b>${money(monto)}</b>. La caja quedará en negativo. ¿Registrar igual?`, {ok:'Registrar igual'}))) return;
   const ver = t.comp && f.cuentaDest ? cuentaEmpresa(f.cuentaDest) : null;
-  const m = {id:uid('m'), ts:Date.now(), op, fecha:UI.fecha, tipo:UI.tipo, agente:f.agente||'', monto, banco:t.comp?f.banco.trim():'', comprobante:t.comp?String(f.comprobante).trim():'', nombre:t.comp?(f.nombre||'').trim():'', fechaComp:t.comp?(f.fecha||UI.fecha):'', cuentaDest:f.cuentaDest||'', verif: ver===null?null:!!ver, nota:(f.nota||'').trim(), signo: UI.tipo==='ajuste' ? (+f.signo||1) : undefined, img:t.comp?UI.img:null, auto:Object.keys(UI.read), usuario:SES.usuario, opDest: UI.tipo==='transfer' ? f.opDest : undefined, estadoT: UI.tipo==='transfer' ? 'pendiente' : undefined, ctaOp: UI.tipo==='recarga' ? ((f.ctaOp && ctaOpById(f.ctaOp) && ctaOpById(f.ctaOp).op===op) ? f.ctaOp : (VC && VC.cta ? VC.cta.id : undefined)) : undefined, beneficiario: UI.tipo==='recarga' ? (f.beneficiario||'') : undefined, dest: UI.tipo==='carga' ? (f.dest||'caja') : undefined, signo: UI.tipo==='carga' ? (f.signo==='-'?-1:1) : (UI.tipo==='ajuste' ? (f.signo==='-'||f.signo==-1?-1:1) : undefined), from: UI.tipo==='mover' ? f.from : undefined, to: UI.tipo==='mover' ? f.to : undefined};
+  const m = {id:uid('m'), ts:Date.now(), op, fecha:UI.fecha, tipo:UI.tipo, agente:f.agente||'', monto, banco:t.comp?f.banco.trim():'', comprobante:t.comp?String(f.comprobante).trim():'', nombre:t.comp?(f.nombre||'').trim():'', fechaComp:t.comp?(f.fecha||UI.fecha):'', cuentaDest:f.cuentaDest||'', verif: ver===null?null:!!ver, nota:(f.nota||'').trim(), signo: UI.tipo==='ajuste' ? (+f.signo||1) : undefined, img:t.comp?UI.img:null, imgRec: UI.tipo==='recarga' && UI.rec && UI.rec.img ? UI.rec.img : undefined, auto:Object.keys(UI.read), usuario:SES.usuario, opDest: UI.tipo==='transfer' ? f.opDest : undefined, estadoT: UI.tipo==='transfer' ? 'pendiente' : undefined, ctaOp: UI.tipo==='recarga' ? ((f.ctaOp && ctaOpById(f.ctaOp) && ctaOpById(f.ctaOp).op===op) ? f.ctaOp : (VC && VC.cta ? VC.cta.id : undefined)) : undefined, beneficiario: UI.tipo==='recarga' ? (f.beneficiario||'') : undefined, dest: UI.tipo==='carga' ? (f.dest||'caja') : undefined, signo: UI.tipo==='carga' ? (f.signo==='-'?-1:1) : (UI.tipo==='ajuste' ? (f.signo==='-'||f.signo==-1?-1:1) : undefined), from: UI.tipo==='mover' ? f.from : undefined, to: UI.tipo==='mover' ? f.to : undefined};
   if(m.tipo==='recarga') m.rev = '';
   S.movs.push(m); save();
   if(m.tipo==='recarga') tgComprobante(m);
@@ -756,7 +772,7 @@ async function registrar(){
   if(m.tipo==='ajuste') logAcc('Ajuste', `${m.signo<0?'−':'+'}${money(monto)} en ${opName(op)} · ${m.nota}`);
   if(m.tipo==='transfer') tgSend(`🔁 <b>Traspaso de saldo por aceptar</b>\n${esc(opName(op))} → ${esc(opName(m.opDest))}: ${money(monto)}${m.nota?'\n'+esc(m.nota):''}`, 'alertas');
   if(m.tipo==='carga') tgSend(`💰 <b>Gestión de saldo</b>\n${esc(opName(op))} → ${esc(lugarL(m.dest))}: ${m.signo<0?'−':'+'}${money(monto)}${m.nota?'\n'+esc(m.nota):''}`, 'alertas');
-  UI.form = {}; UI.read = {}; UI.img = null; UI.ocr = null; UI.edit = false;
+  UI.form = {}; UI.read = {}; UI.img = null; UI.ocr = null; UI.edit = false; UI.rec = null;
   render();
   const nR = resumen(op, UI.fecha);
   toast(m.tipo==='transfer' ? `Enviaste ${money(monto)} a ${opName(m.opDest)}. Queda pendiente hasta que lo acepte en Notificaciones.` : m.tipo==='carga' ? `${m.signo<0?'Se quitaron':'Se aumentaron'} ${money(monto)} ${m.signo<0?'de':'a'} ${lugarL(m.dest)} de ${opName(op)}. Saldo de caja: ${money(nR.esperado)}.` : m.tipo==='mover' ? `Moviste ${money(monto)}: ${lugarL(m.from)} → ${lugarL(m.to)}. El total no cambia.` : m.tipo==='carga' && m.dest!=='caja' ? `Inyección de ${money(monto)} a ${lugarL(m.dest)} de ${opName(op)}.` : m.tipo==='transfer' ? `Pasaste ${money(monto)} a ${opName(m.opDest)}. Tu saldo: ${money(nR.esperado)}.` : `${t.label} de ${money(monto)} registrada. Saldo de caja de ${opName(op)}: ${money(nR.esperado)}.`);
@@ -842,7 +858,11 @@ document.addEventListener('click', async e=>{
   else if(a==='theme'){ const cur = document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'); document.documentElement.dataset.theme = cur==='light'?'dark':'light'; try{ localStorage.setItem('benderam-sim-theme', document.documentElement.dataset.theme); }catch(e){} }
   else if(a==='tipo'){ UI.tipo = b.dataset.k; renderForm(); }
   else if(a==='registrar') registrar();
-  else if(a==='limpiar'){ UI.form = {}; UI.read = {}; UI.img = null; UI.ocr = null; UI.edit = false; renderForm(); }
+  else if(a==='limpiar'){ UI.form = {}; UI.read = {}; UI.img = null; UI.ocr = null; UI.edit = false; UI.rec = null; renderForm(); }
+  else if(a==='quitarRec'){ UI.rec = null; renderForm(); }
+  else if(a==='verRec' && UI.rec && UI.rec.img) modal(`<img src="${UI.rec.img}" alt="Comprobante de la recarga">`, 'img');
+  else if(a==='verRecTx') modal(`<div class="mh"><h2>Texto leído de la captura</h2><button class="x" data-close aria-label="Cerrar">×</button></div><pre style="white-space:pre-wrap;font-size:13px;background:var(--bg-2);padding:12px;border-radius:10px;max-height:60vh;overflow:auto">${esc(UI.rec?.texto||'')}</pre>`);
+  else if(a==='verR'){ const m = S.movs.find(x=>x.id===b.dataset.id); if(m&&m.imgRec) modal(`<img src="${imgSrc(m.imgRec)}" alt="Comprobante de la recarga">`, 'img'); }
   else if(a==='editarLectura'){ UI.edit = true; renderForm(); setTimeout(()=>$('#fMo')?.focus(), 30); }
   else if(a==='verLectura'){ UI.edit = false; renderForm(); }
   else if(a==='verPrev' && UI.img) modal(`<img src="${UI.img}" alt="Comprobante">`, 'img');
@@ -869,7 +889,7 @@ document.addEventListener('click', async e=>{
 document.addEventListener('input', e=>{
   const t = e.target;
   if(t.id==='fAgId' && t.closest('.cbx')){ UI.form.agId = t.value; UI.form.agente = ''; const l = $('#agLst'); if(l){ l.innerHTML = agCbxItems(opActual(), t.value); l.hidden = false; } const sl = document.querySelector('.rq-ag .rq-sel,.rq-ag .rq-hint'); if(sl) sl.outerHTML = '<small class="rq-hint">Elige una agencia de la lista.</small>'; return; }
-  if(t.id==='fMontoC'){ UI.form.monto = t.value; delete UI.read.monto; const q = document.querySelector('#formCard .cqm'); if(q) q.outerHTML = cuadreMovHTML(UI.form, opActual()); return; }
+  if(t.id==='fMontoC'){ UI.form.monto = t.value; delete UI.read.monto; const q = document.querySelector('#formCard .cqm'); if(q) q.outerHTML = cuadreMovHTML(UI.form, opActual()); const rc = document.querySelector('#formCard .rq-rc'); if(rc && UI.rec && UI.rec.estado==='listo') rc.outerHTML = recargaAgHTML(UI.form); const bt = document.querySelector('#formCard [data-act=registrar]'); if(bt) bt.disabled = !checkRecargaAg(UI.form).ok; return; }
   if(t.dataset.k && t.closest('#formCard')){ UI.form[t.dataset.k] = t.value; delete UI.read[t.dataset.k];
     if(t.dataset.k==='agId'){ const ag = agByPlat(t.value); UI.form.agente = ag ? ag.id : ''; delete UI.read.agente; }
     if(['comprobante','banco','cuentaDest','fecha','agId'].includes(t.dataset.k)){ const pos = t.selectionStart; const id = t.id; renderForm(); const n = document.getElementById(id); if(n){ n.focus(); try{ n.setSelectionRange(pos,pos); }catch(_){} } }
@@ -898,7 +918,7 @@ document.addEventListener('submit', e=>{
 document.addEventListener('paste', e=>{
   if(!SES || UI.tab!=='caja' || !TIPOS[UI.tipo].comp) return;
   const it = [...(e.clipboardData?.items||[])].find(i=>i.kind==='file' && (i.type.startsWith('image/')||i.type==='application/pdf'));
-  if(it){ e.preventDefault(); leerComprobante(it.getAsFile()); }
+  if(it){ e.preventDefault(); if(UI.tipo==='recarga' && UI.img && UI.ocr && UI.ocr.estado==='listo' && !UI.edit && document.querySelector('#dropRec')) leerRecargaAg(it.getAsFile()); else leerComprobante(it.getAsFile()); }
 });
 document.addEventListener('keydown', e=>{ if(e.key==='Escape') document.querySelectorAll('.ov').forEach(o=>o.remove()); });
 
@@ -916,7 +936,9 @@ function cuadreMovHTML(f, op){
 }
 document.addEventListener('change', e=>{ if(e.target.id==='fCtaOp'){ UI.form.ctaOp = e.target.value; renderForm(); } });
 function revisarHTML(f, op, dup, ver){
+  if(!f.agente && String(f.agId||'').trim()){ const r = agByPlat(f.agId); if(r) f.agente = r.id; }
   const a = f.agente ? S.agentes.find(x=>x.id===f.agente) : null;
+  const enPanel = !a && String(f.agId||'').trim() ? agenciasLista(op).find(y=>y.id && normId(y.id)===normId(f.agId)) : null;
   if(f.montoLeido==null) f.montoLeido = UI.read.monto ? (+f.monto||0) : 0;
   const v = validarCuentaOp(f, op), ags = S.agentes.filter(x=>x.op===op);
   const D = (l, val, k) => `<div class="rq-d ${val?'':'no'}"><dt>${l}${val&&UI.read[k]?'<i title="Leído del comprobante">✓</i>':''}</dt><dd>${val||'—'}</dd></div>`;
@@ -928,7 +950,7 @@ function revisarHTML(f, op, dup, ver){
     <div class="rq-main">
       <div class="rq-in">
         <div class="f rq-ag"><label for="fAgId">Agencia a la que recargaste</label><div class="cbx"><input id="fAgId" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="agLst" value="${a?esc(a.nombre):esc(f.agId||'')}" placeholder="Elige de la lista o busca por ID o nombre" autocomplete="off"><button type="button" class="cbx-b" data-act="agAbrir" tabindex="-1" aria-label="Ver todas las agencias"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button><ul class="cbx-l" id="agLst" role="listbox" aria-label="Agencias registradas" hidden></ul></div>
-          ${a?`<div class="rq-sel ${a.op===op?'':'warn'}"><b>${esc(a.nombre)}</b><span>ID ${esc(a.idPlat)}${a.titular?' · '+esc(a.titular):''}${a.op!==op?` · agente de ${esc(opName(a.op))}`:''}</span></div>`:String(f.agId||'').trim()?`<div class="rq-sel warn"><b>El ID ${esc(f.agId)} no está registrado</b><button class="btn sm gold" data-act="agReg">Registrar agente</button></div>`:`<small class="rq-hint">${agenciasLista(op).length} agencias registradas · el comprobante no trae el nombre, elígela tú.</small>`}
+          ${a?`<div class="rq-sel ${a.op===op?'':'warn'}"><b>${esc(a.nombre)}</b><span>ID ${esc(a.idPlat)}${a.titular?' · '+esc(a.titular):''}${a.op!==op?` · agente de ${esc(opName(a.op))}`:''}</span></div>`:enPanel?`<div class="rq-sel"><b>${esc(enPanel.nombre)}</b><span>ID ${esc(enPanel.id)}${enPanel.sub?' · '+esc(enPanel.sub):''}</span></div>`:String(f.agId||'').trim()?`<div class="rq-sel warn"><b>El ID ${esc(f.agId)} no está registrado</b><button class="btn sm gold" data-act="agReg">Registrar agente</button></div>`:`<small class="rq-hint">${agenciasLista(op).length} agencias registradas · el comprobante no trae el nombre, elígela tú.</small>`}
         </div>
         <div class="f rq-mo"><label for="fMontoC">Monto descontado de tu caja</label><div class="rq-money"><span>$</span><input id="fMontoC" type="number" step="0.01" min="0" inputmode="decimal" data-k="monto" value="${esc(f.monto||'')}" placeholder="0,00" autocomplete="off"></div>
           <small class="rq-hint">${f.montoLeido?`El comprobante dice <b class="num">${money(f.montoLeido)}</b>`:'No se leyó el monto del comprobante'}</small></div>
@@ -939,6 +961,7 @@ function revisarHTML(f, op, dup, ver){
       </div>
     </div>
   </div>
+  ${recargaAgHTML(f)}
   ${cuadreMovHTML(f, op)}`;
 }
 /* ---- agencias registradas: las del módulo de recargas + las del panel de Agencias ---- */
@@ -970,6 +993,43 @@ document.addEventListener('keydown', e=>{ if(e.target.id!=='fAgId') return; cons
   if(e.key==='ArrowDown'||e.key==='ArrowUp'){ e.preventDefault(); if(l.hidden){ l.hidden = false; return; } k = Math.max(0, Math.min(its.length-1, k + (e.key==='ArrowDown'?1:-1))); its.forEach((x,j)=>x.classList.toggle('on', j===k)); if(its[k]){ its[k].scrollIntoView({block:'nearest'}); e.target.setAttribute('aria-activedescendant', its[k].id); } }
   else if(e.key==='Enter'){ e.preventDefault(); if(its[k]) agSeleccionar(its[k].dataset.agsel); }
   else if(e.key==='Escape'){ l.hidden = true; } });
+/* ---- comprobante de la recarga a la agencia (captura de la plataforma): debe coincidir agencia y monto ---- */
+async function leerRecargaAg(file){
+  if(!file) return;
+  UI.rec = {estado:'leyendo'}; renderForm();
+  try{ const r = await leerArchivo(file, true); UI.rec = {estado:'listo', img:r.thumb, texto:r.text||''}; }
+  catch(e){ UI.rec = {estado:'error'}; toast('No se pudo leer. Sube una foto, captura o PDF.', true); }
+  renderForm();
+}
+function checkRecargaAg(f){
+  const R = UI.rec||{}, mo = r2(+f.monto||0);
+  let a = f.agente ? S.agentes.find(x=>x.id===f.agente) : null;
+  if(!a && String(f.agId||'').trim()){ const x = agenciasLista(opActual()).find(y=>y.id && normId(y.id)===normId(f.agId)); if(x) a = x.k.startsWith('rag:') ? S.agentes.find(z=>z.id===x.k.slice(4)) : {idPlat:x.id, nombre:x.nombre, cuenta:(x.g||{}).usuario||''}; }
+  if(R.estado!=='listo') return {ok:false, falta:true};
+  const tx = R.texto||'', low = norm(tx), digs = tx.replace(/[^\d]+/g,' ');
+  let agOk = false, agPor = '';
+  if(a){ const id = normId(a.idPlat);
+    if(id && id.length>=3 && (' '+digs+' ').replace(/ 0+/g,' ').includes(' '+id+' ')) { agOk = true; agPor = 'ID '+a.idPlat; }
+    else { const cands = [a.cuenta, a.nombre].filter(Boolean).map(x=>norm(x).replace(/[^a-z0-9 ]/g,' ').trim()).filter(x=>x.length>=3);
+      for(const c of cands){ const tk = c.split(/\s+/).filter(w=>w.length>2 && !VACIAS.has(w) && !/^agencia$/.test(w)); if(tk.length && tk.every(w=>low.includes(w))){ agOk = true; agPor = c; break; } } } }
+  const nums = [...tx.matchAll(/\d{1,3}(?:[.,\s]\d{3})*(?:[.,]\d{1,2})?|\d+(?:[.,]\d{1,2})?/g)].map(m=>parseNum(m[0])).filter(v=>v>0 && v<1000000);
+  const moOk = mo>0 && nums.some(v=>Math.abs(v-mo)<0.005);
+  const montosVistos = [...new Set(nums.filter(v=>/[.,]\d{2}\b/.test(String(v))||v>=1).map(v=>r2(v)))].slice(0,4);
+  return {ok: !!a && agOk && moOk, agOk, moOk, agPor, a, mo, nums};
+}
+function recargaAgHTML(f){
+  const R = UI.rec||{}, c = checkRecargaAg(f);
+  const fila = (ok, t) => `<li class="${ok?'ok':'bad'}"><b>${ok?'✓':'✗'}</b><span>${t}</span></li>`;
+  return `<div class="rq-rc ${R.estado==='listo'?(c.ok?'ok':'bad'):''}"><div class="rq-rch"><b>Comprobante de la recarga a la agencia</b><span>Captura de la plataforma donde se ve la recarga. Obligatorio.</span></div>
+    ${R.estado==='listo' ? `<div class="rq-rcb"><button type="button" class="rq-rcimg" data-act="verRec" aria-label="Ver comprobante de la recarga"><img src="${R.img}" alt="Comprobante de la recarga"></button>
+      <ul class="rq-chk">${fila(c.agOk, c.a ? (c.agOk?`Agencia coincide: <b>${esc(c.a.nombre)}</b> (${esc(c.agPor)})`:`No se ve la agencia <b>${esc(c.a.nombre)}</b> · ID ${esc(c.a.idPlat)} en la captura`) : 'Primero elige la agencia')}
+        ${fila(c.moOk, c.mo>0 ? (c.moOk?`Monto coincide: <b>${money(c.mo)}</b>`:`El monto <b>${money(c.mo)}</b> no aparece en la captura`) : 'Escribe el monto descontado')}</ul>
+      <div class="rq-rca">${R.texto?'<button class="lnk" data-act="verRecTx">Texto leído</button>':''}<button class="lnk bad" data-act="quitarRec">Cambiar</button></div></div>
+      ${c.ok?'':'<p class="rq-rcm">No se puede registrar: la agencia y el monto deben coincidir con la captura. Revisa que elegiste la agencia correcta y el monto exacto, o sube la captura correcta.</p>'}`
+    : R.estado==='leyendo' ? `<div class="rq-rcz"><b>Leyendo la captura…</b><span>Un momento.</span></div>`
+    : `<div class="rq-rcz" id="dropRec" tabindex="0" role="button" aria-label="Subir comprobante de la recarga"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg><b>Arrastra aquí la captura de la recarga</b><span>o haz clic · también Ctrl+V · foto o PDF</span></div>`}
+  </div>`;
+}
 function agLinea(f, op){
   const a = f.agente ? S.agentes.find(x=>x.id===f.agente) : null;
   if(a) return `<div class="alert ${a.op===op?'ok':'warn'}"><b>${a.op===op?'✓':'!'}</b><div><b>${esc(a.nombre)}</b> · ${esc(a.titular||'')} · ${esc(a.telefono||'')}${a.op!==op?` · <b>es agente de ${esc(opName(a.op))}</b>`:''}</div></div>`;
@@ -1550,7 +1610,7 @@ function historialOpHTML(){
   <div class="sech"><h2>Detalle de movimientos</h2><div class="segf">${TF.map(([k,l])=>`<button class="tab ${tipoF===k?'on':''}" data-act="hT" data-k="${k}">${l} <span class="muted">${k==='todos'?ms.length:ms.filter(m=>m.tipo===k).length}</span></button>`).join('')}</div></div>
   <div class="tw"><table class="t" style="min-width:1250px"><thead><tr><th>Fecha y hora</th><th>Tipo</th><th>Detalle</th><th>Comprobante</th><th class="r">Caja</th><th>Banco</th><th>Contabilidad</th><th>Foto</th><th>Registró</th>${isAdm()?'<th></th>':''}</tr></thead><tbody>
     ${msF.length?msF.slice(0,500).map(m=>{ const e = efecto(m, op), b = bankEf(m), tl = m.tipo==='carga' ? ((m.signo||1)<0?'Saldo quitado':'Saldo aumentado') : m.tipo==='transfer' ? (m.opDest===op?'Recibido':'Pasado')+(m.estadoT==='pendiente'?' · pendiente':m.estadoT==='rechazado'?' · rechazado':'') : m.tipo==='mover' ? 'Entre mis cuentas' : (TIPOS[m.tipo]?.label||m.tipo);
-      return `<tr class="${m.anulado?'anul':''}"><td class="num">${fd(m.fecha)}<small>${hm(m.ts)}</small></td><td><span class="pill ${m.tipo==='recarga'?'info':m.tipo==='carga'&&(m.signo||1)<0?'bad':m.tipo==='carga'||m.tipo==='extraccion'?'ok':'warn'}">${esc(tl)}</span>${m.anulado?'<small class="neg">Anulado</small>':''}</td><td>${esc(movTxt(m, op))}</td><td class="num">${esc(m.comprobante||'—')}${m.banco?`<small>${esc(m.banco)}</small>`:''}</td><td class="r num ${e.caja<0?'neg':e.caja>0?'pos':''}">${e.caja?(e.caja<0?'−':'+')+money(Math.abs(e.caja)):'—'}</td><td>${b.length&&!m.anulado?b.map(x=>`${esc(lugarCorto(x.cta))} <span class="num ${x.v<0?'neg':'pos'}">${x.v<0?'−':'+'}${money(Math.abs(x.v))}</span>`).join('<br>'):'—'}</td><td>${m.tipo==='recarga'?(m.rev==='ok'?'<span class="pill ok">Llegó</span>':m.rev==='bad'?'<span class="pill bad">No llegó</span>':'<span class="pill warn">Por verificar</span>'):'—'}</td><td>${m.img?`<img class="thumb" src="${imgSrc(m.img)}" alt="Comprobante" data-act="ver" data-id="${m.id}">`:'—'}</td>${m.tipo==='recarga'?'':''}<td>${esc(m.usuario||'')}</td>${isAdm()?`<td class="noprint"><div class="acts" style="flex-wrap:nowrap">${m.anulado?`<button class="btn sm quiet" data-act="reactivar" data-id="${m.id}">Reactivar</button>`:`<button class="btn sm" data-act="editar" data-id="${m.id}">Editar</button><button class="btn sm quiet bad" data-act="anular" data-id="${m.id}">Anular</button>`}<button class="btn sm quiet bad" data-act="eliminar" data-id="${m.id}" aria-label="Eliminar">🗑</button></div></td>`:''}</tr>`; }).join('') : '<tr><td colspan="10" class="empty">Nada en este filtro.</td></tr>'}
+      return `<tr class="${m.anulado?'anul':''}"><td class="num">${fd(m.fecha)}<small>${hm(m.ts)}</small></td><td><span class="pill ${m.tipo==='recarga'?'info':m.tipo==='carga'&&(m.signo||1)<0?'bad':m.tipo==='carga'||m.tipo==='extraccion'?'ok':'warn'}">${esc(tl)}</span>${m.anulado?'<small class="neg">Anulado</small>':''}</td><td>${esc(movTxt(m, op))}</td><td class="num">${esc(m.comprobante||'—')}${m.banco?`<small>${esc(m.banco)}</small>`:''}</td><td class="r num ${e.caja<0?'neg':e.caja>0?'pos':''}">${e.caja?(e.caja<0?'−':'+')+money(Math.abs(e.caja)):'—'}</td><td>${b.length&&!m.anulado?b.map(x=>`${esc(lugarCorto(x.cta))} <span class="num ${x.v<0?'neg':'pos'}">${x.v<0?'−':'+'}${money(Math.abs(x.v))}</span>`).join('<br>'):'—'}</td><td>${m.tipo==='recarga'?(m.rev==='ok'?'<span class="pill ok">Llegó</span>':m.rev==='bad'?'<span class="pill bad">No llegó</span>':'<span class="pill warn">Por verificar</span>'):'—'}</td><td>${m.img||m.imgRec?`<div class="thumbs">${m.img?`<img class="thumb" src="${imgSrc(m.img)}" alt="Comprobante de transferencia" title="Transferencia" data-act="ver" data-id="${m.id}">`:''}${m.imgRec?`<img class="thumb" src="${imgSrc(m.imgRec)}" alt="Comprobante de la recarga" title="Recarga a la agencia" data-act="verR" data-id="${m.id}">`:''}</div>`:'—'}</td>${m.tipo==='recarga'?'':''}<td>${esc(m.usuario||'')}</td>${isAdm()?`<td class="noprint"><div class="acts" style="flex-wrap:nowrap">${m.anulado?`<button class="btn sm quiet" data-act="reactivar" data-id="${m.id}">Reactivar</button>`:`<button class="btn sm" data-act="editar" data-id="${m.id}">Editar</button><button class="btn sm quiet bad" data-act="anular" data-id="${m.id}">Anular</button>`}<button class="btn sm quiet bad" data-act="eliminar" data-id="${m.id}" aria-label="Eliminar">🗑</button></div></td>`:''}</tr>`; }).join('') : '<tr><td colspan="10" class="empty">Nada en este filtro.</td></tr>'}
   </tbody></table></div>${msF.length>500?'<p class="muted" style="font-size:13px">Se muestran los 500 más recientes. Acorta las fechas para ver el resto.</p>':''}`;
 }
 document.addEventListener('click', e=>{ if(e.target.closest('[data-act="irHist"]')){ UI.tab = 'historial'; UI.hR = UI.hR||'hoy'; render(); } });
@@ -1797,7 +1857,7 @@ function sacarFotos(){
   const fix = (o, k) => { if(!o || !o[k] || !String(o[k]).startsWith('data:')) return; const d = o[k]; let id = LV.dataId[d];
     if(!id){ id = 'rc_' + Date.now().toString(36) + Math.random().toString(36).slice(2,8); LV.dataId[d] = id; LV.fotos[id] = d; subir.push({id, data:d}); }
     o[k] = '@f:' + id; };
-  S.movs.forEach(m=>fix(m,'img')); S.extr.forEach(x=>{ fix(x.pago,'img'); fix(x.opReg,'img'); fix(x.compExt,'img'); });
+  S.movs.forEach(m=>{ fix(m,'img'); fix(m,'imgRec'); }); S.extr.forEach(x=>{ fix(x.pago,'img'); fix(x.opReg,'img'); fix(x.compExt,'img'); });
   return subir;
 }
 
@@ -2305,7 +2365,7 @@ function contaHTML(){
       <td>${m.verif===false?`<span class="pill bad">${esc(m.cuentaDest)} ajena</span>`:m.verif?`<span class="pill ok">Empresa ✓</span>`:'<span class="muted">Sin dato</span>'}</td>
       <td class="r num"><b>${money(m.monto)}</b></td>
       <td><span class="pill ${r.c}">${r.l}</span>${m.rev==='bad'&&m.revMotivo?`<small>${esc(m.revMotivo)}</small>`:''}${m.revPor?`<small>${esc(m.revPor)}</small>`:''}</td>
-      <td>${m.img?`<img class="thumb" src="${imgSrc(m.img)}" alt="Comprobante" data-act="ver" data-id="${m.id}">`:''}</td>
+      <td><div class="thumbs">${m.img?`<img class="thumb" src="${imgSrc(m.img)}" alt="Comprobante de transferencia" title="Transferencia" data-act="ver" data-id="${m.id}">`:''}${m.imgRec?`<img class="thumb" src="${imgSrc(m.imgRec)}" alt="Comprobante de la recarga" title="Recarga a la agencia" data-act="verR" data-id="${m.id}">`:''}</div></td>
       <td>${m.anulado?'':!m.rev?`<div class="acts" style="flex-wrap:nowrap"><button class="btn sm gold" data-act="revOk" data-id="${m.id}">Llegó</button><button class="btn sm bad" data-act="revBad" data-id="${m.id}">No llegó</button></div>`:(isAdm()?`<button class="btn sm quiet" data-act="revUndo" data-id="${m.id}">Deshacer</button>`:'')}</td></tr>`; }).join('')
   : `<tr><td colspan="10" class="empty">${UI.cF==='pend'?'Todo está verificado en estas fechas. ✓':'Nada en este filtro.'}</td></tr>`}
   </tbody></table></div>
