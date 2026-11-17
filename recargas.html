@@ -240,6 +240,11 @@ table.t{width:100%;border-collapse:collapse;font-size:14px;min-width:860px}
 .qfoto{display:flex;flex-direction:column;align-items:center;gap:4px}.qf-up{width:100%;height:76px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:1.5px dashed color-mix(in srgb,var(--gold) 55%,var(--line));border-radius:10px;background:color-mix(in srgb,var(--gold) 5%,transparent);color:var(--text,inherit);cursor:pointer;font-size:12.5px}.qf-up:hover{background:color-mix(in srgb,var(--gold) 12%,transparent)}.qf-up svg{width:20px;height:20px;fill:none;stroke:var(--gold);stroke-width:1.8}.qf-up small{font-size:10.5px;color:var(--muted)}
 .qf-img{padding:0;border:1px solid var(--line);border-radius:8px;overflow:hidden;width:70px;height:56px;background:#fff;cursor:zoom-in}.qf-img img{width:100%;height:100%;object-fit:cover;object-position:top}
 @media (max-width:760px){.qreal.qr3{grid-template-columns:1fr 100px!important}.qreal.qr3 .dif{grid-column:1/-1}.turno-row{grid-template-columns:1fr 1fr}}
+.rep-sec{margin-top:14px}.rep-sec h3{margin:0 0 10px;font-size:15px}.rep-sec h3 .muted{font-weight:400;font-size:13px}
+.rsal-g{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}.rsal{border:1px solid var(--line);border-radius:14px;padding:14px 16px;background:var(--bg-2);display:flex;flex-direction:column;gap:2px}.rsal.caja{border-color:color-mix(in srgb,var(--gold) 45%,var(--line))}.rsal.tot{background:color-mix(in srgb,var(--gold) 9%,var(--bg-2));border-color:color-mix(in srgb,var(--gold) 60%,var(--line))}
+.rsal small{font-size:12.5px;color:var(--muted);font-weight:600}.rsal>b{font:700 24px/1.2 var(--display);color:var(--gold)}.rsal>span{font-size:11.5px;color:var(--muted)}.rsal dl{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;margin:10px 0 6px;font-size:12.5px}.rsal dl div{display:flex;justify-content:space-between;gap:6px}.rsal dt{color:var(--muted)}.rsal dd{margin:0}.rsal em{font-style:normal;font-weight:600;font-size:13px}
+.rmv-g{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}.rmv{border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:var(--bg-2)}.rmv small{display:block;font-size:12px;color:var(--muted)}.rmv b{display:block;font:700 18px/1.3 var(--display);margin-top:2px}.rmv span{font-size:11.5px;color:var(--muted)}.rmv.cero{opacity:.55}
+.reset-card{margin-top:22px;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;border-color:color-mix(in srgb,var(--danger) 45%,var(--line))}.reset-card>div{flex:1;min-width:260px}
 .fms{display:flex;gap:8px}.t .pill{white-space:nowrap}.fm{display:flex;flex-direction:column;align-items:center;gap:3px;padding:0;border:0;background:none;cursor:zoom-in;color:inherit}.fm img,.fm i{width:46px;height:60px;border-radius:7px;border:1px solid var(--line);object-fit:cover;object-position:top;background:#fff;display:grid;place-items:center}.fm i{background:var(--bg-2);font-style:normal;font-size:10px;color:var(--muted);text-align:center;line-height:1.2;cursor:default}.fm span{font-size:11px;color:var(--muted)}.fm:hover img{border-color:var(--gold)}.fm.no{cursor:default}
 .rq-hint{display:block;margin-top:8px;font-size:12.5px;color:var(--muted)}
 .rq-sel{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 10px;margin-top:10px;padding:8px 10px;border-radius:10px;background:color-mix(in srgb,var(--ok) 10%,transparent);border:1px solid color-mix(in srgb,var(--ok) 35%,transparent)}.rq-sel span{font-size:12.5px;color:var(--muted);width:100%}.rq-sel.warn{background:color-mix(in srgb,var(--warn,#e0a030) 10%,transparent);border-color:color-mix(in srgb,var(--warn,#e0a030) 40%,transparent)}.rq-sel.warn span{width:auto}
@@ -869,6 +874,14 @@ document.addEventListener('click', async e=>{
   else if(a==='registrar') registrar();
   else if(a==='limpiar'){ UI.form = {}; UI.read = {}; UI.img = null; UI.ocr = null; UI.edit = false; UI.rec = null; renderForm(); }
   else if(a==='quitarRec'){ UI.rec = null; renderForm(); }
+  else if(a==='resetMovs' && SES && SES.rol==='ceo'){
+    const n = S.movs.length + (S.extr||[]).length + Object.keys(S.reportes||{}).length + Object.keys(S.cajas||{}).length;
+    const conf = await pedirConfirmacion('Borrar todo y empezar de cero', `Se van a borrar <b>${S.movs.length} movimientos</b>, ${(S.extr||[]).length} extracciones, ${Object.keys(S.reportes||{}).length} reportes de cierre y ${Object.keys(S.cajas||{}).length} cajas diarias de <b>todos los operadores</b>.<br>Se mantienen operadores, cuentas de banco y agencias.<br><br>Para confirmar escribe <b>BORRAR</b>:`, 'BORRAR');
+    if(!conf) return;
+    S.movs = []; S.extr = []; S.cajas = {}; S.cuadOp = {}; S.cuadExt = {}; S.reportes = {}; S.conc = {}; S.fondeos = []; S.log = [];
+    logAcc('Empezó de cero', `Borró ${n} registros de prueba`);
+    UI.form = {}; UI.read = {}; UI.img = null; UI.ocr = null; UI.rec = null; UI.ciPrev = null; UI.repSel = null; UI.fecha = todayS();
+    LV.ev = 'boton'; save(); render(); toast('Listo: el panel quedó vacío. Se está borrando en Google Sheets, espera unos segundos antes de cerrar.'); }
   else if(a==='irHoy'){ UI.fecha = todayS(); UI.ciF = todayS(); render(); }
   else if(a==='agForzar'){ const f = UI.form, c = checkRecargaAg(f); if(!(c.a && c.moOk && c.plOk && !c.agOk)) return;
     if(!(await ask('Confirmar agencia a mano', `La captura no muestra exactamente <b>${esc(c.a.nombre)}</b> (ID ${esc(c.a.idPlat)}), pero el monto <b>${money(c.mo)}</b> sí coincide.<br>¿Confirmas que la recarga fue a esta agencia? Quedará marcada como <b>confirmada a mano</b> para gerencia.`, {ok:'Sí, confirmar'}))) return;
@@ -2180,6 +2193,7 @@ function configHTML(){
       ${cs.length?`<div class="ctag">${cs.map(ctaFila).join('')}</div>`:`<div class="alert warn" style="margin:0"><b>!</b><div>Sin cuenta de banco: <b>${esc(o.nombre)}</b> no podrá registrar recargas hasta que le pongas una.</div></div>`}
       <button class="btn sm gold" data-act="nuevaCta" data-tipo="op" data-op="${o.id}" style="margin-top:12px">${cs.length?'+ Agregar otra cuenta':'+ Agregar cuenta de banco'}</button></div>
   </details>`; }).join('')}</div>
+  ${SES && SES.rol==='ceo' ? `<div class="card reset-card"><div><h2>Empezar de cero</h2><p class="muted" style="font-size:13px;margin:4px 0 0">Borra <b>todos los movimientos</b> (recargas, gestión de saldo, traspasos, extracciones), los saldos iniciales, los cierres y reportes de caja, las fotos de saldos y la bitácora. <b>Se mantiene la configuración:</b> operadores, responsables, usuarios, cuentas de banco y agencias. No se puede deshacer.</p></div><button class="btn bad" data-act="resetMovs">Borrar movimientos y empezar de cero</button></div>` : ''}
   <datalist id="bancosL3">${BANCOS.map(b=>`<option value="${b[0]}">`).join('')}</datalist>`;
 }
 document.addEventListener('toggle', e=>{ const d = e.target; if(!d.dataset || !d.dataset.opd) return; if(!UI.opOpen) UI.opOpen = new Set(S.operadores.length===1?[S.operadores[0].id]:[]); d.open ? UI.opOpen.add(d.dataset.opd) : UI.opOpen.delete(d.dataset.opd); }, true);
@@ -2258,6 +2272,11 @@ function construirReporteOp(op, f){
   const ent = r2(R.ext+R.car+R.tin+R.mIn+Math.max(0,R.aj)), sal = r2(R.rec+R.tout+R.mOut+R.carQ+Math.max(0,-R.aj));
   return {tipo:'op', op, nombre:opName(op), responsable:opResp(op), fecha:f,
     turnoIni:cj.turnoIni||'', turnoFin:cj.turnoFin||'',
+    res:(()=>{ const v = ms.filter(m=>!m.anulado), sm = a => r2(a.reduce((x,m)=>x+(+m.monto||0),0));
+      const gU = v.filter(m=>m.tipo==='carga' && (m.signo||1)>0), gD = v.filter(m=>m.tipo==='carga' && (m.signo||1)<0);
+      const tI = v.filter(m=>m.tipo==='transfer' && m.opDest===op && trfOk(m)), tO = v.filter(m=>m.tipo==='transfer' && m.op===op && trfOk(m)), tP = v.filter(m=>m.tipo==='transfer' && m.estadoT==='pendiente');
+      const mv = v.filter(m=>m.tipo==='mover'), ex = v.filter(m=>m.tipo==='extraccion');
+      return {gU:sm(gU), nGU:gU.length, gD:sm(gD), nGD:gD.length, tI:sm(tI), nTI:tI.length, tO:sm(tO), nTO:tO.length, tP:sm(tP), nTP:tP.length, mv:sm(mv), nMv:mv.length, ex:sm(ex), nEx:ex.length, anul:ms.filter(m=>m.anulado).length, n:ms.length}; })(),
     cuentas:[{nombre:'Caja de operador', titular:'', ini:R.ini, ent, sal, esperado:R.esperado, real:R.real, dif:R.dif, foto:cj.foto||null}, ...bancos],
     total:Q.total, totReal:Q.totReal, totDif:Q.totDif, nRec:R.nRec, rec:R.rec,
     stats:statsMovs(ms, op), estado:R.aprobada?'Aprobado':R.cerrada?'Cerrado':'Abierto',
@@ -2281,14 +2300,15 @@ function reporteHTML(r, acciones){
   const opRep = r.tipo==='op';
   return `<article class="rep">
     <header class="rep-h"><img src="${LOGO}" alt=""><div><small>BENDERAM · Cierre de caja</small><h2>${esc(r.nombre)}${r.responsable?` <span>· Responsable: ${esc(r.responsable)}</span>`:''}</h2><p>${fd(r.fecha)}${r.turnoIni||r.turnoFin?` · Turno ${esc(r.turnoIni||'—')} a ${esc(r.turnoFin||'—')}`:''}${r.ts?` · Generado el ${fd(dOf(r.ts))} a las ${hm(r.ts)} por ${esc(r.por||'')}`:' · Vista previa, todavía no generado'}</p></div>${acciones||''}</header>
-    <section class="kpis rep-k">
+    ${opRep && r.res ? repSaldosHTML(r) : ''}
+    ${opRep && r.res ? '' : `<section class="kpis rep-k">
       <div class="kpi hl"><small>Dinero total</small><b class="num">${money(r.total)}</b><em>${opRep?'Caja + bancos':'Todas las cuentas'}</em></div>
       <div class="kpi"><small>Real contado</small><b class="num">${r.totReal==null?'—':money(r.totReal)}</b><em>${r.totReal==null?'Faltan saldos reales':'Suma de saldos reales'}</em></div>
       <div class="kpi"><small>Diferencia</small><b class="num ${r.totDif==null?'':Math.abs(r.totDif)<0.005?'pos':'neg'}">${difTxt(r.totDif)}</b><em>Estado: ${esc(r.estado)}</em></div>
       <div class="kpi"><small>${opRep?'Recargas':'Extracciones pagadas'}</small><b class="num">${money(r.rec)}</b><em>${r.nRec} ${opRep?'comprobantes':'pagos'}</em></div>
-    </section>
+    </section>`}
     <div class="rep-g">
-      <section class="card"><h3>Movimiento del día</h3>${barrasHTML(r.stats||[])}</section>
+      ${opRep && r.res ? '' : `<section class="card"><h3>Movimiento del día</h3>${barrasHTML(r.stats||[])}</section>`}
       <section class="card"><h3>Cuadre por cuenta</h3><div class="tw" style="margin:8px 0 0"><table class="t" style="min-width:560px"><thead><tr><th>Cuenta</th><th class="r">Inicio</th><th class="r">Entra</th><th class="r">Sale</th><th class="r">Saldo en sistema</th><th class="r">Real</th><th class="r">Diferencia</th>${opRep?'<th>Foto</th>':''}</tr></thead><tbody>
         ${r.cuentas.map((c,i)=>`<tr><td><b>${esc(c.nombre)}</b>${c.titular?`<small>${esc(c.titular)}</small>`:''}</td><td class="r num">${money(c.ini)}</td><td class="r num pos">+${money(c.ent)}</td><td class="r num neg">−${money(c.sal)}</td><td class="r num"><b>${money(c.esperado)}</b></td><td class="r num">${c.real==null?'—':money(c.real)}</td><td class="r num ${c.dif==null?'':Math.abs(c.dif)<0.005?'pos':'neg'}">${difTxt(c.dif)}</td>${opRep?`<td>${c.foto?`<button type="button" class="fm" data-act="verFotoRep" data-id="${esc(r.id||'')}" data-i="${i}"><img src="${imgSrc(c.foto)}" alt="Foto del saldo"></button>`:'<span class="muted">Sin foto</span>'}</td>`:''}</tr>`).join('')}
       </tbody></table></div></section>
@@ -2297,6 +2317,24 @@ function reporteHTML(r, acciones){
       ${r.movs.length?r.movs.map(m=>`<tr class="${/ANULADO/.test(m[1])?'anul':''}"><td class="num">${esc(m[0])}</td><td>${esc(m[1])}</td><td>${esc(m[2])}</td><td class="num">${esc(m[3]||'—')}</td><td class="r num ${m[4]<0?'neg':m[4]>0?'pos':''}">${m[4]?(m[4]<0?'−':'+')+money(Math.abs(m[4])):'—'}</td>${opRep?`<td>${esc(m[6]||'—')}</td>`:''}<td>${esc(m[5]||'')}</td></tr>`).join(''):`<tr><td colspan="${opRep?7:6}" class="empty">Sin movimientos este día.</td></tr>`}
     </tbody></table></div></section>
   </article>`;
+}
+function repSaldosHTML(r){
+  const x = r.res, sg = v => (v>0?'+':v<0?'−':'')+money(Math.abs(v));
+  const card = (c, i) => `<div class="rsal ${i===0?'caja':''}"><small>${esc(c.nombre)}</small><b class="num">${money(c.esperado)}</b><span>Queda en el sistema</span>
+    <dl><div><dt>Inició</dt><dd class="num">${money(c.ini)}</dd></div><div><dt>Entró</dt><dd class="num pos">+${money(c.ent)}</dd></div><div><dt>Salió</dt><dd class="num neg">−${money(c.sal)}</dd></div><div><dt>Real</dt><dd class="num">${c.real==null?'—':money(c.real)}</dd></div></dl>
+    <em class="${c.dif==null?'':Math.abs(c.dif)<0.005?'pos':'neg'}">${difTxt(c.dif)}</em></div>`;
+  const it = (l, n, v, cls, sub) => `<div class="rmv ${n?'':'cero'}"><small>${l}</small><b class="num ${cls||''}">${n?v:'—'}</b><span>${n?`${n} ${n===1?'movimiento':'movimientos'}${sub?' · '+sub:''}`:'Sin movimientos'}</span></div>`;
+  return `<section class="rep-sec"><h3>Saldo final por cuenta</h3><div class="rsal-g">${r.cuentas.map(card).join('')}
+      <div class="rsal tot"><small>Total (caja + bancos)</small><b class="num">${money(r.total)}</b><span>Queda en el sistema</span><dl><div><dt>Real contado</dt><dd class="num">${r.totReal==null?'—':money(r.totReal)}</dd></div><div><dt>Estado</dt><dd>${esc(r.estado)}</dd></div></dl><em class="${r.totDif==null?'':Math.abs(r.totDif)<0.005?'pos':'neg'}">${difTxt(r.totDif)}</em></div></div></section>
+    <section class="rep-sec"><h3>Resumen de movimientos del día <span class="muted">(${x.n} en total${x.anul?`, ${x.anul} anulados`:''})</span></h3><div class="rmv-g">
+      ${it('Recargas a agentes', r.nRec, '−'+money(r.rec), 'neg')}
+      ${it('Gerencia aumentó saldo', x.nGU, '+'+money(x.gU), 'pos')}
+      ${it('Gerencia quitó saldo', x.nGD, '−'+money(x.gD), 'neg')}
+      ${it('Traspasos recibidos', x.nTI, '+'+money(x.tI), 'pos')}
+      ${it('Traspasos enviados', x.nTO + x.nTP, '−'+money(x.tO), 'neg', x.nTP?`${x.nTP} pendiente${x.nTP===1?'':'s'} de aceptar (${money(x.tP)}), aún no descuenta`:'')}
+      ${it('Entre mis cuentas', x.nMv, money(x.mv), '')}
+      ${x.nEx?it('Extracciones', x.nEx, '+'+money(x.ex), 'pos'):''}
+    </div></section>`;
 }
 function listaReportesHTML(L, adm){
   return `<div class="tw"><table class="t" style="min-width:820px"><thead><tr><th>Fecha trabajada</th>${adm&&REP_TIPO()==='op'?'<th>Operador</th>':''}<th>Generado</th><th class="r">Dinero total</th><th class="r">Diferencia</th><th>Estado</th><th></th></tr></thead><tbody>
@@ -2401,6 +2439,10 @@ function pedirInicioTurno(){
   ov.querySelector('form').onsubmit = e=>{ e.preventDefault(); const v = ov.querySelector('#tuH').value; if(!v) return toast('Escribe la hora.', true);
     const cc = caja(op, f); cc.turnoIni = v; cc.turnoIniReg = Date.now(); logAcc('Inicio de turno', `${opName(op)} · ${fd(f)} · ${v}`); LV.ev = 'boton'; save(); ov.remove(); render(); toast(`Turno iniciado a las ${v}.`); };
 }
+function pedirConfirmacion(titulo, html, palabra){ return new Promise(res=>{ const ov = document.createElement('div'); ov.className = 'ov';
+  ov.innerHTML = `<div class="modal" role="dialog" aria-modal="true" style="max-width:480px"><h2>${esc(titulo)}</h2><p>${html}</p><div class="f"><input id="pcf" autocomplete="off" placeholder="${esc(palabra)}"></div><div class="acts" style="justify-content:flex-end;margin-top:14px"><button class="btn quiet" data-a="no">Cancelar</button><button class="btn bad" data-a="yes">Borrar todo</button></div></div>`;
+  document.body.appendChild(ov); setTimeout(()=>ov.querySelector('#pcf').focus(), 30);
+  ov.addEventListener('click', ev=>{ const a = ev.target.closest('[data-a]'); if(!a) return; if(a.dataset.a==='yes' && ov.querySelector('#pcf').value.trim().toUpperCase()!==palabra){ toast(`Escribe ${palabra} para confirmar.`, true); return; } ov.remove(); res(a.dataset.a==='yes'); }); }); }
 async function fotoPrueba(file){
   const isPdf = file.type==='application/pdf' || /\.pdf$/i.test(file.name||'');
   let url; if(isPdf){ url = (await pdfToImage(file)).url; } else { if(!/^image\//.test(file.type)) throw new Error('formato'); url = await new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(file); }); }
@@ -2424,6 +2466,12 @@ async function descargarPDF(r){
     doc.setTextColor(255,255,255); doc.setFontSize(12); doc.text(`${r.nombre}${r.responsable?'  ·  Responsable: '+r.responsable:''}`, 98, 57);
     doc.setFont('helvetica','normal'); doc.setFontSize(9.5); doc.setTextColor(210,200,180); doc.text(`Día trabajado: ${fd(r.fecha)}${r.turnoIni||r.turnoFin?`   ·   Turno ${r.turnoIni||'—'} a ${r.turnoFin||'—'}`:''}   ·   Generado: ${fd(dOf(r.ts))} ${hm(r.ts)} por ${r.por||''}`, 98, 73);
     const M = v => v==null ? '—' : money(v);
+    if(opRep && r.res){ const x = r.res;
+      doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.setTextColor(30); doc.text('Saldo final por cuenta', 40, 108);
+      doc.autoTable({startY:116, theme:'grid', head:[['Cuenta','Queda en el sistema','Real','Diferencia']], body:[...r.cuentas.map(c=>[c.nombre, M(c.esperado), M(c.real), difTxt(c.dif)]), ['TOTAL', M(r.total), M(r.totReal), difTxt(r.totDif)]], styles:{fontSize:10}, headStyles:{fillColor:oro, textColor:20}, columnStyles:{1:{halign:'right'},2:{halign:'right'},3:{halign:'right'}}, didParseCell:d=>{ if(d.section==='body' && d.row.index===r.cuentas.length) d.cell.styles.fontStyle='bold'; }});
+      doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.text(`Resumen de movimientos del día (${x.n}${x.anul?', '+x.anul+' anulados':''})`, 40, doc.lastAutoTable.finalY+26);
+      doc.autoTable({startY:doc.lastAutoTable.finalY+34, theme:'striped', head:[['Concepto','Cantidad','Monto']], body:[['Recargas a agentes', r.nRec, '-'+M(r.rec)], ['Gerencia aumentó saldo', x.nGU, '+'+M(x.gU)], ['Gerencia quitó saldo', x.nGD, '-'+M(x.gD)], ['Traspasos recibidos', x.nTI, '+'+M(x.tI)], ['Traspasos enviados', x.nTO, '-'+M(x.tO)], ...(x.nTP?[['Traspasos pendientes', x.nTP, M(x.tP)]]:[]), ['Entre mis cuentas', x.nMv, M(x.mv)], ...(x.nEx?[['Extracciones', x.nEx, '+'+M(x.ex)]]:[])], styles:{fontSize:9}, headStyles:{fillColor:osc}, columnStyles:{1:{halign:'center'},2:{halign:'right'}}});
+    } else
     doc.autoTable({startY:104, theme:'grid', head:[['Dinero total','Real contado','Diferencia', opRep?'Recargas':'Extracciones pagadas','Estado']],
       body:[[M(r.total), M(r.totReal), difTxt(r.totDif), `${M(r.rec)} (${r.nRec})`, r.estado]], styles:{fontSize:10, halign:'center'}, headStyles:{fillColor:oro, textColor:20}});
     doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.setTextColor(30); doc.text('Cuadre por cuenta', 40, doc.lastAutoTable.finalY+26);
