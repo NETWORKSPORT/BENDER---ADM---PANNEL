@@ -2333,7 +2333,20 @@ async function reload(silent){
   if(busy()) return;
   applyData(j.data); UI.ready = true; saveCache(j.data);
   if(!canView(UI.view)) UI.view = firstView();
-  render();
+  render(); setTimeout(syncAgenciasRc, 1500);
+}
+/* copia de la lista de agencias para el módulo de operadores (los operadores no leen la hoja de Agencias) */
+let AGP_BUSY = false;
+async function syncAgenciasRc(){
+  if(AGP_BUSY || mode!=='sheet' || !SES || SES.rol!=='gerente' || !UI.ready) return;
+  const L = Object.values(S.age||{}).filter(a=>a && (a.codigo||a.nombre||a.usuario)).map(a=>({codigo:String(a.codigo||''), nombre:a.nombre||'', usuario:a.usuario||'', propietario:a.propietario||'', plataforma:a.plataforma||'', operador:a.operador||''})).sort((x,y)=>(x.nombre||x.usuario).localeCompare(y.nombre||y.usuario));
+  const txt = JSON.stringify(L); let h = 5381; for(let i=0;i<txt.length;i++) h = ((h<<5)+h+txt.charCodeAt(i))|0;
+  const K = 'benderam-agp'; let prev = {}; try{ prev = JSON.parse(localStorage.getItem(K)||'{}'); }catch(e){}
+  if(prev.h===h) return;
+  const CH = 150, n = Math.max(1, Math.ceil(L.length/CH)), tot = Math.max(n, +prev.n||0), items = [];
+  for(let i=0;i<tot;i++) items.push({col:'rcf', id:'agp'+i, data:{lista:L.slice(i*CH,(i+1)*CH), total:L.length, actualizado:new Date().toISOString()}});
+  AGP_BUSY = true;
+  try{ for(let i=0;i<items.length;i+=5){ const r = await api('bulk', {items:items.slice(i,i+5)}); if(!r.ok) return; } try{ localStorage.setItem(K, JSON.stringify({h, n})); }catch(e){} } finally { AGP_BUSY = false; }
 }
 
 /* ---------- pantalla de acceso ---------- */

@@ -942,12 +942,6 @@ function revisarHTML(f, op, dup, ver){
   ${cuadreMovHTML(f, op)}`;
 }
 /* ---- agencias registradas: las del módulo de recargas + las del panel de Agencias ---- */
-function sincronizarAgencias(){
-  let L = null; try{ L = window.parent && window.parent.rcAgencias ? window.parent.rcAgencias() : null; }catch(e){}
-  if(!L || !L.length) return;
-  const nuevo = JSON.stringify(L); if(nuevo===JSON.stringify(S.agPanel||[])) return;
-  S.agPanel = L; guardarRegistro('rcf', 'agp');
-}
 const normId = x => String(x||'').trim().replace(/^0+/,'');
 function agenciasLista(op){
   const out = [], vistos = new Set();
@@ -957,7 +951,7 @@ function agenciasLista(op){
 }
 function agCbxItems(op, q){
   const t = norm(q||'').split(/\s+/).filter(Boolean), L = agenciasLista(op).filter(x=>{ const h = norm(`${x.id} ${x.nombre} ${x.sub}`); return t.every(w=>h.includes(w)); });
-  if(!L.length) return `<li class="cbx-none">${S.agentes.length||(S.agPanel||[]).length?'Ninguna agencia coincide.':'Todavía no hay agencias registradas.'}${q?` <button type="button" class="btn sm gold" data-act="agReg">Registrar ${/^\d+$/.test(q.trim())?'el ID '+esc(q.trim()):'agencia nueva'}</button>`:''}</li>`;
+  if(!L.length) return `<li class="cbx-none">${S.agentes.length||(S.agPanel||[]).length?'Ninguna agencia coincide.':'La lista de agencias todavía no llega. Pide a gerencia que abra el panel una vez.'}${q?` <button type="button" class="btn sm gold" data-act="agReg">Registrar ${/^\d+$/.test(q.trim())?'el ID '+esc(q.trim()):'agencia nueva'}</button>`:''}</li>`;
   return L.map((x,i)=>`<li role="option" id="agO${i}" data-agsel="${esc(x.k)}" class="${i===0?'on':''}"><span class="cbx-av" aria-hidden="true">${esc(x.nombre.trim().charAt(0).toUpperCase())}</span><span class="cbx-t"><b>${esc(x.nombre)}</b><small>${x.id?'ID '+esc(x.id):'Sin ID'}${x.sub?' · '+esc(x.sub):''}</small></span>${x.op&&!x.mia?`<em>${esc(opName(x.op))}</em>`:x.mia?'<em class="mia">Tuya</em>':''}</li>`).join('');
 }
 function agSeleccionar(k){
@@ -1757,7 +1751,7 @@ function fromRecords(D){
   const N = emptyS(), cf = D.rcf||{}, main = cf.main||{};
   N.movs = v('rmv').sort(byTs); N.extr = v('rex').sort(byTs); N.agentes = v('rag'); N.fondeos = v('rfo').sort(byTs); N.log = v('rlg').sort(byTs);
   N.operadores = main.operadores||[]; N.cuentas = main.cuentas||[]; N.ctasOp = main.ctasOp||[]; N.ctasExt = main.ctasExt||[];
-  N.tg = {...N.tg, ...(cf.tg||{})}; N.agPanel = (cf.agp||{}).lista||[];
+  N.tg = {...N.tg, ...(cf.tg||{})}; N.agPanel = Object.keys(cf).filter(k=>/^agp\d+$/.test(k)).sort((a,b)=>+a.slice(3)-+b.slice(3)).flatMap(k=>(cf[k]||{}).lista||[]);
   Object.entries(D.rcu||{}).forEach(([k,val])=>{ const i = k.indexOf('|'), p = k.slice(0,i), r = k.slice(i+1);
     if(p==='caja') N.cajas[r] = val; else if(p==='rep') N.reportes[r] = val; else if(p==='op') N.cuadOp[r] = val; else if(p==='ext') N.cuadExt[r] = val; else if(p==='conc') N.conc[r] = val.v; });
   return N;
@@ -1767,7 +1761,7 @@ function toRecords(X){
   X.movs.forEach(m=>R.rmv[m.id]=m); X.extr.forEach(x=>R.rex[x.id]=x); X.agentes.forEach(a=>R.rag[a.id]=a); (X.fondeos||[]).forEach(f=>R.rfo[f.id]=f);
   (X.log||[]).forEach(l=>{ if(!l.id) l.id = `${l.ts}_${l.usuario}`; R.rlg[l.id] = l; });
   R.rcf.main = {operadores:X.operadores, cuentas:X.cuentas, ctasOp:X.ctasOp||[], ctasExt:X.ctasExt||[]};
-  R.rcf.tg = X.tg; R.rcf.agp = {lista:X.agPanel||[]};
+  R.rcf.tg = X.tg;
   Object.entries(X.cajas||{}).forEach(([k,v])=>R.rcu['caja|'+k]=v); Object.entries(X.cuadOp||{}).forEach(([k,v])=>R.rcu['op|'+k]=v); Object.entries(X.reportes||{}).forEach(([k,v])=>R.rcu['rep|'+k]=v);
   Object.entries(X.cuadExt||{}).forEach(([k,v])=>R.rcu['ext|'+k]=v); Object.entries(X.conc||{}).forEach(([k,v])=>R.rcu['conc|'+k]={v});
   return R;
@@ -1776,7 +1770,6 @@ function vacio(col, id, v){
   if(col==='rcu' && id.startsWith('caja|')) return !v.cerrada && !v.aprobada && (v.inicial===''||v.inicial==null) && (v.real===''||v.real==null);
   if(col==='rcf' && id==='main') return !v.operadores.length && !v.cuentas.length && !v.ctasOp.length && !v.ctasExt.length;
   if(col==='rcf' && id==='tg') return !v.token && !v.chat;
-  if(col==='rcf' && id==='agp') return !(v.lista||[]).length;
   return false;
 }
 function snapDe(X){ const R = toRecords(X), sn = {}; RCOLS.forEach(c=>{ sn[c] = {}; Object.entries(R[c]).forEach(([id,v])=>sn[c][id] = JSON.stringify(v)); }); return sn; }
@@ -1871,7 +1864,6 @@ async function liveCargar(silencioso){
   if(SES && SES.rol==='ceo' && USERS_PANEL===null){ USERS_PANEL = []; const ju = await rcApi('users.list'); USERS_PANEL = ju.ok ? ju.users : []; }
   if(SES && SES.rol==='ceo'){ const mig = S.operadores.filter(o=>!o.responsable && String(o.usuario||'').trim() && String(o.nombre||'').trim().split(/\s+/).length>=2 && !/^operador\s*\d+$/i.test(o.nombre));
     if(mig.length){ mig.forEach(o=>{ o.responsable = o.nombre; o.nombre = nombreOp(o.usuario); }); LV.ev = 'boton'; liveSave(); } }
-  if(SES && SES.rol==='ceo') sincronizarAgencias();
   if(SES && SES.rol==='ceo' && opsSobrantes().length){ const L = opsSobrantes(); L.forEach(borrarOperador); LV.ev = 'boton'; liveSave(); setTimeout(()=>toast(`Se eliminó ${L.map(o=>o.nombre).join(', ')}: no tenía usuario. Quedan solo los operadores creados desde Usuarios.`), 300); }
   render();
 }
