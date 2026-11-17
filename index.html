@@ -2451,6 +2451,7 @@ function ajustarFrame(){ const fr = document.getElementById('rcFrame'); if(!fr) 
 window.addEventListener('resize', ajustarFrame);
 new MutationObserver(()=>{ if(document.getElementById('rcFrame')) requestAnimationFrame(ajustarFrame); }).observe(document.body, {childList:true, subtree:true});
 window.rcPersonal = () => activeEmps().map(e=>({nombre:e.nombre, cargo:e.cargo||''}));
+window.rcAgencias = () => Object.values(S.age||{}).filter(a=>a && (a.codigo||a.nombre||a.usuario)).map(a=>({codigo:String(a.codigo||''), nombre:a.nombre||'', usuario:a.usuario||'', propietario:a.propietario||'', plataforma:a.plataforma||'', operador:a.operador||'', telefono:a.telefono||'', ciudad:a.ciudad||''})).sort((x,y)=>(x.nombre||x.usuario).localeCompare(y.nombre||y.usuario));
 async function asegurarOperador(usuario, opNombre, responsable){
   const j = await api('load', {cols:['rcf']}); if(!j.ok) return false;
   const main = (j.data.rcf||{}).main || {operadores:[], cuentas:[], ctasOp:[], ctasExt:[]};

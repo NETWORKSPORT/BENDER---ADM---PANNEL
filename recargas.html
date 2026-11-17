@@ -220,7 +220,14 @@ table.t{width:100%;border-collapse:collapse;font-size:14px;min-width:860px}
 .rq-mo{border-color:color-mix(in srgb,var(--gold) 45%,var(--line))!important}
 .rq-money{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:10px;padding:0 12px;background:var(--bg)}.rq-money:focus-within{border-color:var(--gold);box-shadow:0 0 0 3px color-mix(in srgb,var(--gold) 20%,transparent)}.rq-money span{font:700 22px/1 var(--display);color:var(--gold)}.rq-money input{border:0!important;box-shadow:none!important;background:transparent!important;padding:10px 0;font:700 26px/1.2 var(--display);color:var(--gold);width:100%}
 .rq-money input::-webkit-inner-spin-button,.rq-money input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}.rq-money input{-moz-appearance:textfield}
-.rq-hint{display:block;margin-top:8px;font-size:12.5px;color:var(--muted)}
+.cbx{position:relative}.cbx input{padding-right:44px}.cbx-b{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:36px;height:36px;border:0;background:none;color:var(--muted);cursor:pointer;border-radius:8px}.cbx-b:hover{color:var(--gold)}.cbx-b svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2}
+.cbx-l{position:absolute;z-index:30;left:0;right:0;top:calc(100% + 6px);margin:0;padding:6px;list-style:none;max-height:320px;overflow:auto;background:var(--bg-2);border:1px solid var(--line);border-radius:12px;box-shadow:0 18px 40px rgba(0,0,0,.45)}
+.cbx-l li{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:9px;cursor:pointer}.cbx-l li.on,.cbx-l li:hover{background:color-mix(in srgb,var(--gold) 12%,transparent)}
+.cbx-av{flex:none;width:30px;height:30px;border-radius:9px;display:grid;place-items:center;font-weight:700;font-size:13px;color:var(--gold);background:color-mix(in srgb,var(--gold) 14%,transparent)}
+.cbx-t{min-width:0;flex:1}.cbx-t b{display:block;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cbx-t small{display:block;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cbx-l em{font-style:normal;font-size:11.5px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:2px 8px;white-space:nowrap}.cbx-l em.mia{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 40%,transparent)}
+.cbx-l li.cbx-none{cursor:default;color:var(--muted);font-size:13px;flex-wrap:wrap;justify-content:space-between}.cbx-l li.cbx-none:hover{background:none}
+.rq-in .f{overflow:visible}.rq-hint{display:block;margin-top:8px;font-size:12.5px;color:var(--muted)}
 .rq-sel{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 10px;margin-top:10px;padding:8px 10px;border-radius:10px;background:color-mix(in srgb,var(--ok) 10%,transparent);border:1px solid color-mix(in srgb,var(--ok) 35%,transparent)}.rq-sel span{font-size:12.5px;color:var(--muted);width:100%}.rq-sel.warn{background:color-mix(in srgb,var(--warn,#e0a030) 10%,transparent);border-color:color-mix(in srgb,var(--warn,#e0a030) 40%,transparent)}.rq-sel.warn span{width:auto}
 .rq-data{border:1px solid var(--line);border-radius:14px;overflow:hidden}.rq-dh{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:10px 14px;border-bottom:1px solid var(--line);font-size:13px}.rq-dh em{font-style:normal;font-weight:600}.rq-dh em.ok{color:var(--ok)}.rq-dh em.bad{color:var(--danger)}
 .rq-data dl{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin:0}@media (max-width:900px){.rq-data dl{grid-template-columns:repeat(2,minmax(0,1fr))}}
@@ -860,6 +867,7 @@ document.addEventListener('click', async e=>{
 });
 document.addEventListener('input', e=>{
   const t = e.target;
+  if(t.id==='fAgId' && t.closest('.cbx')){ UI.form.agId = t.value; UI.form.agente = ''; const l = $('#agLst'); if(l){ l.innerHTML = agCbxItems(opActual(), t.value); l.hidden = false; } const sl = document.querySelector('.rq-ag .rq-sel,.rq-ag .rq-hint'); if(sl) sl.outerHTML = '<small class="rq-hint">Elige una agencia de la lista.</small>'; return; }
   if(t.id==='fMontoC'){ UI.form.monto = t.value; delete UI.read.monto; const q = document.querySelector('#formCard .cqm'); if(q) q.outerHTML = cuadreMovHTML(UI.form, opActual()); return; }
   if(t.dataset.k && t.closest('#formCard')){ UI.form[t.dataset.k] = t.value; delete UI.read[t.dataset.k];
     if(t.dataset.k==='agId'){ const ag = agByPlat(t.value); UI.form.agente = ag ? ag.id : ''; delete UI.read.agente; }
@@ -918,8 +926,8 @@ function revisarHTML(f, op, dup, ver){
     </aside>
     <div class="rq-main">
       <div class="rq-in">
-        <div class="f rq-ag"><label for="fAgId">Agencia a la que recargaste</label><input id="fAgId" data-k="agId" list="agIds" value="${esc(f.agId||'')}" placeholder="Busca por ID o nombre" autocomplete="off"><datalist id="agIds">${(ags.length?ags:S.agentes).map(x=>`<option value="${esc(x.idPlat)}">${esc(x.nombre)}</option>`).join('')}</datalist>
-          ${a?`<div class="rq-sel ${a.op===op?'':'warn'}"><b>${esc(a.nombre)}</b><span>ID ${esc(a.idPlat)}${a.titular?' · '+esc(a.titular):''}${a.op!==op?` · agente de ${esc(opName(a.op))}`:''}</span></div>`:String(f.agId||'').trim()?`<div class="rq-sel warn"><b>El ID ${esc(f.agId)} no está registrado</b><button class="btn sm gold" data-act="agReg">Registrar agente</button></div>`:'<small class="rq-hint">El comprobante no trae el nombre de la agencia: elígela tú.</small>'}
+        <div class="f rq-ag"><label for="fAgId">Agencia a la que recargaste</label><div class="cbx"><input id="fAgId" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="agLst" value="${a?esc(a.nombre):esc(f.agId||'')}" placeholder="Elige de la lista o busca por ID o nombre" autocomplete="off"><button type="button" class="cbx-b" data-act="agAbrir" tabindex="-1" aria-label="Ver todas las agencias"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button><ul class="cbx-l" id="agLst" role="listbox" aria-label="Agencias registradas" hidden></ul></div>
+          ${a?`<div class="rq-sel ${a.op===op?'':'warn'}"><b>${esc(a.nombre)}</b><span>ID ${esc(a.idPlat)}${a.titular?' · '+esc(a.titular):''}${a.op!==op?` · agente de ${esc(opName(a.op))}`:''}</span></div>`:String(f.agId||'').trim()?`<div class="rq-sel warn"><b>El ID ${esc(f.agId)} no está registrado</b><button class="btn sm gold" data-act="agReg">Registrar agente</button></div>`:`<small class="rq-hint">${agenciasLista(op).length} agencias registradas · el comprobante no trae el nombre, elígela tú.</small>`}
         </div>
         <div class="f rq-mo"><label for="fMontoC">Monto descontado de tu caja</label><div class="rq-money"><span>$</span><input id="fMontoC" type="number" step="0.01" min="0" inputmode="decimal" data-k="monto" value="${esc(f.monto||'')}" placeholder="0,00" autocomplete="off"></div>
           <small class="rq-hint">${f.montoLeido?`El comprobante dice <b class="num">${money(f.montoLeido)}</b>`:'No se leyó el monto del comprobante'}</small></div>
@@ -932,6 +940,41 @@ function revisarHTML(f, op, dup, ver){
   </div>
   ${cuadreMovHTML(f, op)}`;
 }
+/* ---- agencias registradas: las del módulo de recargas + las del panel de Agencias ---- */
+function sincronizarAgencias(){
+  let L = null; try{ L = window.parent && window.parent.rcAgencias ? window.parent.rcAgencias() : null; }catch(e){}
+  if(!L || !L.length) return;
+  const nuevo = JSON.stringify(L); if(nuevo===JSON.stringify(S.agPanel||[])) return;
+  S.agPanel = L; guardarRegistro('rcf', 'agp');
+}
+const normId = x => String(x||'').trim().replace(/^0+/,'');
+function agenciasLista(op){
+  const out = [], vistos = new Set();
+  S.agentes.forEach(a=>{ vistos.add(normId(a.idPlat)); out.push({k:'rag:'+a.id, id:a.idPlat, nombre:a.nombre||'Sin nombre', sub:a.titular||'', op:a.op, mia:a.op===op}); });
+  (S.agPanel||[]).forEach(g=>{ const k = normId(g.codigo); if(k && vistos.has(k)) return; if(k) vistos.add(k); const o = S.operadores.find(x=>norm(x.nombre)===norm(g.operador||'')); out.push({k:'age:'+(g.codigo||g.usuario||g.nombre), id:g.codigo||'', nombre:g.nombre||g.usuario||'Sin nombre', sub:[g.propietario,g.plataforma].filter(Boolean).join(' · '), op:o?o.id:'', mia:o?o.id===op:false, g}); });
+  return out.sort((a,b)=>(b.mia-a.mia) || a.nombre.localeCompare(b.nombre));
+}
+function agCbxItems(op, q){
+  const t = norm(q||'').split(/\s+/).filter(Boolean), L = agenciasLista(op).filter(x=>{ const h = norm(`${x.id} ${x.nombre} ${x.sub}`); return t.every(w=>h.includes(w)); });
+  if(!L.length) return `<li class="cbx-none">${S.agentes.length||(S.agPanel||[]).length?'Ninguna agencia coincide.':'Todavía no hay agencias registradas.'}${q?` <button type="button" class="btn sm gold" data-act="agReg">Registrar ${/^\d+$/.test(q.trim())?'el ID '+esc(q.trim()):'agencia nueva'}</button>`:''}</li>`;
+  return L.map((x,i)=>`<li role="option" id="agO${i}" data-agsel="${esc(x.k)}" class="${i===0?'on':''}"><span class="cbx-av" aria-hidden="true">${esc(x.nombre.trim().charAt(0).toUpperCase())}</span><span class="cbx-t"><b>${esc(x.nombre)}</b><small>${x.id?'ID '+esc(x.id):'Sin ID'}${x.sub?' · '+esc(x.sub):''}</small></span>${x.op&&!x.mia?`<em>${esc(opName(x.op))}</em>`:x.mia?'<em class="mia">Tuya</em>':''}</li>`).join('');
+}
+function agSeleccionar(k){
+  const op = opActual(), f = UI.form;
+  if(k.startsWith('rag:')){ const a = S.agentes.find(x=>x.id===k.slice(4)); if(a){ f.agente = a.id; f.agId = a.idPlat; } }
+  else { const x = agenciasLista(op).find(y=>y.k===k); if(!x) return; const g = x.g||{};
+    if(!g.codigo){ UI.form.agId = ''; return agenteModal('', op, null, ag=>{ f.agente = ag.id; f.agId = ag.idPlat; renderForm(); }); }
+    const a = {id:uid('a'), idPlat:String(g.codigo), nombre:g.nombre||g.usuario||'', titular:g.propietario||'', titulares:g.propietario||'', telefono:g.telefono||'', cuenta:g.usuario||'', ciudad:g.ciudad||'', op:x.op||op, apto:''};
+    S.agentes.push(a); guardarRegistro('rag', a.id); f.agente = a.id; f.agId = a.idPlat; }
+  delete UI.read.agente; renderForm();
+}
+document.addEventListener('focusin', e=>{ if(e.target.id==='fAgId'){ const l = $('#agLst'); if(l){ l.innerHTML = agCbxItems(opActual(), UI.form.agente?'':e.target.value); l.hidden = false; e.target.setAttribute('aria-expanded','true'); e.target.select(); } } });
+document.addEventListener('focusout', e=>{ if(e.target.id==='fAgId') setTimeout(()=>{ const l = $('#agLst'), i = $('#fAgId'); if(l && document.activeElement!==i){ l.hidden = true; i && i.setAttribute('aria-expanded','false'); } }, 160); });
+document.addEventListener('mousedown', e=>{ if(e.target.closest('.cbx-l') && !e.target.closest('button')) e.preventDefault(); const li = e.target.closest('[data-agsel]'); if(li){ e.preventDefault(); agSeleccionar(li.dataset.agsel); return; } const b = e.target.closest('[data-act="agAbrir"]'); if(b){ e.preventDefault(); const i = $('#fAgId'); if(i){ if($('#agLst').hidden) i.focus(); else i.blur(); } } });
+document.addEventListener('keydown', e=>{ if(e.target.id!=='fAgId') return; const l = $('#agLst'); if(!l) return; const its = [...l.querySelectorAll('[data-agsel]')]; let k = its.findIndex(x=>x.classList.contains('on'));
+  if(e.key==='ArrowDown'||e.key==='ArrowUp'){ e.preventDefault(); if(l.hidden){ l.hidden = false; return; } k = Math.max(0, Math.min(its.length-1, k + (e.key==='ArrowDown'?1:-1))); its.forEach((x,j)=>x.classList.toggle('on', j===k)); if(its[k]){ its[k].scrollIntoView({block:'nearest'}); e.target.setAttribute('aria-activedescendant', its[k].id); } }
+  else if(e.key==='Enter'){ e.preventDefault(); if(its[k]) agSeleccionar(its[k].dataset.agsel); }
+  else if(e.key==='Escape'){ l.hidden = true; } });
 function agLinea(f, op){
   const a = f.agente ? S.agentes.find(x=>x.id===f.agente) : null;
   if(a) return `<div class="alert ${a.op===op?'ok':'warn'}"><b>${a.op===op?'✓':'!'}</b><div><b>${esc(a.nombre)}</b> · ${esc(a.titular||'')} · ${esc(a.telefono||'')}${a.op!==op?` · <b>es agente de ${esc(opName(a.op))}</b>`:''}</div></div>`;
@@ -1677,7 +1720,7 @@ document.addEventListener('click', async e=>{ const b = e.target.closest('[data-
 const RCOLS = ['rmv','rex','rag','rcf','rcu','rfo','rlg'];
 const EMBED = (()=>{ try{ return window.self !== window.top; }catch(e){ return true; } })();
 const LV = {ready:false, snap:{}, fotos:{}, dataId:{}, pendFotos:new Set(), q:Promise.resolve(), inflight:0, batch:[], bt:null, poll:null, needRender:false, err:null};
-function emptyS(){ return {reportes:{}, operadores:[], agentes:[], cuentas:[], cajas:{}, movs:[], conc:{}, tg:{token:'', chat:'', cada:true, alertas:true}, log:[], extr:[], ctasExt:[], fondeos:[], ctasOp:[], cuadOp:{}, cuadExt:{}}; }
+function emptyS(){ return {reportes:{}, operadores:[], agentes:[], cuentas:[], cajas:{}, movs:[], conc:{}, tg:{token:'', chat:'', cada:true, alertas:true}, log:[], extr:[], ctasExt:[], fondeos:[], ctasOp:[], cuadOp:{}, cuadExt:{}, agPanel:[]}; }
 const SHEETS_URL = (()=>{ try{ if(EMBED && window.parent.BENDERAM_SHEETS_URL) return window.parent.BENDERAM_SHEETS_URL; }catch(e){} return window.BENDERAM_SHEETS_URL || ''; })();
 function mainSes(){ try{ return JSON.parse(localStorage.getItem('benderam-sesion')||'null'); }catch(e){ return null; } }
 function liveRoles(M){ M = M || mainSes(); if(!M) return []; if(M.rol==='gerente') return ['ceo']; const a = M.areas||[], r = []; if(a.includes('recargas')) r.push('operador'); if(a.includes('extracciones') && RCM!=='op') r.push('extr'); if(RCM==='notif' && r.length>1) r.splice(1); if(a.includes('contabilidad')) r.push('conta'); return r; }
@@ -1713,7 +1756,7 @@ function fromRecords(D){
   const N = emptyS(), cf = D.rcf||{}, main = cf.main||{};
   N.movs = v('rmv').sort(byTs); N.extr = v('rex').sort(byTs); N.agentes = v('rag'); N.fondeos = v('rfo').sort(byTs); N.log = v('rlg').sort(byTs);
   N.operadores = main.operadores||[]; N.cuentas = main.cuentas||[]; N.ctasOp = main.ctasOp||[]; N.ctasExt = main.ctasExt||[];
-  N.tg = {...N.tg, ...(cf.tg||{})};
+  N.tg = {...N.tg, ...(cf.tg||{})}; N.agPanel = (cf.agp||{}).lista||[];
   Object.entries(D.rcu||{}).forEach(([k,val])=>{ const i = k.indexOf('|'), p = k.slice(0,i), r = k.slice(i+1);
     if(p==='caja') N.cajas[r] = val; else if(p==='rep') N.reportes[r] = val; else if(p==='op') N.cuadOp[r] = val; else if(p==='ext') N.cuadExt[r] = val; else if(p==='conc') N.conc[r] = val.v; });
   return N;
@@ -1723,7 +1766,7 @@ function toRecords(X){
   X.movs.forEach(m=>R.rmv[m.id]=m); X.extr.forEach(x=>R.rex[x.id]=x); X.agentes.forEach(a=>R.rag[a.id]=a); (X.fondeos||[]).forEach(f=>R.rfo[f.id]=f);
   (X.log||[]).forEach(l=>{ if(!l.id) l.id = `${l.ts}_${l.usuario}`; R.rlg[l.id] = l; });
   R.rcf.main = {operadores:X.operadores, cuentas:X.cuentas, ctasOp:X.ctasOp||[], ctasExt:X.ctasExt||[]};
-  R.rcf.tg = X.tg;
+  R.rcf.tg = X.tg; R.rcf.agp = {lista:X.agPanel||[]};
   Object.entries(X.cajas||{}).forEach(([k,v])=>R.rcu['caja|'+k]=v); Object.entries(X.cuadOp||{}).forEach(([k,v])=>R.rcu['op|'+k]=v); Object.entries(X.reportes||{}).forEach(([k,v])=>R.rcu['rep|'+k]=v);
   Object.entries(X.cuadExt||{}).forEach(([k,v])=>R.rcu['ext|'+k]=v); Object.entries(X.conc||{}).forEach(([k,v])=>R.rcu['conc|'+k]={v});
   return R;
@@ -1732,6 +1775,7 @@ function vacio(col, id, v){
   if(col==='rcu' && id.startsWith('caja|')) return !v.cerrada && !v.aprobada && (v.inicial===''||v.inicial==null) && (v.real===''||v.real==null);
   if(col==='rcf' && id==='main') return !v.operadores.length && !v.cuentas.length && !v.ctasOp.length && !v.ctasExt.length;
   if(col==='rcf' && id==='tg') return !v.token && !v.chat;
+  if(col==='rcf' && id==='agp') return !(v.lista||[]).length;
   return false;
 }
 function snapDe(X){ const R = toRecords(X), sn = {}; RCOLS.forEach(c=>{ sn[c] = {}; Object.entries(R[c]).forEach(([id,v])=>sn[c][id] = JSON.stringify(v)); }); return sn; }
@@ -1826,6 +1870,7 @@ async function liveCargar(silencioso){
   if(SES && SES.rol==='ceo' && USERS_PANEL===null){ USERS_PANEL = []; const ju = await rcApi('users.list'); USERS_PANEL = ju.ok ? ju.users : []; }
   if(SES && SES.rol==='ceo'){ const mig = S.operadores.filter(o=>!o.responsable && String(o.usuario||'').trim() && String(o.nombre||'').trim().split(/\s+/).length>=2 && !/^operador\s*\d+$/i.test(o.nombre));
     if(mig.length){ mig.forEach(o=>{ o.responsable = o.nombre; o.nombre = nombreOp(o.usuario); }); LV.ev = 'boton'; liveSave(); } }
+  if(SES && SES.rol==='ceo') sincronizarAgencias();
   if(SES && SES.rol==='ceo' && opsSobrantes().length){ const L = opsSobrantes(); L.forEach(borrarOperador); LV.ev = 'boton'; liveSave(); setTimeout(()=>toast(`Se eliminó ${L.map(o=>o.nombre).join(', ')}: no tenía usuario. Quedan solo los operadores creados desde Usuarios.`), 300); }
   render();
 }
