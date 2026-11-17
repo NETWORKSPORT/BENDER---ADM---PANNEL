@@ -187,7 +187,13 @@ table.t{width:100%;border-collapse:collapse;font-size:14px;min-width:860px}
 .rv-box{margin-top:14px;border:1px solid var(--line);border-radius:12px;overflow:hidden}.rv-h{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:12px 14px;background:var(--surface-2,rgba(255,255,255,.03));border-bottom:1px solid var(--line)}.rv-h span{font-size:13px;color:var(--muted)}
 .rv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr))}.rv{padding:10px 14px;border-bottom:1px solid var(--line);border-right:1px solid var(--line);position:relative}.rv span{display:block;font-size:12px;color:var(--muted)}.rv b{display:block;font-size:15px;margin-top:2px}.rv b small{font-weight:400;color:var(--muted);margin-left:4px}.rv i{position:absolute;top:8px;right:10px;font-style:normal;font-size:11px;color:var(--ok)}.rv.falta b{color:var(--danger);font-weight:500;font-size:13.5px}.rv span.rv-big{display:inline;font-size:24px;color:var(--gold);font-weight:700}
 .rv-ag{padding:12px 14px;border-bottom:1px solid var(--line)}.rv-caja{padding:10px 14px;font-size:14px}
-.opcard{margin-top:14px}.opcard-h{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr) minmax(0,1fr) auto;gap:12px;align-items:end}.opcard-c{margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}.opcard-ct{display:flex;justify-content:space-between;gap:10px;margin-bottom:8px}.opcard-ct span{font-size:12.5px}
+.opcard{margin-top:14px}.opl .opcard{margin-top:10px;padding:0;overflow:hidden}.opl .opcard>:not(summary){margin-left:20px;margin-right:20px}.opl .opcard[open]>.opcard-c{margin-bottom:20px}
+.opx{display:grid;grid-template-columns:auto minmax(140px,1.1fr) repeat(3,minmax(0,1fr)) auto;gap:16px;align-items:center;padding:16px 20px;cursor:pointer;list-style:none}.opx::-webkit-details-marker{display:none}.opx:hover{background:color-mix(in srgb,var(--gold) 5%,transparent)}
+.opx-av{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;font:700 18px/1 var(--display);color:#1a1405;background:linear-gradient(135deg,var(--gold),color-mix(in srgb,var(--gold) 60%,#fff))}
+.opx-n b{display:block;font:700 18px/1.2 var(--display)}.opx-n small,.opx-k small{display:block;font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}.opx-k b{display:block;font-size:14px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.opx-k em{display:block;font-style:normal;font-size:12px;color:var(--muted)}
+.opx-c{color:var(--muted);transition:transform .15s}.opcard[open] .opx-c{transform:rotate(180deg)}.opcard[open] .opx{border-bottom:1px solid var(--line)}
+.opx-lock{font-size:12.5px;color:var(--muted);margin-top:12px!important;margin-bottom:0}
+@media (max-width:800px){.opx{grid-template-columns:auto 1fr auto}.opx-k{grid-column:2/3}}.opcard-h{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr) minmax(0,1fr) auto;gap:12px;align-items:end}.opcard-c{margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}.opcard-ct{display:flex;justify-content:space-between;gap:10px;margin-bottom:8px}.opcard-ct span{font-size:12.5px}
 .opcta{display:grid;grid-template-columns:1.2fr 1.2fr 1.4fr .9fr auto auto;gap:10px;align-items:end;padding:10px 0;border-bottom:1px dashed var(--line)}.opcta-s small{display:block;font-size:11.5px;color:var(--muted)}.opcta-s b{font-size:15px;white-space:nowrap}
 @media (max-width:900px){.opcard-h,.opcta{grid-template-columns:1fr 1fr}}
 .cq-tabs{margin:0 0 16px;position:sticky;top:var(--topH,64px);z-index:15;background:var(--bg);padding:10px 0;border-bottom:1px solid var(--line)}.lnk{background:none;border:0;padding:0;color:var(--gold);font:inherit;cursor:pointer;text-decoration:underline}.hfil{display:flex;flex-direction:column;gap:12px}.hfil-f{display:flex;gap:12px;align-items:end;flex-wrap:wrap}.hfil-f .f{min-width:170px}
@@ -1988,16 +1994,22 @@ function configHTML(){
   const ctaFila = c => ctaCardHTML(c, 'op', ctaOpDia(c.id, UI.fecha).esperado);
   return `${!S.operadores.length?`<div class="alert info" style="margin-top:0"><b>1</b><div><b>Primer paso:</b> crea los operadores desde <b>Usuarios</b> (tipo Operador) o con el botón de abajo, y ponle a cada uno su cuenta de banco.</div></div>`:''}
   <div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h2>Operadores y sus cuentas de banco</h2>${LIVE?'<span class="muted" style="font-size:13px">Para agregar un operador, créalo en <b>Usuarios</b> con el tipo Operador.</span>':'<button class="btn sm gold" data-act="addOp">Agregar operador</button>'}</div>
-    <p class="muted" style="font-size:13px;margin:4px 0 0">Cada operador tiene su caja y su cuenta de banco. <b>Los comprobantes de recarga de cada operador deben estar a nombre de su cuenta</b>; si no, el panel los rechaza.</p></div>
-  ${S.operadores.map((o,i)=>{ const cs = ctasDeOp(o.id); const nm = S.movs.filter(m=>m.op===o.id||m.opDest===o.id).length; return `<div class="card opcard">
-    <div class="opcard-h"><div class="f"><label>Nombre del operador</label><input data-opi="${i}" value="${esc(o.nombre)}" placeholder="Ejemplo: Techis"></div><div class="f"><label>Responsable</label>${respSel(o,i)}</div><div class="f"><label>Usuario que entra</label>${sel(o,i)}</div>
-      <button class="btn sm quiet bad" data-act="delOp" data-i="${i}" title="Eliminar operador">Eliminar operador</button></div>
-    <div class="opcard-c"><div class="opcard-ct"><b>Cuenta de banco</b><span class="muted">${nm} movimientos registrados</span></div>
+    <p class="muted" style="font-size:13px;margin:4px 0 0">Cada operador tiene su caja y su cuenta de banco. Toca un operador para ver y administrar sus cuentas de banco.</p></div>
+  <div class="opl">${S.operadores.map((o,i)=>{ const cs = ctasDeOp(o.id); const nm = S.movs.filter(m=>m.op===o.id||m.opDest===o.id).length; const u = (USERS_PANEL||[]).find(x=>x.usuario===o.usuario); const abierto = UI.opOpen ? UI.opOpen.has(o.id) : S.operadores.length===1; const tot = r2(cs.reduce((a,c)=>a+ctaOpDia(c.id, UI.fecha).esperado,0)); return `<details class="card opcard" data-opd="${o.id}" ${abierto?'open':''}>
+    <summary class="opx"><span class="opx-av" aria-hidden="true">${esc((o.nombre||'?').trim().charAt(0).toUpperCase())}</span>
+      <span class="opx-n"><b>${esc(o.nombre)}</b><small>Operador</small></span>
+      <span class="opx-k"><small>Responsable</small><b>${esc(o.responsable||'—')}</b></span>
+      <span class="opx-k"><small>Usuario que entra</small><b>${u?esc(u.nombre):esc(o.usuario||'—')}</b>${o.usuario?`<em>${esc(o.usuario)}</em>`:''}</span>
+      <span class="opx-k"><small>Cuentas de banco</small><b>${cs.length}</b>${cs.length?`<em class="num">${money(tot)}</em>`:''}</span>
+      <span class="opx-c" aria-hidden="true">▾</span></summary>
+    <p class="opx-lock">🔒 El nombre, el responsable y el usuario se fijan al crear el usuario en <b>Usuarios</b> y no se cambian aquí.</p>
+    <div class="opcard-c"><div class="opcard-ct"><b>Cuentas de banco</b><span class="muted">${nm} movimientos registrados</span></div>
       ${cs.length?`<div class="ctag">${cs.map(ctaFila).join('')}</div>`:`<div class="alert warn" style="margin:0"><b>!</b><div>Sin cuenta de banco: <b>${esc(o.nombre)}</b> no podrá registrar recargas hasta que le pongas una.</div></div>`}
       <button class="btn sm gold" data-act="nuevaCta" data-tipo="op" data-op="${o.id}" style="margin-top:12px">${cs.length?'+ Agregar otra cuenta':'+ Agregar cuenta de banco'}</button></div>
-  </div>`; }).join('')}
+  </details>`; }).join('')}</div>
   <datalist id="bancosL3">${BANCOS.map(b=>`<option value="${b[0]}">`).join('')}</datalist>`;
 }
+document.addEventListener('toggle', e=>{ const d = e.target; if(!d.dataset || !d.dataset.opd) return; if(!UI.opOpen) UI.opOpen = new Set(S.operadores.length===1?[S.operadores[0].id]:[]); d.open ? UI.opOpen.add(d.dataset.opd) : UI.opOpen.delete(d.dataset.opd); }, true);
 document.addEventListener('change', e=>{ const t = e.target; if(!isAdm()) return;
   if(t.dataset.opu!=null){ S.operadores[+t.dataset.opu].usuario = t.value; save(); render(); }
   if(t.dataset.opr!=null){ S.operadores[+t.dataset.opr].responsable = t.value; save(); render(); }
