@@ -210,12 +210,16 @@ table.t{width:100%;border-collapse:collapse;font-size:14px;min-width:860px}
 .cqm-c{padding:12px 14px!important;border-radius:12px!important;background:var(--bg-2)}.cqm-c>b{font-size:15px}
 .cqm-n{display:flex;align-items:baseline;gap:8px;margin-top:4px;font-size:13px;color:var(--muted)}.cqm-n i{font-style:normal}.cqm-n b{font:700 19px/1.2 var(--display)}.cqm-c.out .cqm-n b{color:var(--danger)}.cqm-c.in .cqm-n b{color:var(--ok)}
 .cqm-arrow{display:flex!important;flex-direction:column;align-items:center;gap:4px;padding:0 10px;font:700 14px/1 var(--display)!important;color:var(--gold)}.cqm-arrow i{position:relative;display:block;width:100%;height:2px;background:linear-gradient(90deg,color-mix(in srgb,var(--danger) 70%,transparent),color-mix(in srgb,var(--ok) 80%,transparent))}.cqm-arrow i::after{content:"";position:absolute;right:-1px;top:-4px;border:5px solid transparent;border-left:7px solid var(--ok);border-right:0}
-.rq{display:grid;grid-template-columns:170px minmax(0,1fr);gap:18px;margin-top:14px}
-@media (max-width:760px){.rq{grid-template-columns:1fr}.rq-img{max-width:200px}}
+.rq{display:grid;grid-template-columns:minmax(0,460px) minmax(0,1fr);gap:20px;margin-top:14px;align-items:start}
+@media (max-width:1100px){.rq{grid-template-columns:1fr}.rq-pics{max-width:520px}}
+.rq-pics{display:grid;grid-template-columns:1fr 1fr;gap:14px;position:sticky;top:calc(var(--topH,0px) + 12px)}
+.rq-fig{margin:0;display:flex;flex-direction:column;gap:8px;min-width:0}.rq-fig figcaption{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.rq-fig figcaption i{flex:none}.rq-fig figcaption i{font-style:normal;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:11.5px;background:var(--gold);color:#1a1405}.rq-fig figcaption em{margin-left:auto;font-style:normal;font-weight:500;font-size:11px;color:var(--muted)}
+.rq-zone{display:flex!important;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:14px;text-align:center;background:color-mix(in srgb,var(--gold) 4%,var(--bg-2))!important;border:1.5px dashed color-mix(in srgb,var(--gold) 55%,var(--line))!important;cursor:pointer}.rq-zone:hover,.rq-zone.over{background:color-mix(in srgb,var(--gold) 10%,var(--bg-2))!important}.rq-zone svg{width:30px;height:30px;fill:none;stroke:var(--gold);stroke-width:1.8}.rq-zone b{font-size:14px;color:var(--text,inherit)}.rq-zone span{position:static!important;opacity:1!important;background:none!important;color:var(--muted)!important;font-size:12px;padding:0!important}
+.rq-chkbox{border:1px solid var(--line);border-radius:14px;padding:12px 14px;background:var(--bg-2)}.rq-chkbox>b{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:8px}.rq-chkbox.ok{border-color:color-mix(in srgb,var(--ok) 45%,var(--line))}.rq-chkbox.bad{border-color:color-mix(in srgb,var(--danger) 55%,var(--line))}.rq-chkbox p{margin:8px 0 0;font-size:13px;color:var(--danger)}.rq-chkbox.wait p{color:var(--muted);margin:0}
 .rq-pic{position:relative;display:block;width:100%;aspect-ratio:3/4;padding:0;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fff;cursor:zoom-in}.rq-pic img{width:100%;height:100%;object-fit:contain}.rq-pic span{position:absolute;inset:auto 0 0 0;padding:6px;font-size:12px;color:#fff;background:linear-gradient(transparent,rgba(0,0,0,.65));opacity:0;transition:opacity .15s}.rq-pic:hover span,.rq-pic:focus-visible span{opacity:1}
-.rq-links{display:flex;justify-content:space-between;margin-top:8px;font-size:13px}.lnk.bad{color:var(--danger)}
+.rq-links{display:flex;justify-content:space-between;font-size:13px;min-height:18px}.lnk.bad{color:var(--danger)}
 .rq-main{display:flex;flex-direction:column;gap:14px;min-width:0}
-.rq-in{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:14px}@media (max-width:900px){.rq-in{grid-template-columns:1fr}}
+.rq-in{display:grid;grid-template-columns:1fr;gap:14px}
 .rq-in .f{margin:0;padding:14px;border:1px solid var(--line);border-radius:14px;background:var(--bg-2)}.rq-in label{font-weight:600}
 .rq-mo{border-color:color-mix(in srgb,var(--gold) 45%,var(--line))!important}
 .rq-money{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:10px;padding:0 12px;background:var(--bg)}.rq-money:focus-within{border-color:var(--gold);box-shadow:0 0 0 3px color-mix(in srgb,var(--gold) 20%,transparent)}.rq-money span{font:700 22px/1 var(--display);color:var(--gold)}.rq-money input{border:0!important;box-shadow:none!important;background:transparent!important;padding:10px 0;font:700 26px/1.2 var(--display);color:var(--gold);width:100%}
@@ -227,13 +231,7 @@ table.t{width:100%;border-collapse:collapse;font-size:14px;min-width:860px}
 .cbx-t{min-width:0;flex:1}.cbx-t b{display:block;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cbx-t small{display:block;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cbx-l em{font-style:normal;font-size:11.5px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:2px 8px;white-space:nowrap}.cbx-l em.mia{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 40%,transparent)}
 .cbx-l li.cbx-none{cursor:default;color:var(--muted);font-size:13px;flex-wrap:wrap;justify-content:space-between}.cbx-l li.cbx-none:hover{background:none}
-.rq-in .f{overflow:visible}.rq-rc{margin-top:14px;border:1px solid var(--line);border-radius:14px;padding:14px 16px;background:var(--bg-2)}.rq-rc.ok{border-color:color-mix(in srgb,var(--ok) 45%,var(--line))}.rq-rc.bad{border-color:color-mix(in srgb,var(--danger) 55%,var(--line))}
-.rq-rch{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px}.rq-rch span{font-size:12.5px;color:var(--muted)}
-.rq-rcz{display:flex;flex-direction:column;align-items:center;gap:4px;padding:18px;border:1.5px dashed color-mix(in srgb,var(--gold) 45%,var(--line));border-radius:12px;cursor:pointer;text-align:center}.rq-rcz:hover,.rq-rcz.over{background:color-mix(in srgb,var(--gold) 7%,transparent)}.rq-rcz svg{width:26px;height:26px;fill:none;stroke:var(--gold);stroke-width:1.8}.rq-rcz span{font-size:12.5px;color:var(--muted)}
-.rq-rcb{display:grid;grid-template-columns:90px minmax(0,1fr) auto;gap:14px;align-items:center}.rq-rcimg{padding:0;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff;aspect-ratio:3/4;cursor:zoom-in}.rq-rcimg img{width:100%;height:100%;object-fit:contain}
-.rq-chk{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}.rq-chk li{display:flex;gap:8px;align-items:flex-start;font-size:14px}.rq-chk li>b{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:12px}.rq-chk li.ok>b{background:color-mix(in srgb,var(--ok) 18%,transparent);color:var(--ok)}.rq-chk li.bad>b{background:color-mix(in srgb,var(--danger) 18%,transparent);color:var(--danger)}.rq-chk li.bad span{color:var(--danger)}
-.rq-rca{display:flex;flex-direction:column;gap:6px;font-size:13px;align-items:flex-end}.rq-rcm{margin:10px 0 0;font-size:13px;color:var(--danger)}
-@media (max-width:700px){.rq-rcb{grid-template-columns:70px 1fr}.rq-rca{grid-column:1/-1;flex-direction:row;justify-content:space-between}}
+.rq-in .f{overflow:visible}.rq-chk{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}.rq-chk li{display:flex;gap:8px;align-items:flex-start;font-size:14px}.rq-chk li>b{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:12px}.rq-chk li.ok>b{background:color-mix(in srgb,var(--ok) 18%,transparent);color:var(--ok)}.rq-chk li.bad>b{background:color-mix(in srgb,var(--danger) 18%,transparent);color:var(--danger)}.rq-chk li.bad span{color:var(--danger)}
 .rq-hint{display:block;margin-top:8px;font-size:12.5px;color:var(--muted)}
 .rq-sel{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 10px;margin-top:10px;padding:8px 10px;border-radius:10px;background:color-mix(in srgb,var(--ok) 10%,transparent);border:1px solid color-mix(in srgb,var(--ok) 35%,transparent)}.rq-sel span{font-size:12.5px;color:var(--muted);width:100%}.rq-sel.warn{background:color-mix(in srgb,var(--warn,#e0a030) 10%,transparent);border-color:color-mix(in srgb,var(--warn,#e0a030) 40%,transparent)}.rq-sel.warn span{width:auto}
 .rq-data{border:1px solid var(--line);border-radius:14px;overflow:hidden}.rq-dh{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:10px 14px;border-bottom:1px solid var(--line);font-size:13px}.rq-dh em{font-style:normal;font-weight:600}.rq-dh em.ok{color:var(--ok)}.rq-dh em.bad{color:var(--danger)}
@@ -889,7 +887,7 @@ document.addEventListener('click', async e=>{
 document.addEventListener('input', e=>{
   const t = e.target;
   if(t.id==='fAgId' && t.closest('.cbx')){ UI.form.agId = t.value; UI.form.agente = ''; const l = $('#agLst'); if(l){ l.innerHTML = agCbxItems(opActual(), t.value); l.hidden = false; } const sl = document.querySelector('.rq-ag .rq-sel,.rq-ag .rq-hint'); if(sl) sl.outerHTML = '<small class="rq-hint">Elige una agencia de la lista.</small>'; return; }
-  if(t.id==='fMontoC'){ UI.form.monto = t.value; delete UI.read.monto; const q = document.querySelector('#formCard .cqm'); if(q) q.outerHTML = cuadreMovHTML(UI.form, opActual()); const rc = document.querySelector('#formCard .rq-rc'); if(rc && UI.rec && UI.rec.estado==='listo') rc.outerHTML = recargaAgHTML(UI.form); const bt = document.querySelector('#formCard [data-act=registrar]'); if(bt) bt.disabled = !checkRecargaAg(UI.form).ok; return; }
+  if(t.id==='fMontoC'){ UI.form.monto = t.value; delete UI.read.monto; const q = document.querySelector('#formCard .cqm'); if(q) q.outerHTML = cuadreMovHTML(UI.form, opActual()); const rc = document.querySelector('#formCard .rq-chkbox'); if(rc) rc.outerHTML = recChkHTML(UI.form); const bt = document.querySelector('#formCard [data-act=registrar]'); if(bt) bt.disabled = !checkRecargaAg(UI.form).ok; return; }
   if(t.dataset.k && t.closest('#formCard')){ UI.form[t.dataset.k] = t.value; delete UI.read[t.dataset.k];
     if(t.dataset.k==='agId'){ const ag = agByPlat(t.value); UI.form.agente = ag ? ag.id : ''; delete UI.read.agente; }
     if(['comprobante','banco','cuentaDest','fecha','agId'].includes(t.dataset.k)){ const pos = t.selectionStart; const id = t.id; renderForm(); const n = document.getElementById(id); if(n){ n.focus(); try{ n.setSelectionRange(pos,pos); }catch(_){} } }
@@ -943,10 +941,12 @@ function revisarHTML(f, op, dup, ver){
   const v = validarCuentaOp(f, op), ags = S.agentes.filter(x=>x.op===op);
   const D = (l, val, k) => `<div class="rq-d ${val?'':'no'}"><dt>${l}${val&&UI.read[k]?'<i title="Leído del comprobante">✓</i>':''}</dt><dd>${val||'—'}</dd></div>`;
   return `<div class="rq">
-    <aside class="rq-img">
-      <button type="button" class="rq-pic" data-act="verPrev" aria-label="Ver comprobante en grande">${UI.img?`<img src="${UI.img}" alt="Comprobante">`:''}<span>Ampliar</span></button>
-      <div class="rq-links">${UI.ocr?.texto?'<button class="lnk" data-act="verTexto">Texto leído</button>':''}<button class="lnk bad" data-act="limpiar">Cambiar</button></div>
-    </aside>
+    <div class="rq-pics">
+      <figure class="rq-fig"><figcaption><i>1</i>Transferencia del cliente</figcaption>
+        <button type="button" class="rq-pic" data-act="verPrev" aria-label="Ver comprobante de transferencia en grande">${UI.img?`<img src="${UI.img}" alt="Comprobante de transferencia">`:''}<span>Ampliar</span></button>
+        <div class="rq-links">${UI.ocr?.texto?'<button class="lnk" data-act="verTexto">Texto leído</button>':'<span></span>'}<button class="lnk bad" data-act="limpiar">Cambiar</button></div></figure>
+      ${recPicHTML()}
+    </div>
     <div class="rq-main">
       <div class="rq-in">
         <div class="f rq-ag"><label for="fAgId">Agencia a la que recargaste</label><div class="cbx"><input id="fAgId" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="agLst" value="${a?esc(a.nombre):esc(f.agId||'')}" placeholder="Elige de la lista o busca por ID o nombre" autocomplete="off"><button type="button" class="cbx-b" data-act="agAbrir" tabindex="-1" aria-label="Ver todas las agencias"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button><ul class="cbx-l" id="agLst" role="listbox" aria-label="Agencias registradas" hidden></ul></div>
@@ -955,13 +955,13 @@ function revisarHTML(f, op, dup, ver){
         <div class="f rq-mo"><label for="fMontoC">Monto descontado de tu caja</label><div class="rq-money"><span>$</span><input id="fMontoC" type="number" step="0.01" min="0" inputmode="decimal" data-k="monto" value="${esc(f.monto||'')}" placeholder="0,00" autocomplete="off"></div>
           <small class="rq-hint">${f.montoLeido?`El comprobante dice <b class="num">${money(f.montoLeido)}</b>`:'No se leyó el monto del comprobante'}</small></div>
       </div>
+      ${recChkHTML(f)}
       <div class="rq-data"><div class="rq-dh"><b>Datos del comprobante</b><span>${v.ok?`<em class="ok">✓ Entró a tu cuenta ${esc(v.cta.titular||v.cta.banco)}</em>`:'<em class="bad">Cuenta no reconocida</em>'}</span></div>
         <dl>${D('Banco', esc(f.banco||''), 'banco')}${D('N.º de comprobante', `<span class="num">${esc(f.comprobante||'')}</span>`.replace('<span class="num"></span>',''), 'comprobante')}${D('Fecha', f.fecha?fd(f.fecha):'', 'fecha')}${D('Cuenta destino', esc(f.cuentaDest||''), 'cuentaDest')}${D('Beneficiario', esc(f.beneficiario||''), 'beneficiario')}${D('Ordenante', esc(f.nombre||''), 'nombre')}</dl>
         ${v.ok?'':`<div class="rq-err"><b>No se puede registrar.</b> ${v.motivo}</div>`}
       </div>
     </div>
   </div>
-  ${recargaAgHTML(f)}
   ${cuadreMovHTML(f, op)}`;
 }
 /* ---- agencias registradas: las del módulo de recargas + las del panel de Agencias ---- */
@@ -1017,18 +1017,22 @@ function checkRecargaAg(f){
   const montosVistos = [...new Set(nums.filter(v=>/[.,]\d{2}\b/.test(String(v))||v>=1).map(v=>r2(v)))].slice(0,4);
   return {ok: !!a && agOk && moOk, agOk, moOk, agPor, a, mo, nums};
 }
-function recargaAgHTML(f){
+function recPicHTML(){
+  const R = UI.rec||{};
+  return `<figure class="rq-fig rec"><figcaption><i>2</i>Recarga a la agencia</figcaption>
+    ${R.estado==='listo' ? `<button type="button" class="rq-pic" data-act="verRec" aria-label="Ver comprobante de la recarga en grande"><img src="${R.img}" alt="Comprobante de la recarga"><span>Ampliar</span></button>
+      <div class="rq-links">${R.texto?'<button class="lnk" data-act="verRecTx">Texto leído</button>':'<span></span>'}<button class="lnk bad" data-act="quitarRec">Cambiar</button></div>`
+    : R.estado==='leyendo' ? `<div class="rq-pic rq-zone"><b>Leyendo la captura…</b><span>Un momento.</span></div><div class="rq-links"></div>`
+    : `<div class="rq-pic rq-zone" id="dropRec" tabindex="0" role="button" aria-label="Subir comprobante de la recarga"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg><b>Sube la captura de la recarga</b><span>Obligatorio · arrastra aquí, haz clic o pega con Ctrl+V</span></div><div class="rq-links"></div>`}
+  </figure>`;
+}
+function recChkHTML(f){
   const R = UI.rec||{}, c = checkRecargaAg(f);
   const fila = (ok, t) => `<li class="${ok?'ok':'bad'}"><b>${ok?'✓':'✗'}</b><span>${t}</span></li>`;
-  return `<div class="rq-rc ${R.estado==='listo'?(c.ok?'ok':'bad'):''}"><div class="rq-rch"><b>Comprobante de la recarga a la agencia</b><span>Captura de la plataforma donde se ve la recarga. Obligatorio.</span></div>
-    ${R.estado==='listo' ? `<div class="rq-rcb"><button type="button" class="rq-rcimg" data-act="verRec" aria-label="Ver comprobante de la recarga"><img src="${R.img}" alt="Comprobante de la recarga"></button>
-      <ul class="rq-chk">${fila(c.agOk, c.a ? (c.agOk?`Agencia coincide: <b>${esc(c.a.nombre)}</b> (${esc(c.agPor)})`:`No se ve la agencia <b>${esc(c.a.nombre)}</b> · ID ${esc(c.a.idPlat)} en la captura`) : 'Primero elige la agencia')}
-        ${fila(c.moOk, c.mo>0 ? (c.moOk?`Monto coincide: <b>${money(c.mo)}</b>`:`El monto <b>${money(c.mo)}</b> no aparece en la captura`) : 'Escribe el monto descontado')}</ul>
-      <div class="rq-rca">${R.texto?'<button class="lnk" data-act="verRecTx">Texto leído</button>':''}<button class="lnk bad" data-act="quitarRec">Cambiar</button></div></div>
-      ${c.ok?'':'<p class="rq-rcm">No se puede registrar: la agencia y el monto deben coincidir con la captura. Revisa que elegiste la agencia correcta y el monto exacto, o sube la captura correcta.</p>'}`
-    : R.estado==='leyendo' ? `<div class="rq-rcz"><b>Leyendo la captura…</b><span>Un momento.</span></div>`
-    : `<div class="rq-rcz" id="dropRec" tabindex="0" role="button" aria-label="Subir comprobante de la recarga"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg><b>Arrastra aquí la captura de la recarga</b><span>o haz clic · también Ctrl+V · foto o PDF</span></div>`}
-  </div>`;
+  if(R.estado!=='listo') return `<div class="rq-chkbox wait"><b>Verificación de la recarga</b><p>${R.estado==='leyendo'?'Leyendo la captura…':'Sube la captura de la recarga (2) para verificar que la agencia y el monto coincidan.'}</p></div>`;
+  return `<div class="rq-chkbox ${c.ok?'ok':'bad'}"><b>Verificación de la recarga</b><ul class="rq-chk">${fila(c.agOk, c.a ? (c.agOk?`Agencia coincide: <b>${esc(c.a.nombre)}</b> (${esc(c.agPor)})`:`No se ve la agencia <b>${esc(c.a.nombre)}</b> · ID ${esc(c.a.idPlat)} en la captura`) : 'Primero elige la agencia')}
+    ${fila(c.moOk, c.mo>0 ? (c.moOk?`Monto coincide: <b>${money(c.mo)}</b>`:`El monto <b>${money(c.mo)}</b> no aparece en la captura`) : 'Escribe el monto descontado')}</ul>
+    ${c.ok?'':'<p>No se puede registrar: la agencia y el monto deben coincidir con la captura.</p>'}</div>`;
 }
 function agLinea(f, op){
   const a = f.agente ? S.agentes.find(x=>x.id===f.agente) : null;
