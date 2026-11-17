@@ -204,6 +204,9 @@ table.t{width:100%;border-collapse:collapse;font-size:14px;min-width:860px}
 .ctaf{max-width:620px;width:100%}.ctaf .fg{display:grid;grid-template-columns:1fr 1fr;gap:12px}.ctaf .f.full{grid-column:1/-1}.ctaf .hint{font-size:12px;color:var(--muted);margin-top:4px}.ctaf-err{color:var(--danger);font-size:13.5px;min-height:18px;margin-top:10px}
 .ctaf-res{display:grid;gap:0;border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-top:6px}.ctaf-res>div{display:flex;justify-content:space-between;gap:10px;padding:8px 12px;border-top:1px solid var(--line)}.ctaf-res>div:first-child{border-top:0}.ctaf-res span{color:var(--muted)}
 @media (max-width:640px){.ctaf .fg{grid-template-columns:1fr}}
+.stk-l{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:10px;font-size:13px;color:var(--muted)}.stk-l b{color:var(--text,inherit);margin-left:4px}.hero-s{grid-template-columns:minmax(220px,320px) minmax(0,1fr)}
+.sx-g{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}.sx{border:1px solid var(--line);border-radius:14px;padding:16px;background:var(--surface,transparent);display:flex;flex-direction:column}.sx-h{display:flex;gap:10px;align-items:flex-start;margin-bottom:10px}.sx-h .dot{margin-top:6px}.sx-h>div{flex:1;min-width:0}.sx-h b{display:block;font-size:16px}.sx-h small{display:block;color:var(--muted);font-size:12.5px;margin-top:2px}.sx-p{font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:99px;padding:2px 8px}
+.sx-r{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px dashed var(--line);font-size:14px}.sx-r span small{display:block;font-size:12px;color:var(--muted);margin-top:1px}.sx-r.in b{color:var(--ok)}.sx-r.out b{color:var(--danger)}.sx-t{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-top:auto;padding-top:10px;border-top:1px solid var(--line)}.sx-t span{font-weight:600}.sx-t b{font:700 22px/1.2 var(--display);color:var(--gold)}
 .gs-prev{margin-top:12px;padding:10px 14px;border:1px dashed var(--line);border-radius:10px;font-size:14px}.gs-prev b{font-size:16px}
 .embed .shell{grid-template-columns:1fr}.embed .side{display:none}.embed .top .mob{display:none!important}.embed .ttl{display:block!important}.embed [data-act=theme]{display:none}
 @media (max-width:900px){.shell{grid-template-columns:1fr}.side{display:none}.top .mob{display:flex!important}.ttl{display:none}}
@@ -625,13 +628,7 @@ function cajaHTML(){
     <div class="sp" style="flex:1"></div>
     <div class="acts"><button class="btn" data-act="csv">Exportar CSV</button><button class="btn" data-act="print">Imprimir cuadre</button></div>
   </div>
-  ${(()=>{ const Q = saldosOp(op,f); return `<section class="kpis">
-    <div class="kpi hl"><small>Dinero total</small><b class="num">${money(Q.total)}</b><em>Caja + ${Q.bk.length} ${Q.bk.length===1?'banco':'bancos'}</em></div>
-    <div class="kpi"><small>Caja de operador</small><b class="num ${R.esperado<0?'neg':''}">${money(R.esperado)}</b><em>${R.n} movimientos</em></div>
-    <div class="kpi"><small>En mis bancos</small><b class="num">${money(Q.totB)}</b><em>${Q.bk.map(d=>esc(d.c.banco.replace(/^Banco\s+/,''))+' '+money(d.esperado)).join(' · ')||'Sin cuentas'}</em></div>
-    <div class="kpi"><small>Recargas a agentes</small><b class="num">${money(R.rec)}</b><em>${R.nRec} comprobantes</em></div>
-    <div class="kpi"><small>Verificado por contabilidad</small><b class="num">${ms.filter(m=>!m.anulado&&m.tipo==='recarga'&&m.rev==='ok').length} de ${R.nRec}</b><em>${ms.filter(m=>!m.anulado&&m.rev==='bad').length?`<span class="neg">${ms.filter(m=>!m.anulado&&m.rev==='bad').length} con problema</span>`:'Comprobantes revisados'}</em></div>
-  </section>`; })()}
+  ${saldosPorCuentaHTML(op, f, ms)}
   <section class="card noprint" id="formCard"></section>
   <p class="muted noprint" style="font-size:13px;margin:12px 2px 0">Los movimientos registrados y el saldo de cada día están en <button class="lnk" data-act="irHist">Historial</button>.</p>`;
 }
@@ -1842,6 +1839,32 @@ document.addEventListener('change', async e=>{ const t = e.target; if(t.id!=='in
   guardarRegistro('rcu', 'caja|'+op+'|'+f); if(LIVE){ const lg = S.log[S.log.length-1]; if(lg){ toRecords(S); guardarRegistro('rlg', lg.id); } }
   render(); toast('Saldo inicial guardado.'); });
 try{ new ResizeObserver(()=>{ const t = document.querySelector('.top'); if(t) document.documentElement.style.setProperty('--topH', t.offsetHeight+'px'); }).observe(document.body); }catch(e){}
+/* ---- saldos separados por cuenta (Caja del operador) ---- */
+function saldosPorCuentaHTML(op, f, ms){
+  const Q = saldosOp(op, f), R = Q.R; const pos = Math.max(1, [R.esperado, ...Q.bk.map(d=>d.esperado)].reduce((a,v)=>a+Math.max(0,v),0));
+  const fila = (l, v, cls, sub) => `<div class="sx-r ${cls||''}"><span>${l}${sub?`<small>${sub}</small>`:''}</span><b class="num">${v&&cls==='in'?'+':v&&cls==='out'?'−':''}${money(Math.abs(v))}</b></div>`;
+  const det = L => L.filter(x=>x[1]).map(x=>`${x[0]} ${money(x[1])}`).join(' · ');
+  const entC = r2(R.ext+R.car+R.tin+R.mIn+Math.max(0,R.aj)), salC = r2(R.rec+R.tout+R.mOut+R.carQ+Math.max(0,-R.aj));
+  const cajaCard = `<section class="sx c0"><div class="sx-h"><i class="dot" style="background:${SEGC[0]}"></i><div><b>Caja de operador</b><small>Saldo en la plataforma · ${esc(opName(op))}</small></div><span class="sx-p">${Math.round(Math.max(0,R.esperado)/pos*100)}%</span></div>
+    ${fila('Saldo al iniciar', R.ini, '', R.iniOrigen.origen==='anterior'?'Del cierre anterior':R.iniOrigen.origen==='fijo'?'Fijado por gerencia':'Sin saldo anterior')}
+    ${fila('Entró', entC, 'in', det([['Extracciones',R.ext],['Gerencia',R.car],['Recibido',R.tin],['Desde bancos',R.mIn]]) || 'Sin entradas')}
+    ${fila('Salió', salC, 'out', det([['Recargas',R.rec],['Pasado',R.tout],['Gerencia',R.carQ],['A bancos',R.mOut]]) || 'Sin salidas')}
+    <div class="sx-t"><span>Saldo ahora</span><b class="num ${R.esperado<0?'neg':''}">${money(R.esperado)}</b></div></section>`;
+  const bankCard = (d, i) => `<section class="sx"><div class="sx-h"><i class="dot" style="background:${SEGC[(i+1)%SEGC.length]}"></i><div><b>${esc(d.c.banco)}</b><small>${esc(d.c.tipoCta||'Cuenta')} · N.º <span class="num">${esc(d.c.numero)}</span>${d.c.titular?' · '+esc(d.c.titular):''}</small></div><span class="sx-p">${Math.round(Math.max(0,d.esperado)/pos*100)}%</span></div>
+    ${fila('Saldo al iniciar', d.ini, '', 'Del día anterior')}
+    ${fila('Entró', d.ent, 'in', det([[`Recargas (${d.nRec})`,d.rec],['Gerencia',d.iny],['Desde caja u otra cuenta',d.dIn]]) || 'Sin entradas')}
+    ${fila('Salió', d.sal, 'out', det([['A caja u otra cuenta',d.dOut],['Gerencia',d.inyQ]]) || 'Sin salidas')}
+    <div class="sx-t"><span>Saldo ahora</span><b class="num">${money(d.esperado)}</b></div></section>`;
+  const items = [{l:'Caja de operador', s:'Plataforma', v:R.esperado}, ...Q.bk.map(d=>({l:d.c.banco, s:`N.º ····${String(d.c.numero).slice(-4)}${d.c.titular?' · '+d.c.titular:''}`, v:d.esperado}))];
+  const nVer = ms.filter(m=>!m.anulado&&m.tipo==='recarga'&&m.rev==='ok').length, nBad = ms.filter(m=>!m.anulado&&m.rev==='bad').length;
+  return `<section class="hero hero-s"><div class="hero-l"><small>Dinero total de ${esc(opName(op))}</small><b class="num">${money(Q.total)}</b><span>Caja de operador + ${Q.bk.length} ${Q.bk.length===1?'cuenta':'cuentas'} de banco · ${fd(f)}</span></div><div class="hero-r"><div class="stk" role="img" aria-label="Reparto del dinero por cuenta">${items.map((x,i)=>x.v>0?`<i style="width:${(x.v/pos*100).toFixed(2)}%;background:${SEGC[i%SEGC.length]}" title="${esc(x.l)}: ${money(x.v)}"></i>`:'').join('')}</div><div class="stk-l">${items.map((x,i)=>`<span><i class="dot" style="background:${SEGC[i%SEGC.length]}"></i>${esc(x.l)}${i?` ····${esc(String(Q.bk[i-1].c.numero).slice(-4))}`:''} <b class="num">${money(x.v)}</b></span>`).join('')}</div></div></section>
+    <div class="sx-g">${cajaCard}${Q.bk.map(bankCard).join('')}${Q.bk.length?'':`<section class="sx"><div class="alert warn" style="margin:0"><b>!</b><div>Sin cuenta de banco. ${isAdm()?'Agrégala en Configuración.':'Pide a gerencia que te asigne una.'}</div></div></section>`}</div>
+    <section class="kpis" style="margin-top:14px">
+      <div class="kpi"><small>Recargas a agentes</small><b class="num">${money(R.rec)}</b><em>${R.nRec} comprobantes hoy</em></div>
+      <div class="kpi"><small>Verificado por contabilidad</small><b class="num">${nVer} de ${R.nRec}</b><em>${nBad?`<span class="neg">${nBad} con problema</span>`:'Comprobantes revisados'}</em></div>
+      <div class="kpi"><small>Movimientos del día</small><b class="num">${ms.filter(m=>!m.anulado).length}</b><em>Detalle en Historial</em></div>
+    </section>`;
+}
 /* ---- cuentas de banco: formulario con Guardar cuenta y confirmación ---- */
 function ctaCardHTML(c, tipo, saldoHoy){
   return `<div class="ctac"><div class="ctac-h"><div><b>${esc(c.banco||'Banco')}</b><small>${esc(c.tipoCta||'Cuenta')} · N.º <span class="num">${esc(c.numero||'—')}</span></small></div><span class="pill info">Activa</span></div>
