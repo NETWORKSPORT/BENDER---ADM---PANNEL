@@ -245,6 +245,10 @@ table.t{width:100%;border-collapse:collapse;font-size:14px;min-width:860px}
 .rsal{position:relative}.rsal-f{position:absolute;top:12px;right:12px;width:44px;height:56px;padding:0;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff;cursor:zoom-in}.rsal-f img{width:100%;height:100%;object-fit:cover;object-position:top}.rsal small{padding-right:52px;font-size:12.5px;color:var(--muted);font-weight:600}.rsal>b{font:700 24px/1.2 var(--display);color:var(--gold)}.rsal>span{font-size:11.5px;color:var(--muted)}.rsal dl{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;margin:10px 0 6px;font-size:12.5px}.rsal dl div{display:flex;justify-content:space-between;gap:6px}.rsal dt{color:var(--muted)}.rsal dd{margin:0}.rsal em{font-style:normal;font-weight:600;font-size:13px}
 .rmv-g{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}.rmv{border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:var(--bg-2)}.rmv small{display:block;font-size:12px;color:var(--muted)}.rmv b{display:block;font:700 18px/1.3 var(--display);margin-top:2px}.rmv span{font-size:11.5px;color:var(--muted)}.rmv.cero{opacity:.55}
 .reset-card{margin-top:22px;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;border-color:color-mix(in srgb,var(--danger) 45%,var(--line))}.reset-card>div{flex:1;min-width:260px}
+.wa-card{margin-top:14px;border-color:color-mix(in srgb,#25D366 45%,var(--line))}.wa-h{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;flex-wrap:wrap}.wa-sw{display:flex;align-items:center;gap:8px;font-weight:600;cursor:pointer}.wa-sw input{width:18px;height:18px;accent-color:#25D366}
+.wa-g{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}.wa-g small,.wa-pl small{display:block;margin-top:4px;font-size:12px}.wa-pl{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:16px;margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}.wa-pl textarea{width:100%;font:13px/1.5 ui-monospace,Menlo,monospace;resize:vertical}.wa-pl code{font-size:11.5px;padding:1px 5px;border-radius:5px;background:var(--bg-2);border:1px solid var(--line)}
+.wa-prev{display:flex;flex-direction:column;gap:6px}.wa-bub{background:#005c4b;color:#e9edef;border-radius:10px;padding:6px;max-width:340px;box-shadow:0 1px 2px rgba(0,0,0,.3)}.wa-img{height:120px;border-radius:7px;background:repeating-linear-gradient(45deg,#e8e8e8,#e8e8e8 10px,#f5f5f5 10px,#f5f5f5 20px);color:#555;display:grid;place-items:center;font-size:12px}.wa-bub pre{margin:6px 4px 2px;white-space:pre-wrap;font:13.5px/1.45 system-ui,sans-serif}
+@media (max-width:900px){.wa-g,.wa-pl{grid-template-columns:1fr}}
 .fms{display:flex;gap:8px}.t .pill{white-space:nowrap}.fm{display:flex;flex-direction:column;align-items:center;gap:3px;padding:0;border:0;background:none;cursor:zoom-in;color:inherit}.fm img,.fm i{width:46px;height:60px;border-radius:7px;border:1px solid var(--line);object-fit:cover;object-position:top;background:#fff;display:grid;place-items:center}.fm i{background:var(--bg-2);font-style:normal;font-size:10px;color:var(--muted);text-align:center;line-height:1.2;cursor:default}.fm span{font-size:11px;color:var(--muted)}.fm:hover img{border-color:var(--gold)}.fm.no{cursor:default}
 .rq-hint{display:block;margin-top:8px;font-size:12.5px;color:var(--muted)}
 .rq-sel{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 10px;margin-top:10px;padding:8px 10px;border-radius:10px;background:color-mix(in srgb,var(--ok) 10%,transparent);border:1px solid color-mix(in srgb,var(--ok) 35%,transparent)}.rq-sel span{font-size:12.5px;color:var(--muted);width:100%}.rq-sel.warn{background:color-mix(in srgb,var(--warn,#e0a030) 10%,transparent);border-color:color-mix(in srgb,var(--warn,#e0a030) 40%,transparent)}.rq-sel.warn span{width:auto}
@@ -597,7 +601,7 @@ async function leerComprobante(file){
     let text = '', url;
     if(isPdf){ const r = await pdfToImage(file); text = r.text; url = r.url; }
     else url = await new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(file); });
-    const pi = await prepImage(url); UI.img = pi.thumb; renderForm();
+    const pi = await prepImage(url); UI.img = pi.thumb; try{ UI.imgEnvio = await achicarImg(url, 1280, .8); }catch(_){ UI.imgEnvio = null; } renderForm();
     if(!text.trim()){ const w = await getWorker(p=>{ UI.ocr.prog = p; const b=$('#ocrBar'); if(b) b.style.width = Math.round(p*100)+'%'; }); const r = await w.recognize(pi.ocr); text = r.data.text; }
     UI.ocr = {estado:'listo', texto:text};
     aplicarLectura(parseReceipt(text));
@@ -779,12 +783,12 @@ async function registrar(){
   const m = {id:uid('m'), ts:Date.now(), op, fecha:UI.fecha, tipo:UI.tipo, agente:f.agente||'', monto, banco:t.comp?f.banco.trim():'', comprobante:t.comp?String(f.comprobante).trim():'', nombre:t.comp?(f.nombre||'').trim():'', fechaComp:t.comp?(f.fecha||UI.fecha):'', cuentaDest:f.cuentaDest||'', verif: ver===null?null:!!ver, nota:(f.nota||'').trim(), signo: UI.tipo==='ajuste' ? (+f.signo||1) : undefined, img:t.comp?UI.img:null, imgRec: UI.tipo==='recarga' && UI.rec && UI.rec.img ? UI.rec.img : undefined, agIdPlat: UI.tipo==='recarga' ? (agIdLeido||undefined) : undefined, plataforma: UI.tipo==='recarga' ? 'Ecuabet' : undefined, auto:Object.keys(UI.read), usuario:SES.usuario, opDest: UI.tipo==='transfer' ? f.opDest : undefined, estadoT: UI.tipo==='transfer' ? 'pendiente' : undefined, ctaOp: UI.tipo==='recarga' ? ((f.ctaOp && ctaOpById(f.ctaOp) && ctaOpById(f.ctaOp).op===op) ? f.ctaOp : (VC && VC.cta ? VC.cta.id : undefined)) : undefined, beneficiario: UI.tipo==='recarga' ? (f.beneficiario||'') : undefined, dest: UI.tipo==='carga' ? (f.dest||'caja') : undefined, signo: UI.tipo==='carga' ? (f.signo==='-'?-1:1) : (UI.tipo==='ajuste' ? (f.signo==='-'||f.signo==-1?-1:1) : undefined), from: UI.tipo==='mover' ? f.from : undefined, to: UI.tipo==='mover' ? f.to : undefined};
   if(m.tipo==='recarga') m.rev = '';
   S.movs.push(m); save();
-  if(m.tipo==='recarga') tgComprobante(m);
+  if(m.tipo==='recarga'){ tgComprobante(m); waComprobante(m, UI.imgEnvio || m.img); }
   if(m.tipo==='carga') logAcc('Gestión de saldo', `${m.signo<0?'Quitó':'Aumentó'} ${money(monto)} · ${opName(op)} → ${lugarL(m.dest)}${m.nota?' · '+m.nota:''}`);
   if(m.tipo==='ajuste') logAcc('Ajuste', `${m.signo<0?'−':'+'}${money(monto)} en ${opName(op)} · ${m.nota}`);
   if(m.tipo==='transfer') tgSend(`🔁 <b>Traspaso de saldo por aceptar</b>\n${esc(opName(op))} → ${esc(opName(m.opDest))}: ${money(monto)}${m.nota?'\n'+esc(m.nota):''}`, 'alertas');
   if(m.tipo==='carga') tgSend(`💰 <b>Gestión de saldo</b>\n${esc(opName(op))} → ${esc(lugarL(m.dest))}: ${m.signo<0?'−':'+'}${money(monto)}${m.nota?'\n'+esc(m.nota):''}`, 'alertas');
-  UI.form = {}; UI.read = {}; UI.img = null; UI.ocr = null; UI.edit = false; UI.rec = null;
+  UI.form = {}; UI.read = {}; UI.img = null; UI.imgEnvio = null; UI.ocr = null; UI.edit = false; UI.rec = null;
   render();
   const nR = resumen(op, UI.fecha);
   toast(m.tipo==='transfer' ? `Enviaste ${money(monto)} a ${opName(m.opDest)}. Queda pendiente hasta que lo acepte en Notificaciones.` : m.tipo==='carga' ? `${m.signo<0?'Se quitaron':'Se aumentaron'} ${money(monto)} ${m.signo<0?'de':'a'} ${lugarL(m.dest)} de ${opName(op)}. Saldo de caja: ${money(nR.esperado)}.` : m.tipo==='mover' ? `Moviste ${money(monto)}: ${lugarL(m.from)} → ${lugarL(m.to)}. El total no cambia.` : m.tipo==='carga' && m.dest!=='caja' ? `Inyección de ${money(monto)} a ${lugarL(m.dest)} de ${opName(op)}.` : m.tipo==='transfer' ? `Pasaste ${money(monto)} a ${opName(m.opDest)}. Tu saldo: ${money(nR.esperado)}.` : `${t.label} de ${money(monto)} registrada. Saldo de caja de ${opName(op)}: ${money(nR.esperado)}.`);
@@ -870,7 +874,7 @@ document.addEventListener('click', async e=>{
   else if(a==='theme'){ const cur = document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'); document.documentElement.dataset.theme = cur==='light'?'dark':'light'; try{ localStorage.setItem('benderam-sim-theme', document.documentElement.dataset.theme); }catch(e){} }
   else if(a==='tipo'){ UI.tipo = b.dataset.k; renderForm(); }
   else if(a==='registrar') registrar();
-  else if(a==='limpiar'){ UI.form = {}; UI.read = {}; UI.img = null; UI.ocr = null; UI.edit = false; UI.rec = null; renderForm(); }
+  else if(a==='limpiar'){ UI.form = {}; UI.read = {}; UI.img = null; UI.imgEnvio = null; UI.ocr = null; UI.edit = false; UI.rec = null; renderForm(); }
   else if(a==='quitarRec'){ UI.rec = null; renderForm(); }
   else if(a==='irHoy'){ UI.fecha = todayS(); UI.ciF = todayS(); render(); }
   else if(a==='agForzar'){ const f = UI.form, c = checkRecargaAg(f); if(!(c.a && c.moOk && c.plOk && !c.agOk)) return;
@@ -1858,7 +1862,7 @@ document.addEventListener('click', async e=>{ const b = e.target.closest('[data-
 const RCOLS = ['rmv','rex','rag','rcf','rcu','rfo','rlg'];
 const EMBED = (()=>{ try{ return window.self !== window.top; }catch(e){ return true; } })();
 const LV = {ready:false, snap:{}, fotos:{}, dataId:{}, pendFotos:new Set(), q:Promise.resolve(), inflight:0, batch:[], bt:null, poll:null, needRender:false, err:null};
-function emptyS(){ return {reportes:{}, operadores:[], agentes:[], cuentas:[], cajas:{}, movs:[], conc:{}, tg:{token:'', chat:'', cada:true, alertas:true}, log:[], extr:[], ctasExt:[], fondeos:[], ctasOp:[], cuadOp:{}, cuadExt:{}, agPanel:[]}; }
+function emptyS(){ return {reportes:{}, operadores:[], agentes:[], cuentas:[], cajas:{}, movs:[], conc:{}, tg:{token:'', chat:'', cada:true, alertas:true}, log:[], extr:[], ctasExt:[], fondeos:[], ctasOp:[], cuadOp:{}, cuadExt:{}, agPanel:[], wa:{}}; }
 const SHEETS_URL = (()=>{ try{ if(EMBED && window.parent.BENDERAM_SHEETS_URL) return window.parent.BENDERAM_SHEETS_URL; }catch(e){} return window.BENDERAM_SHEETS_URL || ''; })();
 function mainSes(){ try{ return JSON.parse(localStorage.getItem('benderam-sesion')||'null'); }catch(e){ return null; } }
 function liveRoles(M){ M = M || mainSes(); if(!M) return []; if(M.rol==='gerente') return ['ceo']; const a = M.areas||[], r = []; if(a.includes('recargas')) r.push('operador'); if(a.includes('extracciones') && RCM!=='op') r.push('extr'); if(RCM==='notif' && r.length>1) r.splice(1); if(a.includes('contabilidad')) r.push('conta'); return r; }
@@ -1894,7 +1898,7 @@ function fromRecords(D){
   const N = emptyS(), cf = D.rcf||{}, main = cf.main||{};
   N.movs = v('rmv').sort(byTs); N.extr = v('rex').sort(byTs); N.agentes = v('rag'); N.fondeos = v('rfo').sort(byTs); N.log = v('rlg').sort(byTs);
   N.operadores = main.operadores||[]; N.cuentas = main.cuentas||[]; N.ctasOp = main.ctasOp||[]; N.ctasExt = main.ctasExt||[];
-  N.tg = {...N.tg, ...(cf.tg||{})}; N._rst = !!cf.reset1117; N.agPanel = Object.keys(cf).filter(k=>/^agp\d+$/.test(k)).sort((a,b)=>+a.slice(3)-+b.slice(3)).flatMap(k=>(cf[k]||{}).lista||[]);
+  N.tg = {...N.tg, ...(cf.tg||{})}; N._rst = !!cf.reset1117; N.wa = cf.wa || {}; N.agPanel = Object.keys(cf).filter(k=>/^agp\d+$/.test(k)).sort((a,b)=>+a.slice(3)-+b.slice(3)).flatMap(k=>(cf[k]||{}).lista||[]);
   Object.entries(D.rcu||{}).forEach(([k,val])=>{ const i = k.indexOf('|'), p = k.slice(0,i), r = k.slice(i+1);
     if(p==='caja') N.cajas[r] = val; else if(p==='rep') N.reportes[r] = val; else if(p==='op') N.cuadOp[r] = val; else if(p==='ext') N.cuadExt[r] = val; else if(p==='conc') N.conc[r] = val.v; });
   return N;
@@ -1904,7 +1908,7 @@ function toRecords(X){
   X.movs.forEach(m=>R.rmv[m.id]=m); X.extr.forEach(x=>R.rex[x.id]=x); X.agentes.forEach(a=>R.rag[a.id]=a); (X.fondeos||[]).forEach(f=>R.rfo[f.id]=f);
   (X.log||[]).forEach(l=>{ if(!l.id) l.id = `${l.ts}_${l.usuario}`; R.rlg[l.id] = l; });
   R.rcf.main = {operadores:X.operadores, cuentas:X.cuentas, ctasOp:X.ctasOp||[], ctasExt:X.ctasExt||[]};
-  R.rcf.tg = X.tg;
+  R.rcf.tg = X.tg; R.rcf.wa = X.wa || {};
   Object.entries(X.cajas||{}).forEach(([k,v])=>R.rcu['caja|'+k]=v); Object.entries(X.cuadOp||{}).forEach(([k,v])=>R.rcu['op|'+k]=v); Object.entries(X.reportes||{}).forEach(([k,v])=>R.rcu['rep|'+k]=v);
   Object.entries(X.cuadExt||{}).forEach(([k,v])=>R.rcu['ext|'+k]=v); Object.entries(X.conc||{}).forEach(([k,v])=>R.rcu['conc|'+k]={v});
   return R;
@@ -1913,6 +1917,7 @@ function vacio(col, id, v){
   if(col==='rcu' && id.startsWith('caja|')) return !v.cerrada && !v.aprobada && (v.inicial===''||v.inicial==null) && (v.real===''||v.real==null);
   if(col==='rcf' && id==='main') return !v.operadores.length && !v.cuentas.length && !v.ctasOp.length && !v.ctasExt.length;
   if(col==='rcf' && id==='tg') return !v.token && !v.chat;
+  if(col==='rcf' && id==='wa') return !v.plantilla && v.activo===undefined;
   return false;
 }
 function snapDe(X){ const R = toRecords(X), sn = {}; RCOLS.forEach(c=>{ sn[c] = {}; Object.entries(R[c]).forEach(([id,v])=>sn[c][id] = JSON.stringify(v)); }); return sn; }
@@ -2178,6 +2183,7 @@ function configHTML(){
   return `${!S.operadores.length?`<div class="alert info" style="margin-top:0"><b>1</b><div><b>Primer paso:</b> crea los operadores desde <b>Usuarios</b> (tipo Operador) o con el botón de abajo, y ponle a cada uno su cuenta de banco.</div></div>`:''}
   <div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h2>Operadores y sus cuentas de banco</h2>${LIVE?'<span class="muted" style="font-size:13px">Para agregar un operador, créalo en <b>Usuarios</b> con el tipo Operador.</span>':'<button class="btn sm gold" data-act="addOp">Agregar operador</button>'}</div>
     <p class="muted" style="font-size:13px;margin:4px 0 0">Cada operador tiene su caja y su cuenta de banco. Toca un operador para ver y administrar sus cuentas de banco.</p></div>
+  ${SES && SES.rol==='ceo' ? waCardHTML() : ''}
   <div class="opl">${S.operadores.map((o,i)=>{ const cs = ctasDeOp(o.id); const nm = S.movs.filter(m=>m.op===o.id||m.opDest===o.id).length; const u = (USERS_PANEL||[]).find(x=>x.usuario===o.usuario); const abierto = UI.opOpen ? UI.opOpen.has(o.id) : S.operadores.length===1; const tot = r2(cs.reduce((a,c)=>a+ctaOpDia(c.id, UI.fecha).esperado,0)); return `<details class="card opcard" data-opd="${o.id}" ${abierto?'open':''}>
     <summary class="opx"><span class="opx-av" aria-hidden="true">${esc((o.nombre||'?').trim().charAt(0).toUpperCase())}</span>
       <span class="opx-n"><b>${esc(o.nombre)}</b><small>Operador</small></span>
@@ -2572,6 +2578,68 @@ async function tgSend(text, kind, img){
     const j = await r.json(); return !!j.ok;
   }catch(e){ return false; }
 }
+/* ---- WhatsApp: cada recarga se manda al grupo con la foto del comprobante ---- */
+const WA_PLANTILLA = `🧾 *RECARGA REGISTRADA*
+👤 Operador: {operador} ({responsable})
+🏪 Agencia: {agencia} · ID {idAgencia}
+💵 Monto: *{monto}*
+🏦 Banco: {banco} · cuenta ····{cuenta}
+🔢 N.º comprobante: {comprobante}
+🙋 Ordenante: {ordenante}
+📅 Fecha: {fecha} {hora}
+✍️ Registró: {usuario}`;
+const WA_CAMPOS = [['operador','Nombre del operador'],['responsable','Responsable'],['agencia','Agencia'],['idAgencia','ID de la agencia'],['monto','Monto'],['banco','Banco del comprobante'],['cuenta','Últimos 4 de la cuenta que recibió'],['titular','A nombre de (cuenta que recibió)'],['comprobante','N.º de comprobante'],['ordenante','Quien transfiere'],['fecha','Fecha'],['hora','Hora'],['fechaComp','Fecha del comprobante'],['usuario','Quién registró'],['saldoCaja','Saldo de caja después']];
+function waTexto(m, plantilla){
+  const a = S.agentes.find(x=>x.id===m.agente)||{}, c = m.ctaOp ? ctaOpById(m.ctaOp) : null;
+  const v = {operador:opName(m.op), responsable:opResp(m.op)||'', agencia:a.nombre||'Sin agencia', idAgencia:a.idPlat||m.agIdPlat||'—', monto:money(m.monto), banco:m.banco||'—', cuenta:c?String(c.numero).slice(-4):(String(m.cuentaDest||'').replace(/\D/g,'').slice(-4)||'—'), titular:c?(c.titular||c.banco):'—', comprobante:m.comprobante||'—', ordenante:m.nombre||'—', fecha:fd(m.fecha), hora:hm(m.ts), fechaComp:m.fechaComp?fd(m.fechaComp):fd(m.fecha), usuario:m.usuario||'', saldoCaja:money(resumen(m.op, m.fecha).esperado)};
+  return String(plantilla||WA_PLANTILLA).replace(/\{(\w+)\}/g, (x,k)=> k in v ? v[k] : x);
+}
+async function waComprobante(m, img){
+  if(!LIVE || (S.wa||{}).activo===false) return;
+  const j = await rcApi('rc.wa', {text:waTexto(m, (S.wa||{}).plantilla), img: imgData(img) || img});
+  if(j.ok){ m.wa = true; if(j.sinFoto) m.waSinFoto = true; save(); }
+  else if(!/no está configurado/i.test(j.error||'')) toast('WhatsApp: '+j.error, true);
+}
+async function achicarImg(url, max, q){
+  const im = await new Promise((res,rej)=>{ const i=new Image(); i.onload=()=>res(i); i.onerror=rej; i.src=url; });
+  const k = Math.min(1, max/Math.max(im.width, im.height)), c = document.createElement('canvas'); c.width = Math.round(im.width*k); c.height = Math.round(im.height*k);
+  const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0,0,c.width,c.height); x.drawImage(im,0,0,c.width,c.height); return c.toDataURL('image/jpeg', q||.8);
+}
+let WA_INFO = null, WA_GRUPOS = null, WA_TOKTMP = '';
+async function waCargarInfo(){ const j = await rcApi('rc.wa.info'); WA_INFO = j.ok ? j : {error:j.error}; if(UI.tab==='config' && !liveOcupado()) render(); }
+function waCardHTML(){
+  if(!LIVE) return '';
+  if(WA_INFO===null){ WA_INFO = {}; waCargarInfo(); }
+  const W = S.wa||{}, inf = WA_INFO||{}, pl = W.plantilla || WA_PLANTILLA;
+  const ejemplo = waTexto({op:S.operadores[0]?.id, agente:(S.agentes[0]||{}).id, monto:300, banco:'Banco Pichincha', comprobante:'39877187', nombre:'Padilla Tenorio Anthonny Javier', fecha:todayS(), ts:Date.now(), usuario:'operador', ctaOp:(S.ctasOp||[])[0]?.id}, pl);
+  return `<div class="card wa-card"><div class="wa-h"><div><h2>WhatsApp · comprobantes al grupo</h2><p class="muted" style="font-size:13px;margin:4px 0 0">Cada recarga registrada se envía al grupo con la foto del comprobante de transferencia y el texto de la plantilla.</p></div>
+      <label class="wa-sw"><input type="checkbox" id="waAct" ${W.activo===false?'':'checked'}> <span>${W.activo===false?'Apagado':'Encendido'}</span></label></div>
+    ${inf.error?`<div class="alert warn" style="margin:10px 0 0"><b>!</b><div>No se pudo leer la configuración de WhatsApp: ${esc(inf.error)}. Si acabas de agregar esta función, actualiza el código de Google Apps Script.</div></div>`:''}
+    <div class="wa-g">
+      <div class="f"><label for="waTok">Token de Whapi</label><input id="waTok" type="password" autocomplete="off" placeholder="${inf.tieneToken?'•••••••• guardado (escribe uno nuevo solo para cambiarlo)':'Pega aquí el token del canal'}"><small class="muted">${inf.tieneToken?'✓ Token guardado de forma segura en Google. Nadie puede verlo.':'Se guarda en Google, no en la hoja: los operadores no lo ven.'}</small></div>
+      <div class="f"><label for="waGr">Grupo</label>${WA_GRUPOS&&WA_GRUPOS.length?`<select id="waGr"><option value="">Elige el grupo</option>${WA_GRUPOS.map(g=>`<option value="${esc(g.id)}" data-n="${esc(g.nombre)}" ${g.id===inf.grupo?'selected':''}>${esc(g.nombre)}</option>`).join('')}</select>`:`<input id="waGr" value="${esc(inf.grupo||'')}" placeholder="120363…@g.us">`}
+        <small class="muted">${inf.grupo?`Actual: <b>${esc(inf.nombre||inf.grupo)}</b>`:'Todavía no hay grupo.'} · <button class="lnk" data-act="waGrupos">Buscar mis grupos</button></small></div>
+    </div>
+    <div class="acts" style="margin-top:10px"><button class="btn gold" data-act="waGuardar">Guardar token y grupo</button><button class="btn" data-act="waProbar" ${inf.tieneToken&&inf.grupo?'':'disabled'}>Enviar mensaje de prueba</button></div>
+    <div class="wa-pl"><div class="f"><label for="waPl">Plantilla del mensaje</label><textarea id="waPl" rows="10">${esc(pl)}</textarea>
+        <small class="muted">Datos que puedes usar: ${WA_CAMPOS.map(([k,l])=>`<code title="${esc(l)}">{${k}}</code>`).join(' ')} · Para negrita usa *texto*.</small>
+        <div class="acts" style="margin-top:8px"><button class="btn sm gold" data-act="waPlGuardar">Guardar plantilla</button><button class="btn sm quiet" data-act="waPlReset">Volver a la plantilla original</button></div></div>
+      <div class="wa-prev"><small class="muted">Así se verá en WhatsApp</small><div class="wa-bub"><div class="wa-img">Foto del comprobante</div><pre>${esc(ejemplo).replace(/\*([^*\n]+)\*/g,'<b>$1</b>')}</pre></div></div></div>
+  </div>`;
+}
+document.addEventListener('click', async e=>{ const b = e.target.closest('[data-act^="wa"]'); if(!b || !SES || SES.rol!=='ceo') return; const a = b.dataset.act;
+  if(a==='waGrupos'){ b.disabled = true; const tk = ($('#waTok')||{}).value||''; if(!tk && !(WA_INFO||{}).tieneToken){ b.disabled = false; return toast('Primero pega el token.', true); } const j = await rcApi('rc.wa.grupos', {waToken:tk||undefined}); b.disabled = false; if(!j.ok) return toast('WhatsApp: '+j.error, true); WA_GRUPOS = j.grupos||[]; WA_TOKTMP = tk; render(); if(tk && $('#waTok')) $('#waTok').value = tk; toast(`${WA_GRUPOS.length} grupos encontrados. Elige el de comprobantes y pulsa Guardar.`); }
+  else if(a==='waGuardar'){ const tok = ($('#waTok')||{}).value||'', sel = $('#waGr'); const gr = sel ? sel.value.trim() : ''; const nom = sel && sel.selectedOptions ? (sel.selectedOptions[0]?.dataset.n||'') : '';
+    if(!tok && !(WA_INFO||{}).tieneToken) return toast('Pega el token de Whapi.', true);
+    if(gr && !/@g\.us$/.test(gr)) return toast('El ID del grupo debe terminar en @g.us', true);
+    if(!(await ask('Guardar WhatsApp', `¿Guardar ${tok?'el token y ':''}el grupo <b>${esc(nom||gr||'(sin cambiar)')}</b>?`, {ok:'Sí, guardar'}))) return;
+    const j = await rcApi('rc.wa.cfg', {waToken:tok||undefined, grupo:gr||undefined, nombre:nom}); if(!j.ok) return toast('WhatsApp: '+j.error, true); WA_INFO = j; render(); toast('WhatsApp guardado.'); }
+  else if(a==='waProbar'){ b.disabled = true; const j = await rcApi('rc.wa', {text:'✅ *Prueba BENDERAM*\nEl panel ya puede enviar comprobantes a este grupo.'}); b.disabled = false; toast(j.ok?'Mensaje de prueba enviado. Revisa el grupo.':'WhatsApp: '+j.error, !j.ok); }
+  else if(a==='waPlGuardar'){ const v = ($('#waPl')||{}).value||''; if(!(await ask('Guardar plantilla', 'Las próximas recargas se enviarán con esta plantilla.', {ok:'Guardar'}))) return; S.wa = {...(S.wa||{}), plantilla:v.trim()}; LV.ev = 'boton'; save(); render(); toast('Plantilla guardada.'); }
+  else if(a==='waPlReset'){ S.wa = {...(S.wa||{}), plantilla:''}; LV.ev = 'boton'; save(); render(); toast('Plantilla original restaurada.'); } });
+document.addEventListener('change', async e=>{ if(e.target.id!=='waAct' || !SES || SES.rol!=='ceo') return; const on = e.target.checked;
+  if(!(await ask(on?'Encender WhatsApp':'Apagar WhatsApp', on?'Las recargas se volverán a enviar al grupo.':'Las recargas dejarán de enviarse al grupo.', {ok:on?'Encender':'Apagar'}))){ e.target.checked = !on; return; }
+  S.wa = {...(S.wa||{}), activo:on}; LV.ev = 'boton'; save(); render(); });
 function tgComprobante(m){
   const a = S.agentes.find(x=>x.id===m.agente)||{};
   const txt = `💵 <b>Recarga ${money(m.monto)}</b>\n${esc(S.operadores.find(o=>o.id===m.op)?.nombre||'')} → ${esc(a.nombre||'')} (${esc(a.cuenta||'')})\n🏦 ${esc(m.banco)} · N.º ${esc(m.comprobante)}\n👤 ${esc(m.nombre||'—')}${m.verif===false?'\n⚠️ Cuenta destino NO es de la empresa':''}${m.fechaComp&&m.fechaComp!==m.fecha?`\n⚠️ Comprobante con fecha ${fd(m.fechaComp)}`:''}`;
