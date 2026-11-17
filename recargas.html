@@ -2393,7 +2393,7 @@ function pedirInicioTurno(){
   const now = new Date(), hh = String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
   const ov = document.createElement('div'); ov.className = 'ov';
   ov.innerHTML = `<form class="modal" role="dialog" aria-modal="true" aria-labelledby="tuT" style="max-width:440px" novalidate>
-    <h2 id="tuT">Inicio de turno</h2><p class="muted" style="margin:4px 0 14px">Buenos días${SES.nombre?', '+esc(String(SES.nombre).split(' ')[0]):''}. Antes de empezar, reporta a qué hora iniciaste tu turno de hoy, <b>${fd(f)}</b>.</p>
+    <h2 id="tuT">Inicio de turno</h2><p class="muted" style="margin:4px 0 14px">Hola${SES.nombre?', '+esc(String(SES.nombre).split(' ')[0]):''}. Antes de empezar, reporta a qué hora iniciaste tu turno de hoy, <b>${fd(f)}</b>.</p>
     <div class="f"><label for="tuH">Hora de inicio</label><input id="tuH" type="time" value="${hh}" required style="font-size:22px"></div>
     <div class="acts" style="justify-content:flex-end;margin-top:16px"><button type="button" class="btn quiet" data-a="luego">Más tarde</button><button class="btn gold" type="submit">Registrar inicio</button></div></form>`;
   document.body.appendChild(ov); setTimeout(()=>ov.querySelector('#tuH').focus(), 30);
