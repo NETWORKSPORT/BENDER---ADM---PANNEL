@@ -231,7 +231,7 @@ table.t{width:100%;border-collapse:collapse;font-size:14px;min-width:860px}
 .cbx-t{min-width:0;flex:1}.cbx-t b{display:block;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cbx-t small{display:block;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cbx-l em{font-style:normal;font-size:11.5px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:2px 8px;white-space:nowrap}.cbx-l em.mia{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 40%,transparent)}
 .cbx-l li.cbx-none{cursor:default;color:var(--muted);font-size:13px;flex-wrap:wrap;justify-content:space-between}.cbx-l li.cbx-none:hover{background:none}
-.rq-in .f{overflow:visible}.rq-chk{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}.rq-chk li{display:flex;gap:8px;align-items:flex-start;font-size:14px}.rq-chk li>b{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:12px}.rq-chk li.ok>b{background:color-mix(in srgb,var(--ok) 18%,transparent);color:var(--ok)}.rq-chk li.bad>b{background:color-mix(in srgb,var(--danger) 18%,transparent);color:var(--danger)}.rq-chk li.bad span{color:var(--danger)}
+.rq-in .f{overflow:visible}.rq-chk{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}.rq-chk li{display:flex;gap:8px;align-items:flex-start;font-size:14px}.rq-chk li>b{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:12px}.rq-chk li.ok>b{background:color-mix(in srgb,var(--ok) 18%,transparent);color:var(--ok)}.rq-chk li.bad>b{background:color-mix(in srgb,var(--danger) 18%,transparent);color:var(--danger)}.rq-chk li.bad span{color:var(--danger)}.rq-chk li.info>b{background:color-mix(in srgb,var(--warn,#d99a2b) 18%,transparent);color:var(--warn,#d99a2b)}
 .rq-force{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);display:flex;gap:12px;align-items:center;flex-wrap:wrap}.rq-force p{flex:1;min-width:240px;margin:0!important;color:var(--muted)!important}
 .warnc{color:var(--warn,#d99a2b)!important;font-weight:600}
 .ecu-logo{height:16px;width:auto;border-radius:4px;vertical-align:middle}.rq-pic .ecu-logo.lg,.ecu-logo.lg{height:30px!important;width:auto!important;max-width:80%;margin-bottom:4px;object-fit:contain;border:0;background:none}
@@ -719,7 +719,6 @@ function renderForm(){
         <div><button class="btn sm quiet bad" data-act="limpiar" style="padding-left:0">Cambiar comprobante</button></div></div></div>`:''}`:''}
     ${st==='subir'||st==='leyendo' ? '' : st==='revisar' ? revisarHTML(f, op, dup, ver) : `
     <div class="fg" style="margin-top:14px">
-      ${t.comp?A('agente', `<label for="fAgId">ID del agente en la plataforma</label><input id="fAgId" data-k="agId" list="agIds" value="${esc(f.agId||'')}" placeholder="Escribe o busca el ID" autocomplete="off"><datalist id="agIds">${S.agentes.map(a=>`<option value="${esc(a.idPlat)}">${esc(a.nombre)}</option>`).join('')}</datalist>`):''}
       ${A('monto', `<label for="fMo">Monto (USD)</label><input id="fMo" data-k="monto" type="number" step="0.01" min="0" inputmode="decimal" value="${esc(f.monto??'')}" placeholder="0,00">`)}
       ${t.comp?`${A('banco', `<label for="fBa">Banco</label><input id="fBa" data-k="banco" list="bancosL" value="${esc(f.banco||'')}" placeholder="Banco Pichincha"><datalist id="bancosL">${BANCOS.map(b=>`<option value="${b[0]}">`).join('')}</datalist>`)}
       ${A('comprobante', `<label for="fCo">N.º de comprobante</label><input id="fCo" data-k="comprobante" value="${esc(f.comprobante||'')}" inputmode="numeric" placeholder="Número de transacción">`)}
@@ -731,7 +730,6 @@ function renderForm(){
       ${A('nota', `<label for="fNt">${UI.tipo==='ajuste'?'Motivo del ajuste (obligatorio)':'Nota (opcional)'}</label><input id="fNt" data-k="nota" value="${esc(f.nota||'')}" placeholder="${UI.tipo==='carga'?'Ejemplo: inyección de capital para recargas':'Observación'}">`)}
     </div>
     `}
-    ${st==='editar' && t.comp?agLinea(f, op):''}
     ${st==='editar' && t.comp && f.monto?cuadreMovHTML(f, op):''}
     ${dup?`<div class="alert bad" role="alert"><b>⛔</b><div><b>Comprobante repetido.</b> Ya se registró el ${fd(dup.fecha)} a las ${hm(dup.ts)} por ${money(dup.monto)}${dup.agente?` (${esc(S.agentes.find(a=>a.id===dup.agente)?.nombre||'')})`:''}, en ${esc(S.operadores.find(o=>o.id===dup.op)?.nombre||'')}. No se puede usar dos veces.</div></div>`:''}
     ${st==='revisar'?'':ver===false?`<div class="alert bad"><b>⚠</b><div><b>La cuenta destino no es de la empresa.</b> El comprobante dice ${esc(f.cuentaDest)}. Verifica que la transferencia llegó a una cuenta de BENDERAM antes de recargar.</div></div>`:ver?`<div class="alert ok"><b>✓</b><div>Llegó a la cuenta de la empresa: ${esc(ver.banco)} terminada en ${esc(ver.numero.slice(-4))}.</div></div>`:''}
@@ -765,9 +763,9 @@ async function registrar(){
   const monto = r2(f.monto);
   if(!(monto>0)) return toast('Escribe el monto.', true);
   if(UI.tipo==='mover'){ const sd = saldoLugar(op, f.from, UI.fecha); if(monto > sd + 0.005 && !(await ask('Saldo insuficiente', `${esc(lugarL(f.from))} tiene <b>${money(sd)}</b> y vas a mover <b>${money(monto)}</b>. ¿Registrar igual?`, {ok:'Registrar igual'}))) return; }
-  if(UI.tipo==='recarga' && !f.agente && String(f.agId||'').trim()){ const x = agenciasLista(op).find(y=>y.id && normId(y.id)===normId(f.agId)); if(x) agSeleccionar(x.k); }
-  if(UI.tipo==='recarga' && !f.agente) return toast(String(f.agId||'').trim() ? 'Ese ID no está registrado. Pulsa "Registrar agente" primero.' : 'Escribe el ID del agente.', true);
-  if(UI.tipo==='recarga'){ const c = checkRecargaAg(f); if(c.falta) return toast('Sube el comprobante de la recarga a la agencia.', true); if(!c.plOk) return toast('El comprobante de la recarga debe ser de Ecuabet. No se puede registrar.', true); if(!c.agOk && !(f.agManual && c.moOk)) return toast('La agencia elegida no aparece en el comprobante de la recarga. No se puede registrar.', true); if(!c.moOk) return toast('El monto no coincide con el comprobante de la recarga. No se puede registrar.', true); }
+  let agIdLeido = '';
+  if(UI.tipo==='recarga'){ const c = checkRecargaAg(f); if(!c.falta && c.ok){ f.agente = resolverAgente(c.ag.x); agIdLeido = c.ag.x ? normId(c.ag.x.id) : c.ag.id; } }
+  if(UI.tipo==='recarga'){ const c = checkRecargaAg(f); if(c.falta) return toast('Sube el comprobante de la recarga a la agencia.', true); if(!c.plOk) return toast('El comprobante de la recarga debe ser de Ecuabet. No se puede registrar.', true);  if(!c.moOk) return toast('El monto no coincide con el comprobante de la recarga. No se puede registrar.', true); }
   let VC = null; if(UI.tipo==='recarga'){ VC = validarCuentaOp(f, op); if(!VC.ok) return toast(VC.motivo.replace(/<[^>]+>/g,''), true); }
   if(t.comp && !String(f.comprobante||'').trim()) return toast('Escribe el número de comprobante.', true);
   if(t.comp && !String(f.banco||'').trim()) return toast('Escribe el banco.', true);
@@ -778,7 +776,7 @@ async function registrar(){
   const pendOut = r2(S.movs.filter(x=>x.tipo==='transfer' && x.op===op && x.estadoT==='pendiente' && !x.anulado).reduce((a,x)=>a+x.monto,0));
   if((UI.tipo==='recarga'||UI.tipo==='transfer') && monto > R.esperado - pendOut + 0.005 && !(await ask('Caja insuficiente', `La caja tiene <b>${money(R.esperado)}</b> y la recarga es de <b>${money(monto)}</b>. La caja quedará en negativo. ¿Registrar igual?`, {ok:'Registrar igual'}))) return;
   const ver = t.comp && f.cuentaDest ? cuentaEmpresa(f.cuentaDest) : null;
-  const m = {id:uid('m'), ts:Date.now(), op, fecha:UI.fecha, tipo:UI.tipo, agente:f.agente||'', monto, banco:t.comp?f.banco.trim():'', comprobante:t.comp?String(f.comprobante).trim():'', nombre:t.comp?(f.nombre||'').trim():'', fechaComp:t.comp?(f.fecha||UI.fecha):'', cuentaDest:f.cuentaDest||'', verif: ver===null?null:!!ver, nota:(f.nota||'').trim(), signo: UI.tipo==='ajuste' ? (+f.signo||1) : undefined, img:t.comp?UI.img:null, imgRec: UI.tipo==='recarga' && UI.rec && UI.rec.img ? UI.rec.img : undefined, agManual: UI.tipo==='recarga' && f.agManual && !checkRecargaAg(f).agOk ? true : undefined, plataforma: UI.tipo==='recarga' ? 'Ecuabet' : undefined, auto:Object.keys(UI.read), usuario:SES.usuario, opDest: UI.tipo==='transfer' ? f.opDest : undefined, estadoT: UI.tipo==='transfer' ? 'pendiente' : undefined, ctaOp: UI.tipo==='recarga' ? ((f.ctaOp && ctaOpById(f.ctaOp) && ctaOpById(f.ctaOp).op===op) ? f.ctaOp : (VC && VC.cta ? VC.cta.id : undefined)) : undefined, beneficiario: UI.tipo==='recarga' ? (f.beneficiario||'') : undefined, dest: UI.tipo==='carga' ? (f.dest||'caja') : undefined, signo: UI.tipo==='carga' ? (f.signo==='-'?-1:1) : (UI.tipo==='ajuste' ? (f.signo==='-'||f.signo==-1?-1:1) : undefined), from: UI.tipo==='mover' ? f.from : undefined, to: UI.tipo==='mover' ? f.to : undefined};
+  const m = {id:uid('m'), ts:Date.now(), op, fecha:UI.fecha, tipo:UI.tipo, agente:f.agente||'', monto, banco:t.comp?f.banco.trim():'', comprobante:t.comp?String(f.comprobante).trim():'', nombre:t.comp?(f.nombre||'').trim():'', fechaComp:t.comp?(f.fecha||UI.fecha):'', cuentaDest:f.cuentaDest||'', verif: ver===null?null:!!ver, nota:(f.nota||'').trim(), signo: UI.tipo==='ajuste' ? (+f.signo||1) : undefined, img:t.comp?UI.img:null, imgRec: UI.tipo==='recarga' && UI.rec && UI.rec.img ? UI.rec.img : undefined, agIdPlat: UI.tipo==='recarga' ? (agIdLeido||undefined) : undefined, plataforma: UI.tipo==='recarga' ? 'Ecuabet' : undefined, auto:Object.keys(UI.read), usuario:SES.usuario, opDest: UI.tipo==='transfer' ? f.opDest : undefined, estadoT: UI.tipo==='transfer' ? 'pendiente' : undefined, ctaOp: UI.tipo==='recarga' ? ((f.ctaOp && ctaOpById(f.ctaOp) && ctaOpById(f.ctaOp).op===op) ? f.ctaOp : (VC && VC.cta ? VC.cta.id : undefined)) : undefined, beneficiario: UI.tipo==='recarga' ? (f.beneficiario||'') : undefined, dest: UI.tipo==='carga' ? (f.dest||'caja') : undefined, signo: UI.tipo==='carga' ? (f.signo==='-'?-1:1) : (UI.tipo==='ajuste' ? (f.signo==='-'||f.signo==-1?-1:1) : undefined), from: UI.tipo==='mover' ? f.from : undefined, to: UI.tipo==='mover' ? f.to : undefined};
   if(m.tipo==='recarga') m.rev = '';
   S.movs.push(m); save();
   if(m.tipo==='recarga') tgComprobante(m);
@@ -969,9 +967,6 @@ function revisarHTML(f, op, dup, ver){
     </div>
     <div class="rq-main">
       <div class="rq-in">
-        <div class="f rq-ag"><label for="fAgId">Agencia a la que recargaste</label><div class="cbx"><input id="fAgId" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="agLst" value="${a?esc(a.nombre):esc(f.agId||'')}" placeholder="Elige de la lista o busca por ID o nombre" autocomplete="off"><button type="button" class="cbx-b" data-act="agAbrir" tabindex="-1" aria-label="Ver todas las agencias"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button><ul class="cbx-l" id="agLst" role="listbox" aria-label="Agencias registradas" hidden></ul></div>
-          ${a?`<div class="rq-sel ${a.op===op?'':'warn'}"><b>${esc(a.nombre)}</b><span>ID ${esc(a.idPlat)}${a.titular?' · '+esc(a.titular):''}${a.op!==op?` · agente de ${esc(opName(a.op))}`:''}</span></div>`:enPanel?`<div class="rq-sel"><b>${esc(enPanel.nombre)}</b><span>ID ${esc(enPanel.id)}${enPanel.sub?' · '+esc(enPanel.sub):''}</span></div>`:String(f.agId||'').trim()?`<div class="rq-sel warn"><b>El ID ${esc(f.agId)} no está registrado</b><button class="btn sm gold" data-act="agReg">Registrar agente</button></div>`:`<small class="rq-hint">${agenciasLista(op).length} agencias registradas · el comprobante no trae el nombre, elígela tú.</small>`}
-        </div>
         <div class="f rq-mo"><label for="fMontoC">Monto descontado de tu caja</label><div class="rq-money"><span>$</span><input id="fMontoC" type="number" step="0.01" min="0" inputmode="decimal" data-k="monto" value="${esc(f.monto||'')}" placeholder="0,00" autocomplete="off"></div>
           <small class="rq-hint">${f.montoLeido?`El comprobante dice <b class="num">${money(f.montoLeido)}</b>`:'No se leyó el monto del comprobante'}</small></div>
       </div>
@@ -1052,23 +1047,32 @@ function plataformaRecarga(tx){
   const ecua = /ecuabet|ecuabe7|ecuaber|caja\.?ecua/.test(compact) || fuertes>=1;
   return {ok: ecua && !otra, ecua, otra};
 }
+/* la agencia se lee de la captura de Ecuabet ("Usuario Recibe: 8390198") y se busca entre las agencias registradas */
+function agenciaDeCaptura(tx){
+  const t = String(tx||''), op = opActual(), L = agenciasLista(op);
+  const m = t.match(/usuar[il1]o\s*rec[il1]b[eo]\s*[:;.]?\s*([0-9OoIl|]{4,})/i);
+  let id = m ? normId(m[1].replace(/[Oo]/g,'0').replace(/[Il|]/g,'1')) : '';
+  let x = id ? L.find(y=>y.id && normId(y.id)===id) : null;
+  if(!x){ const nums = [...new Set((t.match(/\d{5,}/g)||[]).map(normId))]; x = L.find(y=>y.id && nums.includes(normId(y.id))) || null; if(x && !id) id = normId(x.id); }
+  return {id, x};
+}
+function resolverAgente(x){
+  if(!x) return '';
+  if(x.k.startsWith('rag:')) return x.k.slice(4);
+  const g = x.g||{}; if(!g.codigo) return '';
+  const ya = agByPlat(g.codigo); if(ya) return ya.id;
+  const a = {id:uid('a'), idPlat:String(g.codigo), nombre:g.nombre||g.usuario||'', titular:g.propietario||'', titulares:g.propietario||'', telefono:g.telefono||'', cuenta:g.usuario||'', ciudad:g.ciudad||'', op:x.op||opActual(), apto:''};
+  S.agentes.push(a); guardarRegistro('rag', a.id); return a.id;
+}
 function checkRecargaAg(f){
   const R = UI.rec||{}, mo = r2(+f.monto||0);
-  let a = f.agente ? S.agentes.find(x=>x.id===f.agente) : null;
-  if(!a && String(f.agId||'').trim()){ const x = agenciasLista(opActual()).find(y=>y.id && normId(y.id)===normId(f.agId)); if(x) a = x.k.startsWith('rag:') ? S.agentes.find(z=>z.id===x.k.slice(4)) : {idPlat:x.id, nombre:x.nombre, cuenta:(x.g||{}).usuario||''}; }
   if(R.estado!=='listo') return {ok:false, falta:true};
-  const tx = R.texto||'', low = norm(tx), digs = tx.replace(/[^\d]+/g,' ');
-  let agOk = false, agPor = '';
-  if(a){ const id = normId(a.idPlat);
-    if(id && id.length>=3 && (' '+digs+' ').replace(/ 0+/g,' ').includes(' '+id+' ')) { agOk = true; agPor = 'ID '+a.idPlat; }
-    else { const cands = [a.cuenta, a.nombre].filter(Boolean).map(x=>norm(x).replace(/[^a-z0-9 ]/g,' ').trim()).filter(x=>x.length>=3);
-      const pal = low.split(/[^a-z0-9]+/).filter(Boolean);
-      for(const c of cands){ const tk = c.split(/\s+/).filter(w=>w.length>2 && !VACIAS.has(w) && !/^agencia$/.test(w)); if(tk.length && tk.every(w=>low.includes(w) || palabraParecida(w, pal))){ agOk = true; agPor = c; break; } } } }
+  const tx = R.texto||'';
+  const ag = agenciaDeCaptura(tx);
   const nums = [...tx.matchAll(/\d{1,3}(?:[.,\s]\d{3})*(?:[.,]\d{1,2})?|\d+(?:[.,]\d{1,2})?/g)].map(m=>parseNum(m[0])).filter(v=>v>0 && v<1000000);
   const moOk = mo>0 && nums.some(v=>Math.abs(v-mo)<0.005);
-  const montosVistos = [...new Set(nums.filter(v=>/[.,]\d{2}\b/.test(String(v))||v>=1).map(v=>r2(v)))].slice(0,4);
   const pl = plataformaRecarga(tx);
-  return {ok: !!a && agOk && moOk && pl.ok, agOk, moOk, plOk: pl.ok, pl, agPor, a, mo, nums};
+  return {ok: moOk && pl.ok, moOk, plOk: pl.ok, pl, ag, agOk: !!ag.x, mo, nums};
 }
 function recPicHTML(){
   const R = UI.rec||{};
@@ -1081,11 +1085,12 @@ function recPicHTML(){
 }
 function recChkHTML(f){
   const R = UI.rec||{}, c = checkRecargaAg(f);
-  const fila = (ok, t) => `<li class="${ok?'ok':'bad'}"><b>${ok?'✓':'✗'}</b><span>${t}</span></li>`;
-  if(R.estado!=='listo') return `<div class="rq-chkbox wait"><b>Verificación de la recarga</b><p>${R.estado==='leyendo'?'Leyendo la captura…':'Sube la captura de la recarga (2) para verificar que la agencia y el monto coincidan.'}</p></div>`;
-  return `<div class="rq-chkbox ${c.ok?'ok':'bad'}"><b>Verificación de la recarga</b><ul class="rq-chk">${fila(c.plOk, c.plOk?'Comprobante de <b>Ecuabet</b>':c.pl.otra?'<b>No es de Ecuabet.</b> La captura es de otra plataforma (Más Parley / 1x2). Solo se aceptan recargas de Ecuabet.':'<b>No se reconoce como comprobante de Ecuabet.</b> Sube la captura de la recarga hecha en Ecuabet.')}${fila(c.agOk, c.a ? (c.agOk?`Agencia coincide: <b>${esc(c.a.nombre)}</b> (${esc(c.agPor)})`:`No se ve la agencia <b>${esc(c.a.nombre)}</b> · ID ${esc(c.a.idPlat)} en la captura`) : 'Primero elige la agencia')}
-    ${fila(c.moOk, c.mo>0 ? (c.moOk?`Monto coincide: <b>${money(c.mo)}</b>`:`El monto <b>${money(c.mo)}</b> no aparece en la captura`) : 'Escribe el monto descontado')}</ul>
-    ${c.ok?'':c.a&&c.moOk&&c.plOk&&!c.agOk&&validarCuentaOp(f, opActual()).ok?`<div class="rq-force"><p>Solo falta el nombre de la agencia. Si estás seguro de que es la misma agencia (por ejemplo, está escrita distinto en la plataforma), puedes confirmar a mano. Quedará marcado para gerencia.</p><button class="btn sm gold" data-act="agForzar">Confirmar de todas formas</button></div>`:`<p>No se puede registrar: ${c.plOk?'la agencia y el monto deben coincidir con la captura.':'el comprobante de la recarga debe ser de Ecuabet.'}</p>`}</div>`;
+  const fila = (ok, t, info) => `<li class="${ok?'ok':info?'info':'bad'}"><b>${ok?'✓':info?'i':'✗'}</b><span>${t}</span></li>`;
+  if(R.estado!=='listo') return `<div class="rq-chkbox wait"><b>Verificación de la recarga</b><p>${R.estado==='leyendo'?'Leyendo la captura…':'Sube la captura de la recarga en Ecuabet (2). La agencia se lee sola de la captura.'}</p></div>`;
+  return `<div class="rq-chkbox ${c.ok?'ok':'bad'}"><b>Verificación de la recarga</b><ul class="rq-chk">${fila(c.plOk, c.plOk?'Comprobante de <b>Ecuabet</b>':c.pl.otra?'<b>No es de Ecuabet.</b> La captura es de otra plataforma (Más Parley / 1x2). Solo se aceptan recargas de Ecuabet.':'<b>No se reconoce como comprobante de Ecuabet.</b> Sube la captura de la recarga hecha en Ecuabet.')}
+    ${fila(c.moOk, c.mo>0 ? (c.moOk?`Monto coincide: <b>${money(c.mo)}</b>`:`El monto <b>${money(c.mo)}</b> no aparece en la captura`) : 'Escribe el monto descontado')}
+    ${c.ag.x ? fila(true, `Agencia: <b>${esc(c.ag.x.nombre)}</b> · ID ${esc(c.ag.x.id)}`) : fila(false, c.ag.id ? `Agencia ID <b>${esc(c.ag.id)}</b> (no está en la lista de agencias registradas; se guarda con ese ID)` : 'No se leyó el ID de la agencia en la captura (se registra sin agencia)', true)}</ul>
+    ${c.ok?'':`<p>No se puede registrar: ${c.plOk?'el monto debe coincidir con la captura.':'el comprobante de la recarga debe ser de Ecuabet.'}</p>`}</div>`;
 }
 function fotosMov(m){
   if(!m.img && !m.imgRec && m.tipo!=='recarga') return '<span class="muted">—</span>';
@@ -1760,7 +1765,7 @@ function cuadreDiaHTML(){
 }
 function movTxt(m, op){
   const ag = S.agentes.find(a=>a.id===m.agente);
-  if(m.tipo==='recarga') return `Recarga · ${ag?ag.nombre:'agente'}${m.comprobante?' · N.º '+m.comprobante:''}`;
+  if(m.tipo==='recarga') return `Recarga · ${ag?ag.nombre:m.agIdPlat?'agencia ID '+m.agIdPlat:'sin agencia'}${m.comprobante?' · N.º '+m.comprobante:''}`;
   if(m.tipo==='extraccion') return `Extracción · ${m.agencia||''}`;
   if(m.tipo==='carga') return `${(m.signo||1)<0?'Saldo quitado por gerencia':'Saldo aumentado por gerencia'}${m.dest&&m.dest!=='caja'?' · '+lugarCorto(m.dest):''}${m.nota?' · '+m.nota:''}`;
   if(m.tipo==='mover') return `${lugarCorto(m.from)} → ${lugarCorto(m.to)}${m.nota?' · '+m.nota:''}`;
@@ -2527,7 +2532,7 @@ function contaHTML(){
   <div class="tw" style="margin-top:12px"><table class="t" style="min-width:1050px"><thead><tr><th>Recibido</th><th>Operador</th><th>Agente</th><th>Banco y comprobante</th><th>Depositante</th><th>Cuenta destino</th><th class="r">Monto</th><th>Estado</th><th>Foto</th><th></th></tr></thead><tbody>
   ${list.length?list.map(m=>{ const a = S.agentes.find(x=>x.id===m.agente)||{}; const r = m.anulado?{l:'Anulado', c:''}:REV[m.rev||'']; const fdis = m.fechaComp && m.fechaComp!==m.fecha;
     return `<tr class="${m.anulado?'anul':''}"><td class="num">${fd(m.fecha)}<small>${hm(m.ts)}</small></td><td>${esc(S.operadores.find(o=>o.id===m.op)?.nombre||'')}<small>${esc(m.usuario||'')}</small></td>
-      <td><b>${esc(a.nombre||'—')}</b><small>${esc(a.cuenta||'')}</small>${m.agManual?'<small class="warnc">⚠ Agencia confirmada a mano</small>':''}</td>
+      <td><b>${esc(a.nombre||(m.agIdPlat?'ID '+m.agIdPlat:'—'))}</b><small>${esc(a.cuenta||'')}</small>${m.agManual?'<small class="warnc">⚠ Agencia confirmada a mano</small>':''}</td>
       <td>${esc(m.banco)}<small class="num">${esc(m.comprobante)}${fdis?` · <span class="neg">fecha ${fd(m.fechaComp)}</span>`:''}</small></td>
       <td>${esc(m.nombre||'—')}</td>
       <td>${m.verif===false?`<span class="pill bad">${esc(m.cuentaDest)} ajena</span>`:m.verif?`<span class="pill ok">Empresa ✓</span>`:'<span class="muted">Sin dato</span>'}</td>
