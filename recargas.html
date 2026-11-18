@@ -367,8 +367,8 @@ const USERS = [
 ];
 const TIPOS = {
   recarga:{label:'Recarga', sub:'El agente transfiere', comp:true, quien:'op'},
-  transfer:{label:'Pasar saldo', sub:'A otro operador', comp:false, quien:'op'},
-  mover:{label:'Mover dinero', sub:'Caja ↔ mis bancos', comp:false, quien:'op'},
+  transfer:{label:'Pasar saldo', sub:'A otro operador', comp:false, quien:'none'},
+  mover:{label:'Mover dinero', sub:'Caja ↔ mis bancos', comp:false, quien:'none'},
   extraccion:{label:'Extracción', sub:'', comp:false, quien:'none'},
   carga:{label:'Gestión de saldo', sub:'Gerencia aumenta o quita saldo', comp:false, quien:'adm'},
   ajuste:{label:'Ajuste', sub:'Corrección con motivo', comp:false, quien:'adm'}
@@ -1170,6 +1170,7 @@ const extPendConta = () => S.extr.filter(x=>extEstado(x)==='pagada' && !x.rev).l
 const ctaExt = id => S.ctasExt.find(c=>c.id===id);
 const saldoCta = id => { const c = ctaExt(id); if(!c) return 0; return r2((+c.inicial||0) + S.fondeos.filter(f=>f.cuenta===id && !f.anulado).reduce((a,f)=>a+f.monto,0) - S.extr.filter(x=>!x.anulado && x.pago && x.pago.cuenta===id).reduce((a,x)=>a+x.pago.monto,0)); };
 function tipoBtns(){
+  if(tiposDe().length<2) return '';
   return `<div class="tipo" role="radiogroup" aria-label="Tipo de movimiento" style="grid-template-columns:repeat(${tiposDe().length},1fr)">${tiposDe().map(([k,v])=>{ const n = k==='extraccion' ? extPendOp(opActual()) : 0; return `<button type="button" role="radio" aria-checked="${UI.tipo===k}" class="${UI.tipo===k?'on':''}" data-act="tipo" data-k="${k}">${v.label}<small>${v.sub}</small>${n?`<span class="bdg">${n}</span>`:''}</button>`; }).join('')}</div>`;
 }
 async function leerArchivo(file, conTexto){
