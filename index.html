@@ -316,6 +316,24 @@ legend{font:600 15px var(--display);margin-bottom:12px;padding:0;color:var(--acc
 .scan:focus-within{border-color:var(--gold);box-shadow:0 0 0 3px var(--glow)}
 .scan .muted{font-size:12.5px;white-space:nowrap}
 .pcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px}
+.pcard[data-drop]{transition:border-color .12s, background .12s, box-shadow .12s}
+body.dnd-on .pcard[data-drop]{border-style:dashed}
+.pcard.drop-ok{border-color:var(--gold)!important;border-style:solid!important;background:color-mix(in srgb,var(--gold) 8%,var(--surface));box-shadow:0 0 0 3px color-mix(in srgb,var(--gold) 25%,transparent)}
+.pcard li[draggable]{cursor:grab;border-radius:6px}.pcard li[draggable]:active{cursor:grabbing}.pcard li.dragging{opacity:.4}
+.pcard li.pend{background:color-mix(in srgb,var(--gold) 12%,transparent)}
+.grip{color:var(--muted);font-size:13px;letter-spacing:-2px;cursor:grab}
+.lr-n{display:flex;flex-direction:column;min-width:0}.lr-n .shared{font-size:11.5px;color:var(--muted)}
+.pend-b{margin-left:auto;font-style:normal;font-size:11px;font-weight:700;color:var(--gold-ink, #8a6a00);background:color-mix(in srgb,var(--gold) 22%,transparent);padding:2px 7px;border-radius:999px;white-space:nowrap}
+.drop-empty{margin:6px 0 10px;font-size:13.5px}
+.dnd-bar{position:sticky;top:8px;z-index:5;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:10px 14px;margin:0 0 12px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.dnd-bar b{display:block;font-size:14px}.dnd-bar small{display:block;font-size:12.5px;color:var(--muted);margin-top:2px}.dnd-bar.on{border-color:var(--gold);background:color-mix(in srgb,var(--gold) 10%,var(--surface));box-shadow:0 6px 20px rgba(0,0,0,.12)}
+.dnd-bar kbd{font:600 11px/1 ui-monospace,monospace;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:1px 4px}
+.dnd-l li{flex-direction:column;align-items:flex-start;gap:2px}
+.rpick .rp-top{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:6px}.rpick .rp-q{flex:1;min-width:180px}
+.rpick .rp-l{max-height:210px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:4px 6px;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:0 10px}
+.rpick .rp-l .check{display:flex;gap:8px;align-items:center;padding:6px 4px;border-radius:6px}.rpick .rp-l .check small{margin-left:auto;font-size:11.5px}.rpick .rp-l .check:hover{background:color-mix(in srgb,var(--gold) 7%,transparent)}
+.rpick .rp-l[aria-disabled=true]{opacity:.5}.rpick .rp-n{display:block;margin-top:4px;font-size:12.5px}
+
 .pcard{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column}
 .pc-h{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:8px}
 .pc-h b{font:700 22px var(--display);color:var(--accent-text)}
@@ -1961,9 +1979,11 @@ const EST_INV = Object.fromEntries(INV_EST.map(e=>[e[0],{label:e[1],cls:e[2]}]))
 const LABELS = 1000;
 const invCode = s => { const m = String(s||'').trim().toUpperCase().replace(/\s/g,'').match(/^BDR-?(\d{1,4})$/); return m ? 'BDR-'+pad(+m[1],4) : null; };
 function nextInvCode(){ const used=new Set(Object.values(S.inv).map(i=>i.codigo)); for(let n=1;n<=9999;n++){ const c='BDR-'+pad(n,4); if(!used.has(c)) return c; } return ''; }
-const invOf = empId => Object.values(S.inv).filter(i=>i.responsable===empId && i.estado!=='baja').sort((a,b)=>a.codigo.localeCompare(b.codigo));
+const respsOf = i => !i || i.uso==='bodega' ? [] : (Array.isArray(i.responsables) && i.responsables.length ? i.responsables.slice() : (i.responsable ? [i.responsable] : []));
+const respNames = i => respsOf(i).map(x=>S.emp[x]?.nombre).filter(Boolean).join(', ');
+const invOf = empId => Object.values(S.inv).filter(i=>respsOf(i).includes(empId) && i.estado!=='baja').sort((a,b)=>a.codigo.localeCompare(b.codigo));
 const isBod = i => i && i.uso==='bodega';
-const histName = x => x==='bodega' ? 'Bodega (sin uso)' : x ? (S.emp[x]?.nombre||'Colaborador eliminado') : 'Sin asignar';
+const histName = x => x==='bodega' ? 'Bodega (sin uso)' : x ? String(x).split(',').map(y=>S.emp[y]?.nombre||'Colaborador eliminado').join(', ') : 'Sin asignar';
 const invPill = i => { const e=EST_INV[i.estado]||{label:i.estado,cls:''}; return `<span class="pill ${e.cls}">${esc(e.label)}</span>`; };
 
 VIEWS.inventario = function(){
@@ -1992,12 +2012,12 @@ const codeNumber = c => +(String(c||'').match(/^BDR-(\d{4})$/)||[0,0])[1];
 function fillInv(){
   const tb=$('#itb'); if(!tb) return;
   const list = invFiltered();
-  tb.innerHTML = list.length ? list.map(i=>{ const e=S.emp[i.responsable]; return `<tr class="click" data-act="edit-inv" data-id="${i.id}">
+  tb.innerHTML = list.length ? list.map(i=>{ const rs=respsOf(i).filter(x=>S.emp[x]), e=S.emp[rs[0]]; return `<tr class="click" data-act="edit-inv" data-id="${i.id}">
     <td>${i.mini?`<img class="ithumb" src="${esc(i.mini)}" alt="" loading="lazy">`:'<span class="ithumb none" aria-hidden="true"></span>'}</td>
     <td><span class="tag num">${esc(i.codigo)}</span></td>
     <td><b>${esc(i.nombre)}</b><small>${esc([i.marca,i.modelo].filter(Boolean).join(' '))}${i.serie?` | Serie ${esc(i.serie)}`:''}</small></td>
     <td>${esc(i.categoria)}</td>
-    <td>${isBod(i)?'<span class="pill inactivo">En bodega</span>':e?`${esc(shortName(e.nombre))}${e.dept?`<small>${esc(deptName(e.dept))}</small>`:''}`:'<span class="muted">Sin asignar</span>'}</td>
+    <td>${isBod(i)?'<span class="pill inactivo">En bodega</span>':rs.length>1?`${rs.map(x=>esc(shortName(S.emp[x].nombre))).join(', ')}<small>Compartido · ${rs.length} personas</small>`:e?`${esc(shortName(e.nombre))}${e.dept?`<small>${esc(deptName(e.dept))}</small>`:''}`:'<span class="muted">Sin asignar</span>'}</td>
     <td>${esc(i.ubicacion||'—')}</td>
     <td>${invPill(i)}</td>
     <td class="r num">${+i.valor?money(i.valor):'—'}</td>
@@ -2189,7 +2209,7 @@ Object.assign(ACT, {
   acta:d=>openActa(d.id),
   'acta-dl':()=>{ const e=S.emp[ED.acta]; const html = `<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Acta de entrega ${esc(e.nombre)}</title><link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=Figtree:wght@400;600&display=swap" rel="stylesheet"><style>body{margin:0;padding:24px;background:#EFE8D8}${DOC_CSS}@media print{body{padding:0;background:#fff}.doc{border:0}}</style></head><body>${actaHTML(ED.acta)}</body></html>`; saveFile(`acta-entrega-${slug(e.nombre)}-${todayS()}.html`, html, 'text/html'); },
   'export-inv':()=>{ const out=[['Código','Bien','Categoría','Marca','Modelo','Serie','Responsable','Cédula','Departamento','Ubicación','Fecha de asignación','Estado','Fecha de compra','Valor','Proveedor','Observaciones']];
-    Object.values(S.inv).sort((a,b)=>a.codigo.localeCompare(b.codigo)).forEach(i=>{ const e=S.emp[i.responsable]; out.push([i.codigo,i.nombre,i.categoria,i.marca,i.modelo,i.serie,isBod(i)?'En bodega':(e?.nombre||''),e?.cedula||'',e?deptName(e.dept):'',i.ubicacion,fd(i.fechaAsignacion),EST_INV[i.estado]?.label||'',fd(i.fechaCompra),NF.format(+i.valor||0),i.proveedor,i.obs]); });
+    Object.values(S.inv).sort((a,b)=>a.codigo.localeCompare(b.codigo)).forEach(i=>{ const e=S.emp[i.responsable]; out.push([i.codigo,i.nombre,i.categoria,i.marca,i.modelo,i.serie,isBod(i)?'En bodega':(respNames(i)||''),respsOf(i).map(x=>S.emp[x]?.cedula).filter(Boolean).join(', '),respsOf(i).map(x=>S.emp[x]&&deptName(S.emp[x].dept)).filter(Boolean).join(', '),i.ubicacion,fd(i.fechaAsignacion),EST_INV[i.estado]?.label||'',fd(i.fechaCompra),NF.format(+i.valor||0),i.proveedor,i.obs]); });
     saveFile(`inventario-benderam-${todayS()}.csv`, csv(out), 'text/csv'); },
   mmonth:d=>{ UI.mMonth = addMonth(UI.mMonth||todayYM(), +d.k); render(); },
   'open-multi':d=>openMulti(d.fecha, d.cuenta),
@@ -2665,7 +2685,7 @@ function invForm(id, preset){
         ${inp('serie','Número de serie','text','','full')}
       </div></fieldset>
       <fieldset><legend>Asignación</legend><div class="fg">
-        ${sel('responsable','Responsable',opts([['bodega','En bodega (sin uso)'], ...emps.map(e=>[e.id,e.nombre])], isBod(i)?'bodega':i.responsable,'Sin asignar'),'full')}
+        ${respPickerHTML(i, emps)}
         ${inp('ubicacion','Ubicación','text','placeholder="Oficina, agencia o ciudad"')}
         ${inp('fechaAsignacion','Fecha de asignación','date')}
         ${sel('estado','Estado',opts(INV_EST.map(e=>[e[0],e[1]]),i.estado))}
@@ -2700,10 +2720,13 @@ async function submitInv(form){
   if(markErrors(form, errs)) return;
   const pend = ED && ED.inv ? ED.inv.foto : undefined;
   const hist = (prev.hist||[]).slice();
-  const bodNew = v.responsable==='bodega'; const deK = isBod(prev) ? 'bodega' : (prev.responsable||'');
-  if(deK !== (v.responsable||'') && (form.dataset.id || v.responsable)) hist.push({fecha:todayS(), de:deK, a:v.responsable||''});
-  if(bodNew){ v.responsable = ''; if(!v.ubicacion || v.ubicacion==='Oficina principal') v.ubicacion = 'Bodega'; }
-  const data = {...prev, id, codigo:code, categoria:v.categoria, nombre:v.nombre, marca:v.marca, modelo:v.modelo, serie:v.serie, responsable:v.responsable, uso:bodNew?'bodega':'uso', ubicacion:v.ubicacion, fechaAsignacion:v.fechaAsignacion, estado:v.estado, fechaCompra:v.fechaCompra, valor:r2(v.valor), proveedor:v.proveedor, obs:v.obs, hist, creado:prev.creado||new Date().toISOString(), actualizado:new Date().toISOString()};
+  const bodNew = !!form.querySelector('[name=rbod]:checked');
+  const resps = bodNew ? [] : [...form.querySelectorAll('[name=resp]:checked')].map(x=>x.value);
+  const deK = isBod(prev) ? 'bodega' : respsOf(prev).join(','), aK = bodNew ? 'bodega' : resps.join(',');
+  if(deK !== aK && (form.dataset.id || aK)) hist.push({fecha:todayS(), de:deK, a:aK});
+  v.responsable = resps[0] || ''; v.responsables = resps;
+  if(bodNew){ if(!v.ubicacion || v.ubicacion==='Oficina principal') v.ubicacion = 'Bodega'; }
+  const data = {...prev, id, codigo:code, categoria:v.categoria, nombre:v.nombre, marca:v.marca, modelo:v.modelo, serie:v.serie, responsable:v.responsable, responsables:v.responsables, uso:bodNew?'bodega':'uso', ubicacion:v.ubicacion, fechaAsignacion:v.fechaAsignacion, estado:v.estado, fechaCompra:v.fechaCompra, valor:r2(v.valor), proveedor:v.proveedor, obs:v.obs, hist, creado:prev.creado||new Date().toISOString(), actualizado:new Date().toISOString()};
   if(pend===null){ data.foto=false; data.mini=''; }
   else if(pend){ data.foto=true; data.mini=pend.mini; }
   closeLayer(); await put('inv', id, data);
@@ -2846,7 +2869,7 @@ function invFiltered(){
   const q = UI.invQ.trim().toLowerCase().replace(/^bdr(\d)/,'bdr-$1');
   let list = Object.values(S.inv);
   if(UI.invTab!=='resp') list = list.filter(i=>(UI.invCat==='all'||i.categoria===UI.invCat) && invUsoF(UI.invUso||'todos')(i));
-  if(q) list = list.filter(i=>[i.codigo,i.nombre,i.marca,i.modelo,i.serie,i.ubicacion,S.emp[i.responsable]?.nombre].join(' ').toLowerCase().includes(q));
+  if(q) list = list.filter(i=>[i.codigo,i.nombre,i.marca,i.modelo,i.serie,i.ubicacion,respNames(i)].join(' ').toLowerCase().includes(q));
   return list.sort((a,b)=>a.codigo.localeCompare(b.codigo));
 }
 async function pdfInventario(){
@@ -2859,7 +2882,7 @@ async function pdfInventario(){
   await table(D, [
     {h:'Foto', w:56, img:true}, {h:'Código', w:70, bold:true}, {h:'Bien', sub:true}, {h:'Categoría', w:100}, {h:'Responsable', w:140, sub:true}, {h:'Ubicación', w:100}, {h:'Estado', w:62}, {h:'Valor', w:66, align:'right'}
   ], list.map(i=>{ const e=S.emp[i.responsable]; return {key:i.id, img:i.mini, colors:{6:estadoColor(i.estado)},
-    cells:['', i.codigo, [i.nombre, [i.marca,i.modelo,i.serie&&'S/N '+i.serie].filter(Boolean).join(' · ')].filter(Boolean).join('\n'), i.categoria, isBod(i)?'En bodega (sin uso)':e?[e.nombre, [e.cargo, e.dept&&deptName(e.dept)].filter(Boolean).join(' · ')].filter(Boolean).join('\n'):'Sin asignar', i.ubicacion||'-', EST_INV[i.estado]?.label||'', +i.valor?pmoney(i.valor):'-']}; }),
+    cells:['', i.codigo, [i.nombre, [i.marca,i.modelo,i.serie&&'S/N '+i.serie].filter(Boolean).join(' · ')].filter(Boolean).join('\n'), i.categoria, isBod(i)?'En bodega (sin uso)':respsOf(i).length>1?respNames(i)+'\n(compartido)':e?[e.nombre, [e.cargo, e.dept&&deptName(e.dept)].filter(Boolean).join(' · ')].filter(Boolean).join('\n'):'Sin asignar', i.ubicacion||'-', EST_INV[i.estado]?.label||'', +i.valor?pmoney(i.valor):'-']}; }),
     {minH:50, foot:['', '', `Total: ${list.length} bienes`, '', '', '', '', pmoney(sum(list.map(i=>i.valor)))]});
   await pdfSave(D, `inventario-benderam-${todayS()}.pdf`);
 }
@@ -3962,7 +3985,7 @@ function moveForm(ids, from){
   const many = items.length>1 || from!==undefined;
   const emps = activeEmps().filter(e=>e.id!==from);
   const deTxt = from==='bodega' ? 'Bodega' : from && S.emp[from] ? S.emp[from].nombre : items.length===1 ? histName(isBod(items[0])?'bodega':items[0].responsable) : '';
-  openLayer(`<form class="modal" id="moveForm" role="dialog" aria-modal="true" aria-labelledby="mvT" novalidate><h2 id="mvT">${many?'Mover bienes':'Mover '+esc(items[0].codigo)}</h2>
+  openLayer(`<form class="modal" id="moveForm" data-from="${esc(from||'')}" role="dialog" aria-modal="true" aria-labelledby="mvT" novalidate><h2 id="mvT">${many?'Mover bienes':'Mover '+esc(items[0].codigo)}</h2>
     <p>${deTxt?`Ahora ${items.length===1?'está':'están'} con: <b>${esc(deTxt)}</b>. `:''}Elige a quién pasan o si van a bodega. El cambio queda en el historial de cada bien.</p>
     ${many?`<div class="mvlist">${items.map(i=>`<label class="check"><input type="checkbox" name="it" value="${i.id}" checked> <span class="tag num">${esc(i.codigo)}</span> ${esc(i.nombre)}</label>`).join('')}</div>`:`<p style="margin-top:-4px"><span class="tag num">${esc(items[0].codigo)}</span> ${esc(items[0].nombre)}<input type="hidden" name="it" value="${items[0].id}"></p>`}
     <div class="fg"><div class="f full" data-f="to"><label for="mv_to">Pasa a</label><select id="mv_to" name="to"><option value="">Elige una persona o bodega</option>${from==='bodega'?'':'<option value="bodega">En bodega (sin uso)</option>'}${emps.map(e=>`<option value="${e.id}">${esc(e.nombre)}</option>`).join('')}</select><div class="err"></div></div>
@@ -3972,15 +3995,17 @@ function moveForm(ids, from){
     <div class="acts" style="justify-content:flex-end;margin-top:16px"><button type="button" class="btn" data-act="close">Cancelar</button><button class="btn gold" type="submit">Mover</button></div></form>`, true);
 }
 async function submitMove(f){
+  const from = f.dataset.from || '';
   const fdata = new FormData(f); const ids = fdata.getAll('it'); const to = fdata.get('to'); const fecha = fdata.get('fecha') || todayS(); const motivo = (fdata.get('motivo')||'').trim(); const ub = (fdata.get('ubicacion')||'').trim();
   if(!to){ markErrors(f, {to:'Elige a quién pasan o si van a bodega.'}); return; }
   if(!ids.length){ toast('Marca al menos un bien.', true); return; }
   closeLayer();
   for(const id of ids){ const i = S.inv[id]; if(!i) continue;
-    const de = isBod(i) ? 'bodega' : (i.responsable||'');
+    const prevR = respsOf(i), de = isBod(i) ? 'bodega' : prevR.join(',');
     if(de===to) continue;
     const bod = to==='bodega';
-    await put('inv', id, {...i, responsable: bod ? '' : to, uso: bod ? 'bodega' : 'uso', ubicacion: ub || (bod ? 'Bodega' : (isBod(i) && i.ubicacion==='Bodega' ? 'Oficina principal' : i.ubicacion)), fechaAsignacion: bod ? i.fechaAsignacion : fecha, hist:[...(i.hist||[]), {fecha, de, a:to, motivo}], actualizado:new Date().toISOString()});
+    const nuevos = bod ? [] : (from && from!=='bodega' && prevR.includes(from) ? [...new Set(prevR.map(x=>x===from?to:x))] : [to]);
+    await put('inv', id, {...i, responsable: bod ? '' : nuevos[0], responsables: nuevos, uso: bod ? 'bodega' : 'uso', ubicacion: ub || (bod ? 'Bodega' : (isBod(i) && i.ubicacion==='Bodega' ? 'Oficina principal' : i.ubicacion)), fechaAsignacion: bod ? i.fechaAsignacion : fecha, hist:[...(i.hist||[]), {fecha, de, a: bod ? 'bodega' : nuevos.join(','), motivo}], actualizado:new Date().toISOString()});
   }
   render();
   toast(to==='bodega' ? `${ids.length} ${ids.length===1?'bien guardado en bodega. Sigue':'bienes guardados en bodega. Siguen'} en el inventario.` : `${ids.length} ${ids.length===1?'bien pasó':'bienes pasaron'} a ${shortName(S.emp[to].nombre)}. Su acta de bienes a cargo ya está actualizada.`);
@@ -3991,6 +4016,97 @@ Object.assign(ACT, {
   'inv-move-many':d=>moveForm(d.ids.split(','), d.from||'')
 });
 document.addEventListener('submit', e=>{ if(e.target.id==='moveForm'){ e.preventDefault(); submitMove(e.target); } });
+
+/* ================= v22: bienes compartidos y arrastrar entre personas ================= */
+function respPickerHTML(i, emps){
+  const sel = new Set(respsOf(i)), bod = isBod(i);
+  const lista = emps.slice().sort((a,b)=>(sel.has(b.id)-sel.has(a.id)) || a.nombre.localeCompare(b.nombre));
+  return `<div class="f full rpick"><label>Responsables <small class="muted" style="font-weight:400">· puedes marcar una o varias personas</small></label>
+    <div class="rp-top"><input type="search" class="rp-q" placeholder="Buscar persona" aria-label="Buscar persona" autocomplete="off"><label class="check rp-bod"><input type="checkbox" name="rbod" ${bod?'checked':''}> En bodega (sin uso)</label></div>
+    <div class="rp-l" ${bod?'aria-disabled="true"':''}>${lista.map(e=>`<label class="check" data-n="${esc(e.nombre.toLowerCase())}"><input type="checkbox" name="resp" value="${e.id}" ${sel.has(e.id)&&!bod?'checked':''} ${bod?'disabled':''}> <span>${esc(e.nombre)}</span><small class="muted">${esc(e.cargo||'')}</small></label>`).join('')}</div>
+    <small class="rp-n muted">${bod?'Guardado en bodega.':sel.size?`${sel.size} ${sel.size===1?'persona':'personas'} a cargo.`:'Sin responsable.'}</small></div>`;
+}
+document.addEventListener('input', e=>{ if(!e.target.classList.contains('rp-q')) return; const q = e.target.value.trim().toLowerCase(); e.target.closest('.rpick').querySelectorAll('.rp-l .check').forEach(l=>{ l.hidden = q && !l.dataset.n.includes(q); }); });
+document.addEventListener('change', e=>{ const t = e.target, box = t.closest && t.closest('.rpick'); if(!box) return;
+  if(t.name==='rbod'){ box.querySelectorAll('[name=resp]').forEach(c=>{ c.disabled = t.checked; if(t.checked) c.checked = false; }); }
+  const n = box.querySelectorAll('[name=resp]:checked').length, bod = box.querySelector('[name=rbod]').checked;
+  box.querySelector('.rp-n').textContent = bod ? 'Guardado en bodega.' : n ? `${n} ${n===1?'persona':'personas'} a cargo.` : 'Sin responsable.'; });
+
+/* cambios por arrastre: quedan pendientes hasta "Guardar cambios" */
+UI.invMov = UI.invMov || [];
+function invEstado(i){ // responsables y bodega después de aplicar lo arrastrado
+  let r = respsOf(i), bod = isBod(i), pend = false;
+  UI.invMov.filter(m=>m.id===i.id).forEach(m=>{ pend = true;
+    if(m.to==='bodega'){ r = []; bod = true; return; }
+    if(m.to==='libre'){ r = m.from && m.from!=='bodega' && m.from!=='libre' ? r.filter(x=>x!==m.from) : []; bod = false; return; }
+    if(m.share){ if(!r.includes(m.to)) r = [...r, m.to]; bod = false; return; }
+    r = m.from && r.includes(m.from) ? [...new Set(r.map(x=>x===m.from?m.to:x))] : [m.to]; bod = false; });
+  return {r, bod, pend};
+}
+bienesPorPersona = function(){
+  const items = Object.values(S.inv).filter(i=>i.estado!=='baja').map(i=>({i, ...invEstado(i)}));
+  const de = empId => items.filter(x=>x.r.includes(empId)).sort((a,b)=>a.i.codigo.localeCompare(b.i.codigo));
+  const emps = Object.values(S.emp).map(e=>({e, items:de(e.id)})).filter(x=>x.items.length || x.e.activo!==false).sort((a,b)=>b.items.length-a.items.length || a.e.nombre.localeCompare(b.e.nombre));
+  const libres = items.filter(x=>!x.bod && !x.r.some(y=>S.emp[y]));
+  const enBod = items.filter(x=>x.bod).sort((a,b)=>a.i.codigo.localeCompare(b.i.codigo));
+  const n = UI.invMov.length;
+  const li = (x, from) => { const i = x.i, otros = x.r.filter(y=>y!==from && S.emp[y]); return `<li draggable="true" data-drag="${i.id}" data-from="${esc(from)}" class="${x.pend?'pend':''}"><button class="lrow" data-act="edit-inv" data-id="${i.id}"><span class="grip" aria-hidden="true">⠿</span>${i.mini?`<img class="ithumb sm" src="${esc(i.mini)}" alt="" loading="lazy">`:''}<span class="tag num">${esc(i.codigo)}</span><span class="lr-n">${esc(i.nombre)}${otros.length?`<small class="shared" title="${esc(otros.map(y=>S.emp[y].nombre).join(', '))}">Compartido con ${otros.length===1?esc(shortName(S.emp[otros[0]].nombre)):otros.length+' personas'}</small>`:''}</span>${x.pend?'<em class="pend-b">sin guardar</em>':i.estado==='danado'?invPill(i):''}</button></li>`; };
+  const card = (title, sub, list, key, warn, empId) => `<div class="pcard" data-drop="${esc(key)}">
+    <div class="pc-h"><div><h3>${esc(title)}</h3><small class="muted">${sub}</small></div><b class="num">${list.length}</b></div>
+    ${warn?`<div class="calcbox" style="margin-bottom:8px">${warn}</div>`:''}
+    ${list.length?`<ul>${list.map(x=>li(x, key)).join('')}</ul>`:'<p class="muted drop-empty">Sin bienes. Arrastra uno aquí para asignárselo.</p>'}
+    <div class="acts">${list.length&&!n?`<button class="btn sm" data-act="inv-move-many" data-ids="${list.map(x=>x.i.id).join(',')}" data-from="${empId||(key==='bodega'?'bodega':'')}">${key==='bodega'?'Sacar de bodega':'Mover bienes'}</button>`:''}${empId?`<button class="btn sm quiet" data-act="new-inv" data-emp="${empId}">Asignar bien</button>${list.length&&!n?`<button class="btn sm quiet" data-act="acta" data-id="${empId}">Ver acta</button><button class="btn sm gold" data-act="acta-pdf" data-id="${empId}">Descargar PDF</button>`:''}`:''}</div></div>`;
+  const bar = `<div class="dnd-bar ${n?'on':''}"><div><b>${n?`${n} ${n===1?'cambio':'cambios'} sin guardar`:'Arrastra y suelta para reasignar'}</b><small>${n?'Revisa los bienes marcados y pulsa Guardar cambios.':'Arrastra un bien a la tarjeta de otra persona para pasárselo. Mantén <kbd>Ctrl</kbd> (<kbd>⌥ Option</kbd> en Mac) al soltar para <b>compartirlo</b>: queda con las dos personas.'}</small></div>${n?`<div class="acts"><button class="btn sm quiet" data-act="inv-dnd-undo">Descartar</button><button class="btn sm gold" data-act="inv-dnd-save">Guardar cambios</button></div>`:''}</div>`;
+  return bar + `<div class="pcards">${emps.map(({e,items})=>card(e.nombre, `${esc(e.cargo||'Sin cargo')}, ${esc(deptName(e.dept))}${items.length?` · ${money(sum(items.map(x=>x.i.valor)))}`:''}`, items, e.id, e.activo===false&&items.length?'Colaborador inactivo con bienes a su cargo. Reasígnalos o regístralos como devueltos.':'', e.id)).join('')}
+    ${card('Sin responsable', 'Bienes sin asignar', libres, 'libre', '', null)}
+    ${card('Bodega', 'Guardados, sin uso', enBod, 'bodega', '', null)}</div>`;
+};
+let DND = null;
+document.addEventListener('dragstart', e=>{ const li = e.target.closest && e.target.closest('[data-drag]'); if(!li) return; DND = {id:li.dataset.drag, from:li.dataset.from}; e.dataTransfer.effectAllowed = 'copyMove'; try{ e.dataTransfer.setData('text/plain', li.dataset.drag); }catch(_){} li.classList.add('dragging'); document.body.classList.add('dnd-on'); });
+document.addEventListener('dragend', e=>{ document.querySelectorAll('.dragging,.drop-ok').forEach(x=>x.classList.remove('dragging','drop-ok')); document.body.classList.remove('dnd-on'); DND = null; });
+document.addEventListener('dragover', e=>{ if(!DND) return; const c = e.target.closest && e.target.closest('[data-drop]'); if(!c) return; e.preventDefault(); const share = e.ctrlKey || e.altKey || e.metaKey; e.dataTransfer.dropEffect = share ? 'copy' : 'move'; document.querySelectorAll('.drop-ok').forEach(x=>{ if(x!==c) x.classList.remove('drop-ok'); }); c.classList.add('drop-ok'); c.dataset.share = share ? '1' : ''; });
+document.addEventListener('dragleave', e=>{ const c = e.target.closest && e.target.closest('[data-drop]'); if(c && !c.contains(e.relatedTarget)) c.classList.remove('drop-ok'); });
+document.addEventListener('drop', e=>{ if(!DND) return; const c = e.target.closest && e.target.closest('[data-drop]'); if(!c) return; e.preventDefault();
+  const to = c.dataset.drop, {id, from} = DND, share = (e.ctrlKey || e.altKey || e.metaKey) && !['bodega','libre'].includes(to);
+  if(to===from) return;
+  const i = S.inv[id]; if(!i) return;
+  const now = invEstado(i);
+  if(!['bodega','libre'].includes(to) && now.r.includes(to) && !now.bod) return toast(`${shortName(S.emp[to].nombre)} ya tiene este bien.`, true);
+  UI.invMov.push({id, from, to, share});
+  render();
+  toast(share ? `${i.codigo} se compartirá con ${shortName(S.emp[to].nombre)}. Pulsa Guardar cambios.` : `${i.codigo} pasará a ${to==='bodega'?'bodega':to==='libre'?'sin responsable':shortName(S.emp[to].nombre)}. Pulsa Guardar cambios.`);
+});
+function invCambiosLista(){
+  const ids = [...new Set(UI.invMov.map(m=>m.id))];
+  return ids.map(id=>{ const i = S.inv[id]; if(!i) return null; const a = invEstado(i);
+    const deT = isBod(i) ? 'Bodega' : respNames(i) || 'Sin responsable', aT = a.bod ? 'Bodega' : a.r.map(x=>S.emp[x]?.nombre).filter(Boolean).join(', ') || 'Sin responsable';
+    return deT===aT ? null : {i, a, deT, aT}; }).filter(Boolean);
+}
+async function invGuardarArrastre(){
+  const L = invCambiosLista();
+  if(!L.length){ UI.invMov = []; render(); return; }
+  const ok = await new Promise(res=>{ const w = document.createElement('div'); w.className = 'ov center ask'; w.style.zIndex = 70; w.style.alignItems = 'center';
+    w.innerHTML = `<div class="modal small-modal" role="dialog" aria-modal="true" aria-labelledby="dgT"><h2 id="dgT">¿Guardar ${L.length} ${L.length===1?'cambio':'cambios'} de responsable?</h2><p class="muted" style="margin:0 0 10px">Cada cambio queda en el historial del bien y en el acta de cada persona.</p>
+      <ul class="pend-l dnd-l">${L.map(x=>`<li><b><span class="tag num">${esc(x.i.codigo)}</span> ${esc(x.i.nombre)}</b><span>${esc(x.deT)} → <b>${esc(x.aT)}</b></span></li>`).join('')}</ul>
+      <div class="acts" style="justify-content:flex-end;margin-top:14px"><button class="btn" data-a="no">Seguir editando</button><button class="btn gold" data-a="yes">Sí, guardar cambios</button></div></div>`;
+    document.body.appendChild(w); w.querySelector('[data-a=yes]').focus();
+    const done = v => { w.remove(); res(v); };
+    w.addEventListener('click', ev=>{ const a = ev.target.closest('[data-a]'); if(a) done(a.dataset.a==='yes'); else if(ev.target===w) done(false); });
+    w.addEventListener('keydown', ev=>{ if(ev.key==='Escape'){ ev.stopPropagation(); done(false); } }); });
+  if(!ok) return;
+  const fecha = todayS(), ids = [];
+  for(const x of L){ const i = x.i, de = isBod(i) ? 'bodega' : respsOf(i).join(','), a = x.a.bod ? 'bodega' : x.a.r.join(',');
+    const data = {...i, responsable: x.a.r[0] || '', responsables: x.a.r, uso: x.a.bod ? 'bodega' : 'uso', ubicacion: x.a.bod ? 'Bodega' : (isBod(i) && i.ubicacion==='Bodega' ? 'Oficina principal' : i.ubicacion), fechaAsignacion: x.a.bod ? i.fechaAsignacion : fecha, hist:[...(i.hist||[]), {fecha, de, a, motivo:'Reasignado arrastrando en el panel'}], actualizado:new Date().toISOString()};
+    await put('inv', i.id, data); ids.push(i.id); }
+  // gerencia ya confirmó aquí: se guarda de una vez, sin pasar por la barra de arriba
+  if(typeof confirmaAdmin==='function' && confirmaAdmin()){ const mine = PEND.filter(y=>y.col==='inv' && ids.includes(y.id)); PEND = PEND.filter(y=>!(y.col==='inv' && ids.includes(y.id))); mine.forEach(y=>{ BATCH = BATCH.filter(z=>!(z.col==='inv' && z.id===y.id)); BATCH.push({col:'inv', id:y.id, data:y.data}); }); flushBatch(); updPend(); }
+  UI.invMov = []; render(); toast(`${L.length} ${L.length===1?'bien reasignado':'bienes reasignados'}. Las actas ya están actualizadas.`);
+}
+Object.assign(ACT, {
+  'inv-dnd-save':()=>invGuardarArrastre(),
+  'inv-dnd-undo':async ()=>{ if(!(await ask('Descartar cambios', 'Los bienes vuelven a quien los tenía.', 'Descartar', true))) return; UI.invMov = []; render(); }
+});
+window.addEventListener('beforeunload', e=>{ if((UI.invMov||[]).length){ e.preventDefault(); e.returnValue=''; } });
 
 /* ================= inicio ================= */
 async function boot(){
