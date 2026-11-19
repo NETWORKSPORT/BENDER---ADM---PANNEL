@@ -2457,9 +2457,10 @@ const USER_TIPOS = [
   ['extracciones','Extracciones','Pide y paga extracciones, cuadra sus cuentas'],
   ['contabilidad','Contabilidad','Verifica comprobantes y pagos'],
   ['caja','Caja','Cuadres de caja y multiagencia'],
+  ['inventario','Inventario','Registra bienes, asigna responsables y saca actas'],
   ['gerente','Administrador','Administrador o subadministrador: ve y edita todo, y administra usuarios'],
   ['otro','Personalizado','Marca tú las áreas']];
-const TIPO_AREAS = {operador:['recargas'], extracciones:['extracciones'], contabilidad:['contabilidad'], caja:['caja']};
+const TIPO_AREAS = {operador:['recargas'], extracciones:['extracciones'], contabilidad:['contabilidad'], caja:['caja'], inventario:['inventario']};
 function userTipo(u){ if(u.rol==='gerente') return 'gerente'; const a = u.areas||[]; if(!a.length) return ''; const k = Object.keys(TIPO_AREAS).find(k=>TIPO_AREAS[k].every(x=>a.includes(x)) && a.every(x=>TIPO_AREAS[k].includes(x)||x==='reportes')); return k || 'otro'; }
 function setUserTipo(k){
   const f = $('#userForm'); if(!f) return;
